@@ -6,7 +6,6 @@
 <title>HYPR Creative Smart Bulk</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -399,7 +398,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="app-header-row">
       <div class="header-brand"><div class="header-logo">H</div><h1>Creative Smart Bulk</h1></div>
       <div class="header-user" id="headerUser">
-        <img class="header-user-avatar" id="headerAvatar" src="" alt="">
+        <img class="header-user-avatar" id="headerAvatar" src="" alt="" width="32" height="32">
         <div class="header-user-initials" id="headerInitials" style="display:none"></div>
         <span class="header-user-name" id="headerName"></span>
         <button class="btn-signout" onclick="doSignOut()">Sair</button>
@@ -644,6 +643,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </main>
 <div class="toast" id="toast" role="alert" aria-live="assertive"><span id="toastMsg"></span><button class="toast-dismiss" id="toastDismiss" aria-label="Fechar">✕</button></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 const TYPEFORM_PROXY='https://adfnabuwzmojxbhcpdpe.supabase.co/functions/v1/typeform-proxy';
 const SUPABASE_URL='https://adfnabuwzmojxbhcpdpe.supabase.co';

@@ -408,6 +408,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="dsp-card" data-dsp="xandr" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-name">Xandr</div><div class="dsp-card-sub">XLSX · Third-Party Creative</div></div>
         <div class="dsp-pixel-input" id="pixelWrap_xandr"><label for="pixel_xandr">Impression Pixel <small>(só tags)</small></label><input type="text" id="pixel_xandr" class="pixel-field" placeholder="Cole a URL ou tag do pixel"></div>
       </div>
+      <div class="dsp-card" data-dsp="amazondsp" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-name">Amazon DSP</div><div class="dsp-card-sub">XLSX · Third-Party Display</div></div>
     </div>
     <div class="pixel-sync-row" id="pixelSyncRow">
       <label class="checkbox-row" style="padding:4px 0;font-size:0.78rem"><input type="checkbox" class="custom-cb" id="syncPixels"> Usar mesmo pixel para StackAdapt e Xandr</label>
@@ -481,6 +482,32 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="option-row">
           <label class="option-label" for="inputDV360AdvId">Advertiser ID<small>ID do advertiser no DV360. Default: 1426474713</small></label>
           <div class="option-input"><input type="text" id="inputDV360AdvId" placeholder="1426474713" value="1426474713" style="font-family:var(--mono)"></div>
+        </div>
+      </div>
+      <div class="panel-divider" id="amazonDspConfigDivider" style="display:none"></div>
+      <div id="amazonDspConfigSection" style="display:none">
+        <div style="margin-bottom:14px"><span class="section-label">Configuração Amazon DSP</span></div>
+        <div class="option-row">
+          <label class="option-label" for="inputAmazonAdvId">Advertiser ID<small>ID do advertiser na Amazon DSP</small></label>
+          <div class="option-input"><input type="text" id="inputAmazonAdvId" placeholder="Ex: 1234567890" style="font-family:var(--mono)"></div>
+        </div>
+        <div class="option-row">
+          <label class="option-label" for="inputAmazonMarketplace">Marketplace</label>
+          <div class="option-input">
+            <select id="inputAmazonMarketplace" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:0.8rem;padding:9px 12px;outline:none;appearance:none;cursor:pointer">
+              <option value="Brazil">Brazil</option>
+              <option value="United States">United States</option>
+              <option value="Mexico">Mexico</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Germany">Germany</option>
+              <option value="France">France</option>
+              <option value="Spain">Spain</option>
+              <option value="Italy">Italy</option>
+              <option value="Japan">Japan</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -611,6 +638,10 @@ async function activateInDsps(){
   // StackAdapt (Fase 3 - placeholder)
   if(selectedDsps.has('stackadapt')&&generatedFiles.stackadapt){
     results.push({dsp:'StackAdapt',status:'pending',detail:'Integração em desenvolvimento (Fase 3)'});
+  }
+  // Amazon DSP (sem API - apenas template)
+  if(selectedDsps.has('amazondsp')&&generatedFiles.amazondsp){
+    results.push({dsp:'Amazon DSP',status:'pending',detail:'Apenas template — upload manual na Amazon DSP'});
   }
 
   renderActivationResults(results);
@@ -786,6 +817,9 @@ function updateOptions(){
   document.getElementById('xandrAuditSection').style.display=hasXandr?'':'none';
   document.getElementById('dv360ConfigDivider').style.display=hasDV360?'':'none';
   document.getElementById('dv360ConfigSection').style.display=hasDV360?'':'none';
+  const hasAmazon=selectedDsps.has('amazondsp');
+  document.getElementById('amazonDspConfigDivider').style.display=hasAmazon?'':'none';
+  document.getElementById('amazonDspConfigSection').style.display=hasAmazon?'':'none';
   const showPixels=currentMode!=='surveys';
   ['stackadapt','xandr'].forEach(dsp=>{
     const wrap=document.getElementById(`pixelWrap_${dsp}`),field=document.getElementById(`pixel_${dsp}`);
@@ -805,7 +839,7 @@ function updateGenerateBtn(){const hasTags=currentMode!=='surveys'&&!!parsedData
 function updateAssignment(){const s=document.getElementById('assignmentSection'),dsps=[...selectedDsps];if(dsps.length<2||!parsedData||currentMode==='surveys'){s.classList.remove('visible');return}s.classList.add('visible');const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r)renderAssignmentTable(dsps)}
 function onReplicateChange(){const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r&&parsedData){placementAssignment={};renderAssignmentTable([...selectedDsps])}}
 function renderAssignmentTable(dsps){
-  if(!parsedData)return;const labels={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr'};
+  if(!parsedData)return;const labels={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr',amazondsp:'Amazon DSP'};
   parsedData.placements.forEach((_,i)=>{dsps.forEach(d=>{const k=`${d}_${i}`;if(placementAssignment[k]===undefined)placementAssignment[k]=(d==='dv360')})});
   document.getElementById('assignmentHead').innerHTML=`<tr><th>#</th><th>Placement</th><th>Size</th>${dsps.map(d=>`<th class="assign-col-header">${labels[d]}</th>`).join('')}</tr>`;
   document.getElementById('assignmentBody').innerHTML=parsedData.placements.map((p,i)=>`<tr style="animation-delay:${i*40}ms"><td>${i+1}</td><td>${smartName(p.placementName)}</td><td><span class="dim-badge">${esc(p.dimensions)}</span></td>${dsps.map(d=>{const k=`${d}_${i}`;return`<td class="assign-col-cb"><input type="checkbox" class="custom-cb assign-cb" data-key="${k}" ${placementAssignment[k]?'checked':''}></td>`}).join('')}</tr>`).join('')}
@@ -988,6 +1022,7 @@ function generate(){
   if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.dv360=genDV360({placements:all});cards.push({dsp:'DV360',ext:'csv',count:all.length})}}
   if(selectedDsps.has('stackadapt')){const tp=hasTags?getPlacementsForDsp('stackadapt'):[],px=getPixelForDsp('stackadapt'),all=[...tp,...surveyPl];if(all.length){const r=genSA({placements:all,brandName:parsedData?.brandName||''},br,px);generatedFiles.stackadapt=r;cards.push({dsp:'StackAdapt',ext:'xlsx',count:r.count??r.rows.length})}}
   if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length){generatedFiles.xandr=genXandr({placements:all},px,pol);cards.push({dsp:'Xandr',ext:'xlsx',count:all.length})}}
+  if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.amazondsp=genAmazonDSP({placements:all});cards.push({dsp:'Amazon DSP',key:'amazondsp',ext:'xlsx',count:all.length})}}
 
   if(!cards.length){toast('Nenhum criativo pra gerar','error');return}
   renderResults(cards);
@@ -1017,12 +1052,21 @@ function genSA(d,brand,pixel){const h=['Creative Name','HTML or JS Code','Size',
 
 function genXandr(d,pixel,pol){const pv=pol?'Yes; non-EU':'No';return{headers:['Creative Name','Secure Content','Size','Trackers','External Identifier','Political Declaration'],rows:d.placements.map(p=>[p.placementName,p.jsTag,p.dimensions,p.isSurvey?'':(pixel||''),'',pv]),type:'xlsx',colWidths:[{wch:40},{wch:60},{wch:12},{wch:60},{wch:20},{wch:20}]}}
 
+const AMAZON_MARKETPLACE_LANG={'Brazil':'Portuguese','United States':'English','Mexico':'Spanish','United Kingdom':'English','Germany':'German','France':'French','Spain':'Spanish','Italy':'Italian','Japan':'Japanese','Canada':'English','Australia':'English'};
+function genAmazonDSP(d){
+  const advId=document.getElementById('inputAmazonAdvId')?.value?.trim()||'';
+  const marketplace=document.getElementById('inputAmazonMarketplace')?.value||'Brazil';
+  const lang=AMAZON_MARKETPLACE_LANG[marketplace]||'Portuguese';
+  const h=['Advertiser ID*','Creative Template*','Name*','Marketplace*','Language*','Creative ID','External ID','Size*','Tag Source*','Click-through destination*','Third party-impression URL','AdChoices location','Additional html'];
+  const rows=d.placements.filter(p=>p.type!=='video').map(p=>[advId,'Third party',p.placementName,marketplace,lang,'','',p.dimensions,p.jsTag,'Links to another website','','','']);
+  return{headers:h,rows,type:'xlsx',sheetName:'THIRD-PARTY DISPLAY',colWidths:[{wch:16},{wch:18},{wch:45},{wch:15},{wch:14},{wch:12},{wch:12},{wch:12},{wch:60},{wch:28},{wch:40},{wch:16},{wch:30}]}}
+
 // ── Downloads ──
-function downloadFile(dsp){const f=generatedFiles[dsp];if(!f)return;const s=(parsedData?.campaignName||'Survey').replace(/[^a-zA-Z0-9]/g,'_').substring(0,40),l={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr'}[dsp]||dsp,ext=f.type==='csv'?'csv':'xlsx';f.type==='csv'?dlCSV(f,`${l}_${s}.${ext}`):dlXLSX(f,`${l}_${s}.${ext}`)}
+function downloadFile(dsp){const f=generatedFiles[dsp];if(!f)return;const s=(parsedData?.campaignName||'Survey').replace(/[^a-zA-Z0-9]/g,'_').substring(0,40),l={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr',amazondsp:'AmazonDSP'}[dsp]||dsp,ext=f.type==='csv'?'csv':'xlsx';f.type==='csv'?dlCSV(f,`${l}_${s}.${ext}`):dlXLSX(f,`${l}_${s}.${ext}`)}
 function dlCSV(f,fn){const c=[f.headers,...f.rows].map(r=>r.map(v=>{const s=String(v||'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n');dl(new Blob([c],{type:'text/csv;charset=utf-8;'}),fn)}
 function dlXLSX(f,fn){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([...(f.instructionRows||[]),f.headers,...f.rows]);ws['!cols']=f.colWidths||[];XLSX.utils.book_append_sheet(wb,ws,f.sheetName||'Sheet1');dl(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fn)}
 function dl(blob,fn){const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:fn});document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href)}
-function renderResults(cards){document.getElementById('resultCards').innerHTML=cards.map((c,i)=>`<div class="result-card" style="animation-delay:${i*120}ms"><div class="result-info"><div class="result-dsp">${c.dsp}</div><div class="result-details">${c.count} creatives · .${c.ext}</div></div><button class="btn-download" data-dsp="${c.dsp.toLowerCase()}">Download</button></div>`).join('');document.getElementById('results').classList.add('visible')}
+function renderResults(cards){document.getElementById('resultCards').innerHTML=cards.map((c,i)=>`<div class="result-card" style="animation-delay:${i*120}ms"><div class="result-info"><div class="result-dsp">${c.dsp}</div><div class="result-details">${c.count} creatives · .${c.ext}</div></div><button class="btn-download" data-dsp="${c.key||c.dsp.toLowerCase()}">Download</button></div>`).join('');document.getElementById('results').classList.add('visible')}
 
 // ── Events ──
 document.getElementById('modeSwitcher').addEventListener('click',e=>{const btn=e.target.closest('.mode-btn');if(btn)setMode(btn.dataset.mode)});

@@ -19,13 +19,13 @@ html{font-size:15px}
 [data-theme="dark"]{
   --bg:#08080d;--bg-card:#111118;--bg-card-hover:#191924;--bg-input:#0c0c14;
   --bg-section:#0e0e15;--border:#1c1c2c;--border-active:#3b3b5c;
-  --text:#e4e4ed;--text-dim:#7a7a8e;--text-muted:#6a6a80;
-  --accent:#6c5ce7;--accent-glow:rgba(108,92,231,0.12);--accent-hover:#7d6ff0;
+  --text:#e4e4ed;--text-dim:#8585a0;--text-muted:#8a8a9e;
+  --accent:#7b6ef0;--accent-glow:rgba(123,110,240,0.12);--accent-hover:#8d82f2;
   --success:#2edbd6;--success-glow:rgba(0,206,201,0.10);--error:#e17055;
   --warning:#e6a700;--warning-glow:rgba(255,180,0,0.12);
   --text-on-accent:#fff;--text-on-success:#0a0a0f;
   --shadow-card:0 1px 3px rgba(0,0,0,0.3);--shimmer:rgba(255,255,255,0.1);
-  --divider:rgba(108,92,231,0.15);
+  --divider:rgba(123,110,240,0.15);
   --login-bg:#08080d;--login-card-bg:rgba(17,17,24,0.85);--login-sub-color:rgba(255,255,255,0.5);
   --login-card-shadow:0 40px 100px rgba(0,0,0,0.6);--login-card-inset:inset 0 1px 0 rgba(255,255,255,0.06);
   --google-btn-bg:rgba(255,255,255,0.06);--google-btn-border:rgba(255,255,255,0.1);
@@ -97,8 +97,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 /* ── Extracted Info ── */
 .extracted-info{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:20px;margin-top:16px;opacity:0;transform:translateY(8px);transition:opacity 0.4s,transform 0.4s}
 .extracted-info.visible,.generate-wrap.revealed,.activate-wrap.revealed,.activation-results.visible{opacity:1;transform:translateY(0)}
-.extracted-info h3{font-size:0.8rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.extracted-info h3::before{content:'✓';width:18px;height:18px;border-radius:50%;background:var(--success);color:var(--text-on-success);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.extracted-info-title{font-size:0.8rem;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.extracted-info-title::before{content:'✓';width:18px;height:18px;border-radius:50%;background:var(--success);color:var(--text-on-success);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
 .info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .info-item{background:var(--bg);border-radius:var(--radius-xs);padding:10px 12px}
 .info-item-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:3px}
@@ -182,7 +182,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .checkbox-row input[type="checkbox"]:checked::after{font-size:11px}
 
 /* ── Focus visibility ── */
-.theme-toggle:focus-visible,.upload-clear:focus-visible,.btn-generate:focus-visible,.btn-download:focus-visible,.dsp-card:focus-visible,.mode-btn:focus-visible,.survey-type-btn:focus-visible,.custom-cb:focus-visible,.assign-cb:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
+.theme-toggle:focus-visible,.upload-clear:focus-visible,.btn-generate:focus-visible,.btn-download:focus-visible,.dsp-card:focus-visible,.mode-btn:focus-visible,.survey-type-btn:focus-visible,.custom-cb:focus-visible,.assign-cb:focus-visible,.asset-action-btn:focus-visible,.asset-resize-btn:focus-visible,.assets-clear:focus-visible,.assets-filter-select-btn:focus-visible,.btn-activate:focus-visible,.btn-signout:focus-visible,.survey-entry-remove:focus-visible,.toast-dismiss:focus-visible,.tracker-chip-rm:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--accent)}
 
 /* ── Assignment ── */
 .assignment-wrap{margin-top:14px;max-height:0;overflow:hidden;opacity:0;transition:max-height 0.4s,opacity 0.35s,padding 0.4s;padding:0}
@@ -408,12 +408,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <p>Templates prontos pra bulk upload de criativos e surveys nas DSPs.</p>
   </header>
 
+  <nav aria-label="Modo de criativo">
   <div class="mode-switcher" id="modeSwitcher">
     <button class="mode-btn active" data-mode="tags">Tags CM360</button>
     <button class="mode-btn" data-mode="surveys">Surveys</button>
     <button class="mode-btn" data-mode="assets">Assets</button>
     <button class="mode-btn" data-mode="both">Tags + Surveys</button>
   </div>
+  </nav>
 
   <!-- ═══ PANEL 1A: TAGS ═══ -->
   <div class="panel revealed" data-step="1" id="sectionTags">
@@ -431,7 +433,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button class="upload-clear" id="uploadClear" style="display:none" aria-label="Remover arquivo">✕</button>
     </div>
     <div class="extracted-info" id="extractedInfo">
-      <h3>Dados extraídos</h3>
+      <h2 class="extracted-info-title">Dados extraídos</h2>
       <div class="info-grid" id="infoGrid"></div>
       <div class="placements-table-wrap">
         <table class="placements-table"><thead><tr><th>#</th><th>Placement Name</th><th>Size</th><th>Click URL</th></tr></thead><tbody id="placementsBody"></tbody></table>
@@ -699,12 +701,14 @@ async function handleLoggedIn(user){
   if(avatarUrl){avatarEl.src=avatarUrl;avatarEl.style.display=''}
   else{avatarEl.style.display='none';const ini=document.getElementById('headerInitials');if(ini){ini.textContent=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();ini.style.display='flex'}}
   document.getElementById('login-screen').style.display='none';
+  document.getElementById('login-screen').setAttribute('aria-hidden','true');
   document.getElementById('appMain').style.display='';
   document.getElementById('themeToggle').style.display='';
 }
 
 function showLoginScreen(){
   document.getElementById('login-screen').style.display='';
+  document.getElementById('login-screen').removeAttribute('aria-hidden');
   document.getElementById('appMain').style.display='none';
   document.getElementById('themeToggle').style.display='none';
 }
@@ -1689,8 +1693,8 @@ function showFindReplace(){
   const overlay=document.createElement('div');overlay.className='fr-overlay';
   overlay.innerHTML=`<div class="fr-modal">
     <h3>Find & Replace nos nomes (${ids.length} selecionados)</h3>
-    <label>Buscar:</label><input class="asset-input" id="frFind" placeholder="Texto a buscar">
-    <label>Substituir por:</label><input class="asset-input" id="frReplace" placeholder="Novo texto">
+    <label for="frFind">Buscar:</label><input class="asset-input" id="frFind" placeholder="Texto a buscar">
+    <label for="frReplace">Substituir por:</label><input class="asset-input" id="frReplace" placeholder="Novo texto">
     <div class="fr-modal-actions">
       <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
       <button class="primary" onclick="execFindReplace()">Aplicar</button>

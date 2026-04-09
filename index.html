@@ -1062,7 +1062,50 @@ function genAmazonDSP(d){
   return{headers:h,rows,type:'xlsx',sheetName:'THIRD-PARTY DISPLAY',colWidths:[{wch:16},{wch:18},{wch:45},{wch:15},{wch:14},{wch:12},{wch:12},{wch:12},{wch:60},{wch:28},{wch:40},{wch:16},{wch:30}]}}
 
 // ── Downloads ──
-function downloadFile(dsp){const f=generatedFiles[dsp];if(!f)return;const s=(parsedData?.campaignName||'Survey').replace(/[^a-zA-Z0-9]/g,'_').substring(0,40),l={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr',amazondsp:'AmazonDSP'}[dsp]||dsp,ext=f.type==='csv'?'csv':'xlsx';f.type==='csv'?dlCSV(f,`${l}_${s}.${ext}`):dlXLSX(f,`${l}_${s}.${ext}`)}
+function downloadFile(dsp){
+  const f=generatedFiles[dsp];if(!f)return;
+  const s=(parsedData?.campaignName||'Survey').replace(/[^a-zA-Z0-9]/g,'_').substring(0,40);
+  const l={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr',amazondsp:'AmazonDSP'}[dsp]||dsp;
+  const ext=f.type==='csv'?'csv':'xlsx';
+  if(dsp==='amazondsp'){dlAmazonDSP(f,`${l}_${s}.xlsx`);return}
+  f.type==='csv'?dlCSV(f,`${l}_${s}.${ext}`):dlXLSX(f,`${l}_${s}.${ext}`);
+}
+async function dlAmazonDSP(f,fn){
+  try{
+    toast('Preparando template Amazon DSP...','');
+    const res=await fetch('./templates/amazon_dsp_template.xlsx');
+    if(!res.ok)throw new Error('Template não encontrado');
+    const buf=await res.arrayBuffer();
+    const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+    const targetSheet='THIRD-PARTY DISPLAY';
+    if(!wb.SheetNames.includes(targetSheet))throw new Error('Sheet THIRD-PARTY DISPLAY não encontrada no template');
+    const ws=wb.Sheets[targetSheet];
+    // Row 1 = instruction labels, Row 2 = headers, Row 3 = descriptions, data starts at row 4
+    const cols=['A','B','C','D','E','F','G','H','I','J','K','L','M'];
+    f.rows.forEach((row,i)=>{
+      const r=i+4; // data starts at row 4
+      row.forEach((val,j)=>{
+        if(j<cols.length){
+          const cell=cols[j]+r;
+          ws[cell]={t:'s',v:String(val||'')};
+        }
+      });
+    });
+    // Update sheet range
+    const range=XLSX.utils.decode_range(ws['!ref']||'A1:M3');
+    range.e.r=Math.max(range.e.r,f.rows.length+3);
+    range.e.c=Math.max(range.e.c,12);
+    ws['!ref']=XLSX.utils.encode_range(range);
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    dl(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fn);
+    toast('Template Amazon DSP gerado','success');
+  }catch(err){
+    console.error(err);
+    toast('Erro ao gerar template Amazon DSP: '+err.message,'error');
+    // Fallback: download simples
+    dlXLSX(f,fn);
+  }
+}
 function dlCSV(f,fn){const c=[f.headers,...f.rows].map(r=>r.map(v=>{const s=String(v||'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n');dl(new Blob([c],{type:'text/csv;charset=utf-8;'}),fn)}
 function dlXLSX(f,fn){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([...(f.instructionRows||[]),f.headers,...f.rows]);ws['!cols']=f.colWidths||[];XLSX.utils.book_append_sheet(wb,ws,f.sheetName||'Sheet1');dl(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fn)}
 function dl(blob,fn){const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:fn});document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href)}

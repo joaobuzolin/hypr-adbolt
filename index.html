@@ -386,6 +386,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .act-status.partial{background:var(--accent-glow);color:var(--accent)}
 .act-status.error{background:rgba(225,112,85,0.1);color:var(--error)}
 .act-status.pending{background:var(--accent-glow);color:var(--text-muted)}
+.activation-progress{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.activation-progress h3{font-size:0.82rem;font-weight:600;margin-bottom:14px}
+.ap-dsp{margin-bottom:14px}
+.ap-dsp:last-child{margin-bottom:0}
+.ap-dsp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ap-dsp-name{font-weight:600;font-size:0.82rem}
+.ap-dsp-count{font-family:var(--mono);font-size:0.72rem;color:var(--text-dim)}
+.ap-bar-bg{height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.ap-bar-fill{height:100%;border-radius:3px;transition:width 0.4s ease;background:var(--accent)}
+.ap-bar-fill.done{background:var(--success)}
+.ap-bar-fill.error{background:var(--error)}
+.ap-current{font-family:var(--mono);font-size:0.7rem;color:var(--text-muted);margin-top:4px;min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .act-detail{font-size:0.75rem;color:var(--text-dim);font-family:var(--mono)}
 </style>
 </head>
@@ -649,6 +661,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="activate-wrap" id="activateWrap">
     <button class="btn-activate" id="btnActivate" disabled onclick="activateInDsps()">Ativar nas DSPs</button>
   </div>
+  <div class="activation-progress" id="activationProgress" style="display:none"></div>
   <div class="activation-results" id="activationResults">
     <h2 class="section-label">Ativação nas DSPs</h2>
     <div id="activationCards"></div>
@@ -738,28 +751,57 @@ function updateActivateBtn(){
   btn.disabled=!selectedDsps.size;
 }
 
+// ── Activation Progress ──
+function showActivationProgress(dsps,totalPerDsp){
+  const panel=document.getElementById('activationProgress');
+  panel.style.display='';
+  panel.innerHTML=`<h3>Ativando criativos...</h3>${dsps.map(d=>`<div class="ap-dsp" id="ap-${d}">
+    <div class="ap-dsp-header"><span class="ap-dsp-name">${{xandr:'Xandr',dv360:'DV360',stackadapt:'StackAdapt',amazondsp:'Amazon DSP'}[d]||d}</span><span class="ap-dsp-count" id="ap-count-${d}">0/${totalPerDsp}</span></div>
+    <div class="ap-bar-bg"><div class="ap-bar-fill" id="ap-bar-${d}" style="width:0%"></div></div>
+    <div class="ap-current" id="ap-current-${d}">Aguardando...</div>
+  </div>`).join('')}`;
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function updateProgress(dsp,current,total,name,success){
+  const pct=Math.round((current/total)*100);
+  const bar=document.getElementById(`ap-bar-${dsp}`);
+  const count=document.getElementById(`ap-count-${dsp}`);
+  const cur=document.getElementById(`ap-current-${dsp}`);
+  if(bar)bar.style.width=pct+'%';
+  if(count)count.textContent=`${current}/${total}`;
+  if(cur)cur.textContent=current<total?`Enviando ${current+1}/${total}: ${name||'...'}`:'Concluído';
+}
+function finalizeProgress(dsp,successCount,total){
+  const bar=document.getElementById(`ap-bar-${dsp}`);
+  const cur=document.getElementById(`ap-current-${dsp}`);
+  if(bar){bar.style.width='100%';bar.classList.add(successCount===total?'done':'error')}
+  if(cur)cur.textContent=successCount===total?`✓ ${successCount}/${total} criativos criados`:`⚠ ${successCount}/${total} criados (${total-successCount} erros)`;
+}
+
 // ── Ativação nas DSPs ──
 async function activateInDsps(){
   if(!currentUser){toast('Faça login primeiro','error');return}
 
-  // Validações obrigatórias antes de ativar
   if(selectedDsps.has('xandr')){
     const brandUrl=document.getElementById('inputXandrBrandUrl').value.trim();
     if(!brandUrl){toast('Preencha a Brand URL na seção Auditoria Xandr','error');document.getElementById('inputXandrBrandUrl').focus();return}
   }
 
   const isAssetMode=currentMode==='assets'&&!!generatedFiles._assets;
-  const btn=document.getElementById('btnActivate');
-  btn.disabled=true;btn.classList.add('loading');btn.textContent='Ativando...';
+  const btn=isAssetMode?document.getElementById('btnGenerate'):document.getElementById('btnActivate');
+  btn.disabled=true;btn.textContent='Ativando...';
 
   const{data:{session}}=await sbClient.auth.getSession();
-  if(!session){toast('Sessão expirada, faça login novamente','error');btn.disabled=false;btn.classList.remove('loading');btn.textContent='Ativar nas DSPs';return}
+  if(!session){toast('Sessão expirada, faça login novamente','error');btn.disabled=false;btn.textContent='Ativar nas DSPs';return}
 
   const token=session.access_token;
   const results=[];
 
   if(isAssetMode){
-    // Asset mode activation
+    const assetCount=generatedFiles._assets.length;
+    const activeDsps=[...selectedDsps].filter(d=>d==='xandr'||d==='dv360');
+    if(activeDsps.length)showActivationProgress(activeDsps,assetCount);
+
     if(selectedDsps.has('xandr'))results.push(await activateXandrAssets(token));
     if(selectedDsps.has('dv360'))results.push(await activateDV360Assets(token));
     if(selectedDsps.has('stackadapt'))results.push({dsp:'StackAdapt',status:'pending',detail:'Asset upload pendente (aguardando API key)'});
@@ -773,8 +815,8 @@ async function activateInDsps(){
   }
 
   renderActivationResults(results);
-  btn.textContent='Ativar nas DSPs';btn.classList.remove('loading');btn.disabled=false;
-  btn.classList.add('done');setTimeout(()=>btn.classList.remove('done'),2000);
+  btn.textContent='Ativar nas DSPs';btn.disabled=false;
+  if(isAssetMode)updateGenerateBtn();
 }
 
 async function activateXandr(token){
@@ -899,7 +941,7 @@ async function activateXandrAssets(token){
     const results=[];
     for(let i=0;i<assets.length;i++){
       const a=assets[i];
-      toast(`Xandr: uploading ${i+1}/${assets.length} — ${a.name}`,'');
+      updateProgress('xandr',i,assets.length,a.name);
       try{
         const file=a.compressedFile||a.originalFile;
         const base64=await fileToBase64(file);
@@ -918,12 +960,14 @@ async function activateXandrAssets(token){
         if(res.ok&&data.results?.length)results.push(...data.results);
         else results.push({name:a.name,success:false,error:data.error||'Erro'});
       }catch(err){results.push({name:a.name,success:false,error:err.message})}
+      updateProgress('xandr',i+1,assets.length,a.name);
     }
 
     const successCount=results.filter(r=>r.success).length;
-    const status=successCount===results.length?'success':successCount>0?'partial':'error';
-    return{dsp:'Xandr',status,detail:`${successCount}/${results.length} criativos criados`,results};
+    finalizeProgress('xandr',successCount,results.length);
+    return{dsp:'Xandr',status:successCount===results.length?'success':successCount>0?'partial':'error',detail:`${successCount}/${results.length} criativos criados`,results};
   }catch(err){
+    finalizeProgress('xandr',0,1);
     return{dsp:'Xandr',status:'error',detail:err.message||'Erro de conexão'};
   }
 }
@@ -937,7 +981,7 @@ async function activateDV360Assets(token){
     const results=[];
     for(let i=0;i<assets.length;i++){
       const a=assets[i];
-      toast(`DV360: uploading ${i+1}/${assets.length} — ${a.name}`,'');
+      updateProgress('dv360',i,assets.length,a.name);
       try{
         const file=a.compressedFile||a.originalFile;
         const base64=await fileToBase64(file);
@@ -952,12 +996,14 @@ async function activateDV360Assets(token){
         if(res.ok&&data.results?.length)results.push(...data.results);
         else results.push({name:a.name,success:false,error:data.error||'Erro'});
       }catch(err){results.push({name:a.name,success:false,error:err.message})}
+      updateProgress('dv360',i+1,assets.length,a.name);
     }
 
     const successCount=results.filter(r=>r.success).length;
-    const status=successCount===results.length?'success':successCount>0?'partial':'error';
-    return{dsp:'DV360',status,detail:`${successCount}/${results.length} criativos criados`,results};
+    finalizeProgress('dv360',successCount,results.length);
+    return{dsp:'DV360',status:successCount===results.length?'success':successCount>0?'partial':'error',detail:`${successCount}/${results.length} criativos criados`,results};
   }catch(err){
+    finalizeProgress('dv360',0,1);
     return{dsp:'DV360',status:'error',detail:err.message||'Erro de conexão'};
   }
 }

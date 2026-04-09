@@ -1059,7 +1059,7 @@ function genAmazonDSP(d){
   const marketplace=document.getElementById('inputAmazonMarketplace')?.value||'Brazil';
   const lang=AMAZON_MARKETPLACE_LANG[marketplace]||'Portuguese';
   const h=['Advertiser ID*','Creative Template*','Name*','Marketplace*','Language*','Creative ID','External ID','Size*','Tag Source*','Click-through destination*','Third party-impression URL','AdChoices location','Additional html'];
-  const rows=d.placements.filter(p=>p.type!=='video').map(p=>[advId,'Third party',p.placementName,marketplace,lang,'','',p.dimensions,p.jsTag,'Links to another website','','','']);
+  const rows=d.placements.filter(p=>p.type!=='video').map(p=>[advId,'Third party display',p.placementName,marketplace,lang,'','',p.dimensions,p.jsTag,'Links to another website','','','']);
   return{headers:h,rows,type:'xlsx',sheetName:'THIRD-PARTY DISPLAY',colWidths:[{wch:16},{wch:18},{wch:45},{wch:15},{wch:14},{wch:12},{wch:12},{wch:12},{wch:60},{wch:28},{wch:40},{wch:16},{wch:30}]}}
 
 // ── Downloads ──

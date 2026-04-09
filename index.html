@@ -216,6 +216,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-generate:disabled{opacity:0.35;cursor:not-allowed;transform:none}
 .btn-generate:disabled::after{display:none}
 .btn-generate.done{background:var(--success)}
+.btn-generate.asset-mode{background:var(--success)}
+.btn-generate.asset-mode:hover{filter:brightness(1.1)}
 .btn-generate.done::after{display:none}
 
 /* ── Results ── */
@@ -1055,7 +1057,21 @@ function updateOptions(){
 function syncPixelFields(e){document.getElementById(e.target.id==='pixel_stackadapt'?'pixel_xandr':'pixel_stackadapt').value=e.target.value}
 function onSyncPixelChange(){const sa=document.getElementById('pixel_stackadapt'),x=document.getElementById('pixel_xandr');if(document.getElementById('syncPixels').checked){if(sa.value&&!x.value)x.value=sa.value;else if(x.value&&!sa.value)sa.value=x.value;sa.addEventListener('input',syncPixelFields);x.addEventListener('input',syncPixelFields)}else{sa.removeEventListener('input',syncPixelFields);x.removeEventListener('input',syncPixelFields)}}
 function getPixelForDsp(dsp){const raw=document.getElementById(`pixel_${dsp}`)?.value?.trim()||'';if(raw.startsWith('<')){const m=raw.match(/src=["']([^"']+)["']/);return m?m[1]:raw}return raw}
-function updateGenerateBtn(){const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&!!parsedData;const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;const hasAssets=currentMode==='assets'&&assetEntries.length>0;document.getElementById('btnGenerate').disabled=!((hasTags||hasSurveys||hasAssets)&&selectedDsps.size>0)}
+function updateGenerateBtn(){
+  const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&!!parsedData;
+  const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;
+  const hasAssets=currentMode==='assets'&&assetEntries.length>0;
+  const btn=document.getElementById('btnGenerate');
+  btn.disabled=!((hasTags||hasSurveys||hasAssets)&&selectedDsps.size>0);
+  // In assets mode, the button goes straight to activation
+  if(hasAssets){
+    btn.textContent='Ativar nas DSPs';
+    btn.classList.add('asset-mode');
+  }else{
+    btn.textContent='Gerar Templates';
+    btn.classList.remove('asset-mode');
+  }
+}
 
 // ── Assignment ──
 function updateAssignment(){const s=document.getElementById('assignmentSection'),dsps=[...selectedDsps];if(dsps.length<2||!parsedData||currentMode==='surveys'){s.classList.remove('visible');return}s.classList.add('visible');const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r)renderAssignmentTable(dsps)}
@@ -1242,34 +1258,31 @@ function generate(){
   const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;
   const hasAssets=currentMode==='assets'&&assetEntries.length>0;
   if(!hasTags&&!hasSurveys&&!hasAssets||!selectedDsps.size)return;
+
+  if(hasAssets){
+    // Assets mode — skip templates, go straight to activation
+    generatedFiles={_assets:assetEntries};
+    selectedDsps.forEach(dsp=>generatedFiles[dsp]={type:'assets',count:assetEntries.length});
+    activateInDsps();
+    return;
+  }
+
+  // Tags/Surveys mode — generate templates
   const btn=document.getElementById('btnGenerate'),br=document.getElementById('inputBrand').value.trim(),pol=document.getElementById('inputPolitical').checked;
   generatedFiles={};const cards=[],surveyPl=hasSurveys?getSurveyPlacements():[];
 
-  if(hasAssets){
-    // Assets mode — store asset data for activation, no template download needed
-    generatedFiles._assets=assetEntries;
-    const displayCount=assetEntries.filter(a=>a.type==='display').length;
-    const videoCount=assetEntries.filter(a=>a.type==='video').length;
-    const label=displayCount&&videoCount?`${displayCount} display + ${videoCount} video`:displayCount?`${displayCount} display`:`${videoCount} video`;
-    selectedDsps.forEach(dsp=>{
-      const dspLabel={dv360:'DV360',xandr:'Xandr',stackadapt:'StackAdapt',amazondsp:'Amazon DSP'}[dsp]||dsp;
-      generatedFiles[dsp]={type:'assets',count:assetEntries.length};
-      cards.push({dsp:dspLabel,key:dsp,ext:'hosted',count:assetEntries.length});
-    });
-  }else{
-    if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.dv360=genDV360({placements:all});cards.push({dsp:'DV360',ext:'csv',count:all.length})}}
-    if(selectedDsps.has('stackadapt')){const tp=hasTags?getPlacementsForDsp('stackadapt'):[],px=getPixelForDsp('stackadapt'),all=[...tp,...surveyPl];if(all.length){const r=genSA({placements:all,brandName:parsedData?.brandName||''},br,px);generatedFiles.stackadapt=r;cards.push({dsp:'StackAdapt',ext:'xlsx',count:r.count??r.rows.length})}}
-    if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length){generatedFiles.xandr=genXandr({placements:all},px,pol);cards.push({dsp:'Xandr',ext:'xlsx',count:all.length})}}
-    if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.amazondsp=genAmazonDSP({placements:all});cards.push({dsp:'Amazon DSP',key:'amazondsp',ext:'xlsx',count:all.length})}}
-  }
+  if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.dv360=genDV360({placements:all});cards.push({dsp:'DV360',ext:'csv',count:all.length})}}
+  if(selectedDsps.has('stackadapt')){const tp=hasTags?getPlacementsForDsp('stackadapt'):[],px=getPixelForDsp('stackadapt'),all=[...tp,...surveyPl];if(all.length){const r=genSA({placements:all,brandName:parsedData?.brandName||''},br,px);generatedFiles.stackadapt=r;cards.push({dsp:'StackAdapt',ext:'xlsx',count:r.count??r.rows.length})}}
+  if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length){generatedFiles.xandr=genXandr({placements:all},px,pol);cards.push({dsp:'Xandr',ext:'xlsx',count:all.length})}}
+  if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.amazondsp=genAmazonDSP({placements:all});cards.push({dsp:'Amazon DSP',key:'amazondsp',ext:'xlsx',count:all.length})}}
 
   if(!cards.length){toast('Nenhum criativo pra gerar','error');return}
   renderResults(cards);
   updateActivateBtn();
-  btn.textContent=hasAssets?'Assets prontos ✓':'Templates gerados ✓';btn.classList.add('done');
-  setTimeout(()=>{btn.textContent=hasAssets?'Preparar Assets':'Regenerar Templates';btn.classList.remove('done')},2000);
+  btn.textContent='Templates gerados ✓';btn.classList.add('done');
+  setTimeout(()=>{btn.textContent='Regenerar Templates';btn.classList.remove('done')},2000);
   setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
-  toast(`${cards.length} DSP(s) preparada(s)`,'success')}
+  toast(`${cards.length} template(s) gerado(s)`,'success')}
 
 function genDV360(d){
   const display=d.placements.filter(p=>p.type!=='video');

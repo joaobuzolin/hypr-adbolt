@@ -1863,13 +1863,21 @@ document.getElementById('assetsTableBody').addEventListener('keydown',e=>{
   const addInput=e.target.closest('[data-tracker-add]');
   if(addInput&&e.key==='Enter'){
     e.preventDefault();
-    const raw=addInput.value.trim();if(!raw)return;
-    const url=extractTrackerUrl(raw);
-    const id=parseInt(addInput.dataset.trackerAdd);
-    const entry=assetEntries.find(a=>a.id===id);
-    if(entry){entry.trackers.push(url);renderAssetsTable();if(url!==raw)toast('URL extraída da tag automaticamente','success')}
+    commitSingleTracker(addInput);
   }
 });
+// Auto-commit tracker when user clicks outside the input (blur)
+document.getElementById('assetsTableBody').addEventListener('focusout',e=>{
+  const addInput=e.target.closest('[data-tracker-add]');
+  if(addInput&&addInput.value.trim())commitSingleTracker(addInput);
+});
+function commitSingleTracker(input){
+  const raw=input.value.trim();if(!raw)return;
+  const url=extractTrackerUrl(raw);
+  const id=parseInt(input.dataset.trackerAdd);
+  const entry=assetEntries.find(a=>a.id===id);
+  if(entry&&!entry.trackers.includes(url)){entry.trackers.push(url);renderAssetsTable();if(url!==raw)toast('URL extraída da tag automaticamente','success')}
+}
 document.getElementById('assetsSelectAll').addEventListener('change',e=>{
   document.querySelectorAll('.asset-cb').forEach(c=>c.checked=e.target.checked);updateAssetsBulkBar();
 });

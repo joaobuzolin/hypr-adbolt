@@ -978,7 +978,9 @@ async function addSurveyUrl(entryId,url){
   const entry=surveyEntries.find(s=>s.id===entryId);if(!entry)return;
   const formId=extractFormId(url);
   if(!formId){toast('URL do Typeform inválida','error');return}
-  if(entry.urls.some(u=>u.formId===formId)){toast('Esse form já foi adicionado','error');return}
+  if(entry.urls.some(u=>u.formId===formId)){toast('Esse form já foi adicionado neste survey','error');return}
+  const globalDupe=surveyEntries.find(s=>s.id!==entryId&&s.urls.some(u=>u.formId===formId));
+  if(globalDupe){toast(`Esse form já está em "${globalDupe.type}". Use uma URL diferente.`,'error');return}
   const urlObj={url,formId,title:'',variant:''};
   entry.urls.push(urlObj);
   renderSurveyEntries();updateVisibility();

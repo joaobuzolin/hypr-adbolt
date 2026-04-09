@@ -727,8 +727,9 @@ async function activateInDsps(){
     if(selectedDsps.has('stackadapt'))results.push({dsp:'StackAdapt',status:'pending',detail:'Asset upload pendente (aguardando API key)'});
     if(selectedDsps.has('amazondsp'))results.push({dsp:'Amazon DSP',status:'pending',detail:'Asset upload pendente (aguardando API)'});
   }else{
-    // Tag/Survey mode activation — show progress
-    const activeDsps=[...selectedDsps].filter(d=>generatedFiles[d]);
+    // Tag/Survey mode activation — show progress only for DSPs with API integration
+    const apiDsps=['xandr','dv360'];
+    const activeDsps=[...selectedDsps].filter(d=>generatedFiles[d]&&apiDsps.includes(d));
     const totalCreatives=Object.values(generatedFiles).reduce((s,f)=>s+(f.rows?.length||0),0);
     if(activeDsps.length)showActivationProgress(activeDsps,totalCreatives||1);
     if(selectedDsps.has('xandr')&&generatedFiles.xandr){const r=await activateXandr(token);results.push(r);finalizeProgress('xandr',r.status==='success'?1:0,1)}

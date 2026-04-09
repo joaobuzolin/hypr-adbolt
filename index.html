@@ -865,10 +865,7 @@ function renderActivationResults(results){
   setTimeout(()=>document.getElementById('activationResults').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
 
-let currentMode='tags',parsedData=null,selectedDsps=new Set(),generatedFiles={},placementAssignment={};
-let surveyEntries=[],surveyIdCounter=0;
-
-function esc(s){const e=document.createElement('span');e.textContent=s;return e.innerHTML}
+// (variables declared above in wizard init block)
 function renderActivationResults(results){const cards=results.map((r,i)=>`<div class="activation-card" style="animation-delay:${i*120}ms"><div class="act-info"><span class="act-dsp">${r.dsp}</span></div><span class="act-status ${r.status}">${r.detail}</span></div>`).join('');document.getElementById('activationCards').innerHTML=cards;document.getElementById('activationResults').classList.add('visible')}
 // ── DSP Selection ──
 function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility()}
@@ -1257,7 +1254,7 @@ document.getElementById('syncPixels').addEventListener('change',onSyncPixelChang
 document.getElementById('replicateAll').addEventListener('change',onReplicateChange);
 document.getElementById('btnGenerate').addEventListener('click',generate);
 // ── Assets Mode ──
-let assetEntries=[];let assetIdCounter=0;
+// assetEntries/assetIdCounter declared in wizard init block
 const ASSET_DSP_LIMITS={xandr:{display:400*1024,video:Infinity},dv360:{display:10*1024*1024,video:Infinity},stackadapt:{display:2*1024*1024,video:Infinity},amazondsp:{display:200*1024,video:Infinity}};
 const DISPLAY_EXTS=new Set(['jpg','jpeg','png','gif']);
 const IAB_SIZES=new Set(['120x600','160x600','200x200','250x250','300x50','300x250','300x600','320x50','320x100','320x480','336x280','468x60','480x320','728x90','768x1024','970x90','970x250','1024x768','1080x1920','1920x1080']);

@@ -926,7 +926,8 @@ function renderActivationResults(results){
 // (variables declared above in wizard init block)
 function renderActivationResults(results){const cards=results.map((r,i)=>`<div class="activation-card" style="animation-delay:${i*120}ms"><div class="act-info"><span class="act-dsp">${r.dsp}</span></div><span class="act-status ${r.status}">${r.detail}</span></div>`).join('');document.getElementById('activationCards').innerHTML=cards;document.getElementById('activationResults').classList.add('visible')}
 // ── DSP Selection ──
-function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility()}
+function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility();invalidateResults()}
+function invalidateResults(){generatedFiles={};document.getElementById('results').classList.remove('visible');document.getElementById('activationResults').classList.remove('visible');document.getElementById('activationProgress').style.display='none';document.getElementById('activationCards').innerHTML='';document.getElementById('resultCards').innerHTML=''}
 function updateOptions(){
   const hasSA=selectedDsps.has('stackadapt'),hasXandr=selectedDsps.has('xandr'),hasDV360=selectedDsps.has('dv360');
   document.getElementById('optBrandRow').style.display=hasSA?'flex':'none';

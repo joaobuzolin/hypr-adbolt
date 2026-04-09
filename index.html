@@ -154,6 +154,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .dsp-card.selected .dsp-card-check{opacity:1;transform:scale(1)}
 .dsp-card-name{font-weight:600;font-size:0.9rem;margin-bottom:2px}
 .dsp-card-sub{font-size:0.7rem;color:var(--text-muted)}
+.dsp-card.dsp-unavailable{opacity:0.45;pointer-events:none;position:relative}
+.dsp-card.dsp-unavailable::after{content:'Em breve';position:absolute;top:6px;right:8px;font-size:0.6rem;background:var(--border);color:var(--text-dim);padding:1px 6px;border-radius:var(--radius-xs);font-weight:500}
 
 /* ── Pixel input ── */
 .dsp-pixel-input{max-height:0;overflow:hidden;opacity:0;transition:max-height 0.3s ease,opacity 0.25s ease,padding 0.3s ease;background:var(--bg-card);border:1.5px solid var(--accent);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:0 12px}
@@ -204,6 +206,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-generate.asset-mode{background:var(--success)}
 .btn-generate.asset-mode:hover{filter:brightness(1.1)}
 .btn-generate.done::after{display:none}
+.generate-wrap.sticky-cta{position:sticky;bottom:0;z-index:var(--z-fixed);background:var(--bg);padding:16px 0 20px;margin:0;border-top:1px solid var(--border)}
 
 /* ── Results ── */
 .results{margin-top:24px;opacity:0;transform:translateY(12px);transition:opacity 0.4s,transform 0.4s;pointer-events:none}
@@ -1028,6 +1031,17 @@ function setMode(mode){
   if(showAssets) nums.push('panelNumAssets');
   nums.push('panelNumDsp','panelNumConfig');
   nums.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=i+1;});
+  // P1-1: Update DSP card subtitles per mode
+  const dspSubs={dv360:['CSV · Third-Party Tags','API · Hosted Creatives'],stackadapt:['XLSX · New Creatives','API · Em breve'],xandr:['XLSX · Third-Party Creative','API · Hosted Creatives'],amazondsp:['XLSX · Third-Party Display','API · Em breve']};
+  const unavailableInAssets=new Set(['stackadapt','amazondsp']);
+  document.querySelectorAll('.dsp-card[data-dsp]').forEach(card=>{
+    const dsp=card.dataset.dsp;
+    const sub=card.querySelector('.dsp-card-sub');
+    if(sub)sub.textContent=dspSubs[dsp]?.[showAssets?1:0]||sub.textContent;
+    // P1-2: Disable unavailable DSPs in assets mode
+    if(showAssets&&unavailableInAssets.has(dsp)){card.classList.add('dsp-unavailable');if(card.classList.contains('selected'))toggleDsp(card)}
+    else card.classList.remove('dsp-unavailable');
+  });
   updateVisibility();
 }
 
@@ -1052,10 +1066,12 @@ function updateVisibility(){
   document.getElementById('panelNumDsp').classList.toggle('done',hasDsp);
   // Re-render asset weight badges when DSP selection changes
   if(hasAssets)renderAssetsTable();
+  // Sticky CTA in assets mode
+  gen.classList.toggle('sticky-cta',currentMode==='assets'&&hasAssets&&hasDsp);
 }
 
 // ── DSP Selection ──
-function toggleDsp(card){const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility()}
+function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility()}
 function updateOptions(){
   const hasSA=selectedDsps.has('stackadapt'),hasXandr=selectedDsps.has('xandr'),hasDV360=selectedDsps.has('dv360');
   document.getElementById('optBrandRow').style.display=hasSA?'flex':'none';
@@ -1725,6 +1741,8 @@ function bulkDuplicate(){
 
 function bulkRemove(){
   const ids=new Set(getSelectedAssetIds());
+  if(!ids.size)return;
+  if(!confirm(`Remover ${ids.size} asset(s)? Essa ação não pode ser desfeita.`))return;
   assetEntries=assetEntries.filter(a=>!ids.has(a.id));
   renderAssetsTable();updateVisibility();
   if(!assetEntries.length){document.getElementById('assetsUploadZone').classList.remove('has-files');document.getElementById('assetsContent').style.display='none'}

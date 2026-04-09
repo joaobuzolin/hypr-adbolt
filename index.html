@@ -718,6 +718,7 @@ async function activateInDsps(){
     if(!brandUrl){toast('Preencha a Brand URL na seção Auditoria Xandr','error');document.getElementById('inputXandrBrandUrl').focus();return}
   }
 
+  const isAssetMode=currentMode==='assets'&&!!generatedFiles._assets;
   const btn=document.getElementById('btnActivate');
   btn.disabled=true;btn.classList.add('loading');btn.textContent='Ativando...';
 
@@ -727,21 +728,18 @@ async function activateInDsps(){
   const token=session.access_token;
   const results=[];
 
-  // Xandr
-  if(selectedDsps.has('xandr')&&generatedFiles.xandr){
-    results.push(await activateXandr(token));
-  }
-  // DV360 (Fase 2)
-  if(selectedDsps.has('dv360')&&generatedFiles.dv360){
-    results.push(await activateDV360(token));
-  }
-  // StackAdapt (Fase 3 - placeholder)
-  if(selectedDsps.has('stackadapt')&&generatedFiles.stackadapt){
-    results.push({dsp:'StackAdapt',status:'pending',detail:'Integração em desenvolvimento (Fase 3)'});
-  }
-  // Amazon DSP (sem API - apenas template)
-  if(selectedDsps.has('amazondsp')&&generatedFiles.amazondsp){
-    results.push({dsp:'Amazon DSP',status:'pending',detail:'Apenas template — upload manual na Amazon DSP'});
+  if(isAssetMode){
+    // Asset mode activation
+    if(selectedDsps.has('xandr'))results.push(await activateXandrAssets(token));
+    if(selectedDsps.has('dv360'))results.push(await activateDV360Assets(token));
+    if(selectedDsps.has('stackadapt'))results.push({dsp:'StackAdapt',status:'pending',detail:'Asset upload pendente (aguardando API key)'});
+    if(selectedDsps.has('amazondsp'))results.push({dsp:'Amazon DSP',status:'pending',detail:'Asset upload pendente (aguardando API)'});
+  }else{
+    // Tag/Survey mode activation
+    if(selectedDsps.has('xandr')&&generatedFiles.xandr)results.push(await activateXandr(token));
+    if(selectedDsps.has('dv360')&&generatedFiles.dv360)results.push(await activateDV360(token));
+    if(selectedDsps.has('stackadapt')&&generatedFiles.stackadapt)results.push({dsp:'StackAdapt',status:'pending',detail:'Integração em desenvolvimento (Fase 3)'});
+    if(selectedDsps.has('amazondsp')&&generatedFiles.amazondsp)results.push({dsp:'Amazon DSP',status:'pending',detail:'Apenas template — upload manual na Amazon DSP'});
   }
 
   renderActivationResults(results);
@@ -843,6 +841,103 @@ async function activateDV360(token){
       detail:`${data.success}/${data.total} criativos criados`,
       results:data.results
     };
+  }catch(err){
+    return{dsp:'DV360',status:'error',detail:err.message||'Erro de conexão'};
+  }
+}
+
+// ── Asset Activation Helpers ──
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result.split(',')[1]);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function activateXandrAssets(token){
+  try{
+    const assets=generatedFiles._assets;
+    if(!assets?.length)return{dsp:'Xandr',status:'error',detail:'Nenhum asset pra ativar'};
+
+    const brandUrl=document.getElementById('inputXandrBrandUrl').value.trim();
+    const langId=parseInt(document.getElementById('inputXandrLang').value)||8;
+    const brandId=document.getElementById('inputXandrBrandId').value.trim();
+    const sla=parseInt(document.getElementById('inputXandrSla').value)||0;
+
+    const creatives=[];
+    for(const a of assets){
+      const file=a.compressedFile||a.originalFile;
+      const base64=await fileToBase64(file);
+      creatives.push({
+        name:a.name,
+        type:a.type,
+        dimensions:a.dimensions,
+        fileName:file.name,
+        mimeType:file.type,
+        fileBase64:base64,
+        landingPage:a.landingPage,
+        tracker:a.tracker
+      });
+    }
+
+    const body={
+      advertiserId:7392214,
+      brandUrl:brandUrl||null,
+      languageId:langId,
+      brandId:brandId?parseInt(brandId):null,
+      sla,
+      creatives
+    };
+
+    const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-xandr-asset',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(body)
+    });
+
+    const data=await res.json();
+    if(!res.ok)return{dsp:'Xandr',status:'error',detail:data.error||'Erro na requisição'};
+    return{dsp:'Xandr',status:data.status,detail:`${data.success}/${data.total} criativos criados`,results:data.results};
+  }catch(err){
+    return{dsp:'Xandr',status:'error',detail:err.message||'Erro de conexão'};
+  }
+}
+
+async function activateDV360Assets(token){
+  try{
+    const assets=generatedFiles._assets;
+    if(!assets?.length)return{dsp:'DV360',status:'error',detail:'Nenhum asset pra ativar'};
+
+    const advertiserId=document.getElementById('inputDV360AdvId')?.value?.trim()||'1426474713';
+    const creatives=[];
+    for(const a of assets){
+      const file=a.compressedFile||a.originalFile;
+      const base64=await fileToBase64(file);
+      creatives.push({
+        name:a.name,
+        type:a.type,
+        dimensions:a.dimensions,
+        fileName:file.name,
+        mimeType:file.type,
+        fileBase64:base64,
+        landingPage:a.landingPage,
+        tracker:a.tracker
+      });
+    }
+
+    const body={advertiserId,creatives};
+
+    const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(body)
+    });
+
+    const data=await res.json();
+    if(!res.ok)return{dsp:'DV360',status:'error',detail:data.error||'Erro na requisição'};
+    return{dsp:'DV360',status:data.status,detail:`${data.success}/${data.total} criativos criados`,results:data.results};
   }catch(err){
     return{dsp:'DV360',status:'error',detail:err.message||'Erro de conexão'};
   }
@@ -1126,23 +1221,38 @@ function getSurveyPlacements(){
 
 // ── Generate ──
 function generate(){
-  const hasTags=currentMode!=='surveys'&&parsedData,hasSurveys=currentMode!=='tags'&&surveyEntries.length>0;
-  if(!hasTags&&!hasSurveys||!selectedDsps.size)return;
+  const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&parsedData;
+  const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;
+  const hasAssets=currentMode==='assets'&&assetEntries.length>0;
+  if(!hasTags&&!hasSurveys&&!hasAssets||!selectedDsps.size)return;
   const btn=document.getElementById('btnGenerate'),br=document.getElementById('inputBrand').value.trim(),pol=document.getElementById('inputPolitical').checked;
   generatedFiles={};const cards=[],surveyPl=hasSurveys?getSurveyPlacements():[];
 
-  if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.dv360=genDV360({placements:all});cards.push({dsp:'DV360',ext:'csv',count:all.length})}}
-  if(selectedDsps.has('stackadapt')){const tp=hasTags?getPlacementsForDsp('stackadapt'):[],px=getPixelForDsp('stackadapt'),all=[...tp,...surveyPl];if(all.length){const r=genSA({placements:all,brandName:parsedData?.brandName||''},br,px);generatedFiles.stackadapt=r;cards.push({dsp:'StackAdapt',ext:'xlsx',count:r.count??r.rows.length})}}
-  if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length){generatedFiles.xandr=genXandr({placements:all},px,pol);cards.push({dsp:'Xandr',ext:'xlsx',count:all.length})}}
-  if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.amazondsp=genAmazonDSP({placements:all});cards.push({dsp:'Amazon DSP',key:'amazondsp',ext:'xlsx',count:all.length})}}
+  if(hasAssets){
+    // Assets mode — store asset data for activation, no template download needed
+    generatedFiles._assets=assetEntries;
+    const displayCount=assetEntries.filter(a=>a.type==='display').length;
+    const videoCount=assetEntries.filter(a=>a.type==='video').length;
+    const label=displayCount&&videoCount?`${displayCount} display + ${videoCount} video`:displayCount?`${displayCount} display`:`${videoCount} video`;
+    selectedDsps.forEach(dsp=>{
+      const dspLabel={dv360:'DV360',xandr:'Xandr',stackadapt:'StackAdapt',amazondsp:'Amazon DSP'}[dsp]||dsp;
+      generatedFiles[dsp]={type:'assets',count:assetEntries.length};
+      cards.push({dsp:dspLabel,key:dsp,ext:'hosted',count:assetEntries.length});
+    });
+  }else{
+    if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.dv360=genDV360({placements:all});cards.push({dsp:'DV360',ext:'csv',count:all.length})}}
+    if(selectedDsps.has('stackadapt')){const tp=hasTags?getPlacementsForDsp('stackadapt'):[],px=getPixelForDsp('stackadapt'),all=[...tp,...surveyPl];if(all.length){const r=genSA({placements:all,brandName:parsedData?.brandName||''},br,px);generatedFiles.stackadapt=r;cards.push({dsp:'StackAdapt',ext:'xlsx',count:r.count??r.rows.length})}}
+    if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length){generatedFiles.xandr=genXandr({placements:all},px,pol);cards.push({dsp:'Xandr',ext:'xlsx',count:all.length})}}
+    if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.amazondsp=genAmazonDSP({placements:all});cards.push({dsp:'Amazon DSP',key:'amazondsp',ext:'xlsx',count:all.length})}}
+  }
 
   if(!cards.length){toast('Nenhum criativo pra gerar','error');return}
   renderResults(cards);
   updateActivateBtn();
-  btn.textContent='Templates gerados ✓';btn.classList.add('done');
-  setTimeout(()=>{btn.textContent='Regenerar Templates';btn.classList.remove('done')},2000);
+  btn.textContent=hasAssets?'Assets prontos ✓':'Templates gerados ✓';btn.classList.add('done');
+  setTimeout(()=>{btn.textContent=hasAssets?'Preparar Assets':'Regenerar Templates';btn.classList.remove('done')},2000);
   setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
-  toast(`${cards.length} template(s) gerado(s)`,'success')}
+  toast(`${cards.length} DSP(s) preparada(s)`,'success')}
 
 function genDV360(d){
   const display=d.placements.filter(p=>p.type!=='video');
@@ -1275,7 +1385,9 @@ async function dlAmazonDSP(f,fn){
 function dlCSV(f,fn){const c=[f.headers,...f.rows].map(r=>r.map(v=>{const s=String(v||'');return(s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n');dl(new Blob([c],{type:'text/csv;charset=utf-8;'}),fn)}
 function dlXLSX(f,fn){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet([...(f.instructionRows||[]),f.headers,...f.rows]);ws['!cols']=f.colWidths||[];XLSX.utils.book_append_sheet(wb,ws,f.sheetName||'Sheet1');dl(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fn)}
 function dl(blob,fn){const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:fn});document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href)}
-function renderResults(cards){document.getElementById('resultCards').innerHTML=cards.map((c,i)=>`<div class="result-card" style="animation-delay:${i*120}ms"><div class="result-info"><div class="result-dsp">${c.dsp}</div><div class="result-details">${c.count} creatives · .${c.ext}</div></div><button class="btn-download" data-dsp="${c.key||c.dsp.toLowerCase()}">Download</button></div>`).join('');document.getElementById('results').classList.add('visible')}
+function renderResults(cards){document.getElementById('resultCards').innerHTML=cards.map((c,i)=>{
+  const isAsset=c.ext==='hosted';
+  return`<div class="result-card" style="animation-delay:${i*120}ms"><div class="result-info"><div class="result-dsp">${c.dsp}</div><div class="result-details">${c.count} creatives · ${isAsset?'hosted':'.'+ c.ext}</div></div>${isAsset?`<span style="font-size:0.75rem;color:var(--text-muted)">Via API</span>`:`<button class="btn-download" data-dsp="${c.key||c.dsp.toLowerCase()}">Download</button>`}</div>`}).join('');document.getElementById('results').classList.add('visible')}
 
 // ── Events ──
 document.getElementById('modeSwitcher').addEventListener('click',e=>{const btn=e.target.closest('.mode-btn');if(btn)setMode(btn.dataset.mode)});

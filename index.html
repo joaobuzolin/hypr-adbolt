@@ -1537,7 +1537,7 @@ function updateAssetsBulkBar(){
   const selected=getSelectedAssetIds();
   const bar=document.getElementById('assetsBulkBar');
   if(!selected.length){bar.style.display='none';return}
-  bar.style.display='flex';
+  bar.style.display='flex';bar.className='assets-bulk-bar';
   bar.innerHTML=`<span class="assets-bulk-count">${selected.length} selecionado(s)</span>
     <button onclick="bulkSetField('landingPage')">Landing Page</button>
     <button onclick="bulkSetField('tracker')">Tracker</button>

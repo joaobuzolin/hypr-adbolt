@@ -326,6 +326,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .fr-modal-actions button.primary{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent)}
 .fr-modal-actions button.primary:hover{filter:brightness(1.1)}
 
+/* ── Action Cards (final step) ── */
+.action-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px}
+.action-card{background:var(--bg-surface);border:1.5px solid var(--border);border-radius:var(--r);padding:32px 28px;text-align:center;transition:all var(--dur) var(--ease)}
+.action-card:hover{border-color:var(--border-active);box-shadow:var(--shadow-md)}
+.action-card-icon{font-size:2rem;margin-bottom:14px}
+.action-card-title{font-size:1.05rem;font-weight:600;margin-bottom:6px}
+.action-card-desc{font-size:0.78rem;color:var(--text-sec);line-height:1.5;margin-bottom:20px}
+.btn-action-card{padding:11px 28px;border-radius:var(--r-sm);font-size:0.85rem;font-weight:600;cursor:pointer;transition:all var(--dur) var(--ease);border:1.5px solid var(--border);background:var(--bg-raised);color:var(--text);width:100%}
+.btn-action-card:hover{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.btn-action-card.primary{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent)}
+.btn-action-card.primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 20px rgba(123,110,240,0.3)}
+.btn-action-card:disabled{opacity:0.4;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
+.btn-action-card.loading{pointer-events:none;position:relative}
+@media(max-width:640px){.action-cards{grid-template-columns:1fr}}
+
 /* ── Generate / Activate / Results ── */
 .generate-wrap{text-align:center;margin:32px 0;opacity:0;transform:translateY(8px);transition:all var(--dur) var(--ease-out)}
 .generate-wrap.revealed{opacity:1;transform:translateY(0)}
@@ -548,12 +563,26 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       </div>
 
       <div class="step-view" id="stepActivate" data-step="activate">
-        <div class="step-header"><h2>Gerar & Ativar</h2><p>Gere os templates e ative os criativos nas DSPs selecionadas</p></div>
-        <div class="generate-wrap revealed" id="generateWrap"><button class="btn-generate" id="btnGenerate" disabled>Gerar Templates</button></div>
+        <div class="step-header"><h2>Tudo pronto!</h2><p>Escolha como deseja prosseguir com os criativos configurados.</p></div>
+        <div class="action-cards" id="actionCards">
+          <div class="action-card" id="actionDownload">
+            <div class="action-card-icon">📥</div>
+            <div class="action-card-title">Baixar Templates</div>
+            <div class="action-card-desc">Gera os arquivos CSV/XLSX para upload manual nas DSPs</div>
+            <button class="btn-action-card" id="btnGenerate" onclick="generate()">Gerar e Baixar</button>
+          </div>
+          <div class="action-card" id="actionActivate">
+            <div class="action-card-icon">⚡</div>
+            <div class="action-card-title">Ativar nas DSPs</div>
+            <div class="action-card-desc">Envia os criativos direto via API para DV360 e Xandr</div>
+            <button class="btn-action-card primary" id="btnActivate" onclick="activateInDsps()">Ativar Agora</button>
+          </div>
+        </div>
         <div class="results" id="results"><span class="section-label">Downloads prontos</span><div id="resultCards" style="margin-top:12px"></div></div>
-        <div class="activate-wrap" id="activateWrap"><button class="btn-activate" id="btnActivate" disabled onclick="activateInDsps()">Ativar nas DSPs</button></div>
         <div class="activation-progress" id="activationProgress" style="display:none"></div>
         <div class="activation-results" id="activationResults"><span class="section-label">Ativação nas DSPs</span><div id="activationCards" style="margin-top:12px"></div></div>
+        <div class="generate-wrap" id="generateWrap" style="display:none"></div>
+        <div class="activate-wrap" id="activateWrap" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -636,12 +665,28 @@ async function activateInDsps(){
     if(!brandUrl){toast('Preencha a Brand URL na seção Auditoria Xandr','error');document.getElementById('inputXandrBrandUrl').focus();return}
   }
 
-  const isAssetMode=currentMode==='assets'&&!!generatedFiles._assets;
-  const btn=isAssetMode?document.getElementById('btnGenerate'):document.getElementById('btnActivate');
+  const isAssetMode=currentMode==='assets';
+  const btn=document.getElementById('btnActivate');
   btn.disabled=true;btn.textContent='Ativando...';
 
+  // For tags/surveys, auto-generate templates if not done yet
+  if(!isAssetMode&&!Object.keys(generatedFiles).length){
+    const hasTags=currentMode!=='surveys'&&parsedData;
+    const hasSurveys=currentMode!=='tags'&&surveyEntries.length>0;
+    const br=document.getElementById('inputBrand').value.trim(),pol=document.getElementById('inputPolitical').checked;
+    const surveyPl=hasSurveys?getSurveyPlacements():[];
+    if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length)generatedFiles.dv360=genDV360({placements:all})}
+    if(selectedDsps.has('stackadapt')){const tp=hasTags?getPlacementsForDsp('stackadapt'):[],px=getPixelForDsp('stackadapt'),all=[...tp,...surveyPl];if(all.length)generatedFiles.stackadapt=genSA({placements:all,brandName:parsedData?.brandName||''},br,px)}
+    if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length)generatedFiles.xandr=genXandr({placements:all},px,pol)}
+    if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length)generatedFiles.amazondsp=genAmazonDSP({placements:all})}
+  }
+  if(isAssetMode&&!generatedFiles._assets){
+    generatedFiles={_assets:assetEntries};
+    selectedDsps.forEach(dsp=>generatedFiles[dsp]={type:'assets',count:assetEntries.length});
+  }
+
   const{data:{session}}=await sbClient.auth.getSession();
-  if(!session){toast('Sessão expirada, faça login novamente','error');btn.disabled=false;btn.textContent='Ativar nas DSPs';return}
+  if(!session){toast('Sessão expirada, faça login novamente','error');btn.disabled=false;btn.textContent='Ativar Agora';return}
 
   const token=session.access_token;
   const results=[];
@@ -656,15 +701,18 @@ async function activateInDsps(){
     if(selectedDsps.has('stackadapt'))results.push({dsp:'StackAdapt',status:'pending',detail:'Asset upload pendente (aguardando API key)'});
     if(selectedDsps.has('amazondsp'))results.push({dsp:'Amazon DSP',status:'pending',detail:'Asset upload pendente (aguardando API)'});
   }else{
-    // Tag/Survey mode activation
-    if(selectedDsps.has('xandr')&&generatedFiles.xandr)results.push(await activateXandr(token));
-    if(selectedDsps.has('dv360')&&generatedFiles.dv360)results.push(await activateDV360(token));
+    // Tag/Survey mode activation — show progress
+    const activeDsps=[...selectedDsps].filter(d=>generatedFiles[d]);
+    const totalCreatives=Object.values(generatedFiles).reduce((s,f)=>s+(f.rows?.length||0),0);
+    if(activeDsps.length)showActivationProgress(activeDsps,totalCreatives||1);
+    if(selectedDsps.has('xandr')&&generatedFiles.xandr){const r=await activateXandr(token);results.push(r);finalizeProgress('xandr',r.status==='success'?1:0,1)}
+    if(selectedDsps.has('dv360')&&generatedFiles.dv360){const r=await activateDV360(token);results.push(r);finalizeProgress('dv360',r.status==='success'?1:0,1)}
     if(selectedDsps.has('stackadapt')&&generatedFiles.stackadapt)results.push({dsp:'StackAdapt',status:'pending',detail:'Integração em desenvolvimento (Fase 3)'});
     if(selectedDsps.has('amazondsp')&&generatedFiles.amazondsp)results.push({dsp:'Amazon DSP',status:'pending',detail:'Apenas template — upload manual na Amazon DSP'});
   }
 
   renderActivationResults(results);
-  btn.textContent='Ativar nas DSPs';btn.disabled=false;
+  btn.textContent='Ativar Agora';btn.disabled=false;
   if(isAssetMode)updateGenerateBtn();
 }
 async function activateXandr(token){
@@ -906,7 +954,12 @@ function updateOptions(){
 function syncPixelFields(e){document.getElementById(e.target.id==='pixel_stackadapt'?'pixel_xandr':'pixel_stackadapt').value=e.target.value}
 function onSyncPixelChange(){const sa=document.getElementById('pixel_stackadapt'),x=document.getElementById('pixel_xandr');if(document.getElementById('syncPixels').checked){if(sa.value&&!x.value)x.value=sa.value;else if(x.value&&!sa.value)sa.value=x.value;sa.addEventListener('input',syncPixelFields);x.addEventListener('input',syncPixelFields)}else{sa.removeEventListener('input',syncPixelFields);x.removeEventListener('input',syncPixelFields)}}
 function getPixelForDsp(dsp){const raw=document.getElementById(`pixel_${dsp}`)?.value?.trim()||'';if(raw.startsWith('<')){const m=raw.match(/src=["']([^"']+)["']/);return m?m[1]:raw}return raw}
-function updateGenerateBtn(){const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&!!parsedData;const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;const hasAssets=currentMode==='assets'&&assetEntries.length>0;const btn=document.getElementById('btnGenerate');btn.disabled=!((hasTags||hasSurveys||hasAssets)&&selectedDsps.size>0);if(hasAssets){btn.textContent='Ativar nas DSPs';btn.classList.add('asset-mode')}else{btn.textContent='Gerar Templates';btn.classList.remove('asset-mode')}}
+function updateGenerateBtn(){const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&!!parsedData;const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;const hasAssets=currentMode==='assets'&&assetEntries.length>0;const hasContent=hasTags||hasSurveys||hasAssets;const hasDsp=selectedDsps.size>0;const ready=hasContent&&hasDsp;
+  const btnGen=document.getElementById('btnGenerate');const btnAct=document.getElementById('btnActivate');const dlCard=document.getElementById('actionDownload');const actCard=document.getElementById('actionActivate');
+  if(btnGen)btnGen.disabled=!ready;if(btnAct)btnAct.disabled=!ready;
+  // In assets mode, hide download card (no templates to download)
+  if(dlCard)dlCard.style.display=hasAssets?'none':'';
+  if(actCard&&hasAssets){actCard.style.gridColumn=hasAssets?'1 / -1':''}}
 // ── Assignment ──
 function updateAssignment(){const s=document.getElementById('assignmentSection'),dsps=[...selectedDsps];if(dsps.length<2||!parsedData||currentMode==='surveys'){s.classList.remove('visible');return}s.classList.add('visible');const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r)renderAssignmentTable(dsps)}
 function onReplicateChange(){const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r&&parsedData){placementAssignment={};renderAssignmentTable([...selectedDsps])}}
@@ -1090,15 +1143,15 @@ function generate(){
   if(!hasTags&&!hasSurveys&&!hasAssets||!selectedDsps.size)return;
 
   if(hasAssets){
-    // Assets mode — skip templates, go straight to activation
     generatedFiles={_assets:assetEntries};
     selectedDsps.forEach(dsp=>generatedFiles[dsp]={type:'assets',count:assetEntries.length});
     activateInDsps();
     return;
   }
 
-  // Tags/Surveys mode — generate templates
-  const btn=document.getElementById('btnGenerate'),br=document.getElementById('inputBrand').value.trim(),pol=document.getElementById('inputPolitical').checked;
+  const btn=document.getElementById('btnGenerate');
+  btn.disabled=true;btn.textContent='Gerando...';
+  const br=document.getElementById('inputBrand').value.trim(),pol=document.getElementById('inputPolitical').checked;
   generatedFiles={};const cards=[],surveyPl=hasSurveys?getSurveyPlacements():[];
 
   if(selectedDsps.has('dv360')){const tp=hasTags?getPlacementsForDsp('dv360'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.dv360=genDV360({placements:all});cards.push({dsp:'DV360',ext:'csv',count:all.length})}}
@@ -1106,13 +1159,13 @@ function generate(){
   if(selectedDsps.has('xandr')){const tp=hasTags?getPlacementsForDsp('xandr'):[],px=getPixelForDsp('xandr'),all=[...tp,...surveyPl];if(all.length){generatedFiles.xandr=genXandr({placements:all},px,pol);cards.push({dsp:'Xandr',ext:'xlsx',count:all.length})}}
   if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length){generatedFiles.amazondsp=genAmazonDSP({placements:all});cards.push({dsp:'Amazon DSP',key:'amazondsp',ext:'xlsx',count:all.length})}}
 
-  if(!cards.length){toast('Nenhum criativo pra gerar','error');return}
+  if(!cards.length){toast('Nenhum criativo pra gerar','error');btn.disabled=false;btn.textContent='Gerar e Baixar';return}
+  // Auto-download all templates
+  cards.forEach(c=>{const key=c.key||c.dsp.toLowerCase();downloadFile(key)});
   renderResults(cards);
-  updateActivateBtn();
-  btn.textContent='Templates gerados ✓';btn.classList.add('done');
-  setTimeout(()=>{btn.textContent='Regenerar Templates';btn.classList.remove('done')},2000);
-  setTimeout(()=>document.getElementById('results').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
-  toast(`${cards.length} template(s) gerado(s)`,'success')}
+  btn.textContent='✓ Templates baixados';
+  setTimeout(()=>{btn.disabled=false;btn.textContent='Gerar e Baixar'},2500);
+  toast(`${cards.length} template(s) gerado(s) e baixados`,'success')}
 
 function genDV360(d){
   const display=d.placements.filter(p=>p.type!=='video');
@@ -1262,7 +1315,6 @@ document.getElementById('toastDismiss').addEventListener('click',()=>document.ge
 document.getElementById('themeToggle').addEventListener('click',toggleTheme);
 document.getElementById('syncPixels').addEventListener('change',onSyncPixelChange);
 document.getElementById('replicateAll').addEventListener('change',onReplicateChange);
-document.getElementById('btnGenerate').addEventListener('click',generate);
 // ── Assets Mode ──
 // assetEntries/assetIdCounter declared in wizard init block
 const ASSET_DSP_LIMITS={xandr:{display:400*1024,video:Infinity},dv360:{display:10*1024*1024,video:Infinity},stackadapt:{display:2*1024*1024,video:Infinity},amazondsp:{display:200*1024,video:Infinity}};

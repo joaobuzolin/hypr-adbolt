@@ -1671,73 +1671,88 @@ async function handleAssetInput(fileList){
 }
 
 async function handleHTML5Zip(zipFile,zip){
-  // Extract dimensions from filename (e.g. "banner-320x50-v2.zip" → 320x50)
   const dimMatch=zipFile.name.match(/(\d{2,4})x(\d{2,4})/);
   const w=dimMatch?parseInt(dimMatch[1]):300;
   const h=dimMatch?parseInt(dimMatch[2]):250;
 
-  // Generate preview thumbnail by rendering index.html in hidden iframe
+  // Read and validate index.html
+  let indexHtml=await zip.file('index.html').async('string');
+  let warnings=[];
+  let modified=false;
+
+  // Check for clickTag variable (required by DV360/Google Ads)
+  const hasClickTag=/var\s+clickTag\b|clickTag\s*=|window\.clickTag|clickTAG/.test(indexHtml);
+  // Check for ad.size meta (required by DV360)
+  const hasAdSize=/ad\.size/.test(indexHtml);
+
+  if(!hasAdSize){
+    // Inject ad.size meta into <head>
+    const metaTag=`<meta name="ad.size" content="width=${w},height=${h}">`;
+    if(indexHtml.includes('<head>')){indexHtml=indexHtml.replace('<head>',`<head>\n${metaTag}`)}
+    else if(indexHtml.includes('<HEAD>')){indexHtml=indexHtml.replace('<HEAD>',`<HEAD>\n${metaTag}`)}
+    else{indexHtml=metaTag+'\n'+indexHtml}
+    modified=true;
+    warnings.push('ad.size meta adicionado');
+  }
+
+  if(!hasClickTag){
+    // Inject clickTag + click overlay before </body>
+    const clickInjection=`
+<script>var clickTag = "https://www.example.com";</script>
+<div id="clickArea" style="position:absolute;inset:0;cursor:pointer;z-index:9999" role="button" tabindex="0"></div>
+<script>
+(function(){var el=document.getElementById('clickArea');
+function go(){window.open(clickTag,'_blank');}
+el.addEventListener('click',go);
+el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')go();});
+})();
+</script>`;
+    if(indexHtml.includes('</body>')){indexHtml=indexHtml.replace('</body>',clickInjection+'\n</body>')}
+    else if(indexHtml.includes('</BODY>')){indexHtml=indexHtml.replace('</BODY>',clickInjection+'\n</BODY>')}
+    else{indexHtml+=clickInjection}
+    modified=true;
+    warnings.push('clickTag + click overlay injetados automaticamente');
+  }
+
+  // If modified, rebuild the ZIP with the updated index.html
+  let finalFile=zipFile;
+  if(modified){
+    const newZip=new JSZip();
+    for(const[path,entry] of Object.entries(zip.files)){
+      if(entry.dir)continue;
+      if(path==='index.html'){newZip.file('index.html',indexHtml)}
+      else{newZip.file(path,await entry.async('blob'))}
+    }
+    const blob=await newZip.generateAsync({type:'blob',mimeType:'application/zip'});
+    finalFile=new File([blob],zipFile.name,{type:'application/zip'});
+  }
+
+  // Generate preview thumbnail
   let thumb='';
   try{
-    const indexHtml=await zip.file('index.html').async('string');
-    // Collect all assets as blob URLs for injection
-    const blobUrls=new Map();
-    for(const[path,entry] of Object.entries(zip.files)){
-      if(entry.dir||path==='index.html')continue;
-      const blob=await entry.async('blob');
-      blobUrls.set(path.split('/').pop(),URL.createObjectURL(blob));
-    }
-    // Replace asset references in HTML with blob URLs
-    let processedHtml=indexHtml;
-    for(const[name,blobUrl] of blobUrls){
-      processedHtml=processedHtml.replaceAll(name,blobUrl);
-    }
-    // Render in hidden iframe and capture screenshot
-    thumb=await new Promise(resolve=>{
-      const iframe=document.createElement('iframe');
-      iframe.style.cssText=`position:fixed;left:-9999px;top:-9999px;width:${w}px;height:${h}px;border:none;opacity:0;pointer-events:none`;
-      iframe.sandbox='allow-scripts allow-same-origin';
-      document.body.appendChild(iframe);
-      iframe.onload=()=>{
-        setTimeout(()=>{
-          try{
-            const canvas=document.createElement('canvas');
-            const scale=Math.min(96/w,72/h,1);
-            canvas.width=w*scale;canvas.height=h*scale;
-            const ctx=canvas.getContext('2d');
-            // Use html2canvas-like approach: draw iframe content
-            // Since cross-origin restrictions may apply, we try srcdoc approach
-            ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle='#7b6ef0';ctx.font=`${Math.max(8,canvas.height*0.15)}px DM Sans,sans-serif`;
-            ctx.textAlign='center';ctx.textBaseline='middle';
-            ctx.fillText('HTML5',canvas.width/2,canvas.height*0.4);
-            ctx.fillStyle='#8585a0';ctx.font=`${Math.max(6,canvas.height*0.1)}px DM Sans,sans-serif`;
-            ctx.fillText(`${w}×${h}`,canvas.width/2,canvas.height*0.65);
-            resolve(canvas.toDataURL('image/jpeg',0.8));
-          }catch(e){resolve('')}
-          finally{document.body.removeChild(iframe);blobUrls.forEach(u=>URL.revokeObjectURL(u))}
-        },500);
-      };
-      iframe.srcdoc=processedHtml;
-      setTimeout(()=>{try{document.body.removeChild(iframe)}catch(e){}resolve('')},3000);
-    });
-  }catch(e){console.error('HTML5 preview error:',e)}
+    const canvas=document.createElement('canvas');
+    const scale=Math.min(96/w,72/h,1);
+    canvas.width=w*scale;canvas.height=h*scale;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#e6a700';ctx.font=`bold ${Math.max(8,canvas.height*0.18)}px DM Sans,sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('HTML5',canvas.width/2,canvas.height*0.38);
+    ctx.fillStyle='#8585a0';ctx.font=`${Math.max(6,canvas.height*0.12)}px JetBrains Mono,monospace`;
+    ctx.fillText(`${w}×${h}`,canvas.width/2,canvas.height*0.62);
+    thumb=canvas.toDataURL('image/jpeg',0.8);
+  }catch(e){}
 
-  // Create a File object from the original ZIP
   const entry={
-    id:++assetIdCounter,
-    type:'html5',
-    file:zipFile,
-    originalFile:zipFile,
+    id:++assetIdCounter,type:'html5',
+    file:finalFile,originalFile:finalFile,
     name:zipFile.name.replace(/\.zip$/i,''),
-    dimensions:`${w}x${h}`,w,h,
-    duration:0,
-    size:zipFile.size,
-    thumb,
-    landingPage:'',
-    trackers:[],
+    dimensions:`${w}x${h}`,w,h,duration:0,
+    size:finalFile.size,thumb,
+    landingPage:'',trackers:[],
     compressed:false,compressedFile:null,
-    html5:true
+    html5:true,hasClickTag:hasClickTag||modified,
+    html5Warnings:warnings
   };
   assetEntries.push(entry);
 
@@ -1751,7 +1766,8 @@ async function handleHTML5Zip(zipFile,zip){
   document.getElementById('assetsClearAll').addEventListener('click',e=>{e.stopPropagation();assetEntries=[];zone.classList.remove('has-files');zone.innerHTML=`<span class="upload-icon">🎨</span><div class="upload-text">Arraste arquivos aqui ou <strong>clique para selecionar</strong></div><div class="upload-format">JPG · PNG · GIF · MP4 · ZIP</div>${ASSET_FILE_INPUT_HTML}`;bindAssetFileInput();document.getElementById('assetsContent').style.display='none';updateVisibility()});
   document.getElementById('assetsContent').style.display='';
   renderAssetsTable();updateVisibility();
-  toast(`HTML5 creative adicionado: ${w}x${h}`,'success');
+  const msg=warnings.length?`HTML5 creative ${w}x${h} (${warnings.join(', ')})`:`HTML5 creative ${w}x${h}`;
+  toast(msg,warnings.length?'':'success');
 }
 
 // Assets filter

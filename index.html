@@ -1697,16 +1697,18 @@ async function handleHTML5Zip(zipFile,zip){
 
   if(!hasClickTag){
     // Inject clickTag + click overlay before </body>
+    // Note: split </script> to avoid HTML parser closing our main script block
+    const scOpen='<scr'+'ipt>';const scClose='</scr'+'ipt>';
     const clickInjection=`
-<script>var clickTag = "https://www.example.com";</script>
+${scOpen}var clickTag = "https://www.example.com";${scClose}
 <div id="clickArea" style="position:absolute;inset:0;cursor:pointer;z-index:9999" role="button" tabindex="0"></div>
-<script>
+${scOpen}
 (function(){var el=document.getElementById('clickArea');
 function go(){window.open(clickTag,'_blank');}
 el.addEventListener('click',go);
 el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')go();});
 })();
-</script>`;
+${scClose}`;
     if(indexHtml.includes('</body>')){indexHtml=indexHtml.replace('</body>',clickInjection+'\n</body>')}
     else if(indexHtml.includes('</BODY>')){indexHtml=indexHtml.replace('</BODY>',clickInjection+'\n</BODY>')}
     else{indexHtml+=clickInjection}

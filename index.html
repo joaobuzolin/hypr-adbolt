@@ -559,7 +559,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const STACKADAPT_EXCLUDED_SIZES=new Set(['336x280']);
 const SURVEY_SIZES=['300x600','300x250','320x480'];
 
-let parsedData=null,currentMode='tags',selectedDsps=new Set(),placementAssignment={},generatedFiles={},surveyEntries=[],surveyIdCounter=0,currentUser=null,sbClient=null,activeWizardStep=0;
+let parsedData=null,currentMode='tags',selectedDsps=new Set(),placementAssignment={},generatedFiles={},surveyEntries=[],surveyIdCounter=0,currentUser=null,sbClient=null,activeWizardStep=0,assetEntries=[],assetIdCounter=0;
 try{sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)}catch(e){console.error('Supabase init error:',e)}
 
 // ── Auth ──

@@ -437,6 +437,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="option-row" id="optPoliticalRow" style="display:none">
         <label class="checkbox-row"><input type="checkbox" class="custom-cb" id="inputPolitical"> Creative é político (Xandr Political Declaration = "Yes; non-EU")</label>
       </div>
+      <div class="panel-divider" id="xandrAuditDivider" style="display:none"></div>
+      <div id="xandrAuditSection" style="display:none">
+        <div style="margin-bottom:14px"><span class="section-label">Auditoria Xandr</span></div>
+        <div class="option-row">
+          <label class="option-label" for="inputXandrLang">Idioma do criativo<small>Obrigatório pra auditoria</small></label>
+          <div class="option-input">
+            <select id="inputXandrLang" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);font-size:0.8rem;padding:9px 12px;outline:none;appearance:none;cursor:pointer">
+              <option value="8">Português</option>
+              <option value="1">English</option>
+              <option value="3">Español</option>
+              <option value="5">Français</option>
+              <option value="6">Deutsch</option>
+              <option value="7">العربية</option>
+              <option value="2">中文</option>
+              <option value="4">日本語</option>
+              <option value="10">Korean</option>
+              <option value="11">Italian</option>
+            </select>
+          </div>
+        </div>
+        <div class="option-row">
+          <label class="option-label" for="inputXandrBrandId">Brand ID (Xandr)<small>ID da marca no Xandr. Se não souber, deixe vazio — o auditor atribui.</small></label>
+          <div class="option-input"><input type="text" id="inputXandrBrandId" placeholder="Ex: 12345 (opcional)" style="font-family:var(--mono)"></div>
+        </div>
+        <div class="option-row">
+          <label class="option-label" for="inputXandrLandingPage">Landing page URL<small>URL do site da marca pra validação da auditoria</small></label>
+          <div class="option-input"><input type="text" id="inputXandrLandingPage" placeholder="https://www.marca.com.br"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -584,6 +613,9 @@ async function activateXandr(token){
 
     const pixel=getPixelForDsp('xandr');
     const pol=document.getElementById('inputPolitical').checked;
+    const langId=parseInt(document.getElementById('inputXandrLang').value)||8;
+    const brandId=document.getElementById('inputXandrBrandId').value.trim();
+    const landingPage=document.getElementById('inputXandrLandingPage').value.trim();
 
     const body={
       advertiserId:7392214,
@@ -591,6 +623,9 @@ async function activateXandr(token){
       advertiserName:parsedData?.advertiserName||'',
       trackingPixel:pixel,
       isPolitical:pol,
+      languageId:langId,
+      brandId:brandId?parseInt(brandId):null,
+      landingPageUrl:landingPage||null,
       creatives:allPlacements.map(p=>({
         name:p.placementName,
         dimensions:p.dimensions,
@@ -684,6 +719,8 @@ function updateOptions(){
   const hasSA=selectedDsps.has('stackadapt'),hasXandr=selectedDsps.has('xandr');
   document.getElementById('optBrandRow').style.display=hasSA?'flex':'none';
   document.getElementById('optPoliticalRow').style.display=hasXandr?'flex':'none';
+  document.getElementById('xandrAuditDivider').style.display=hasXandr?'':'none';
+  document.getElementById('xandrAuditSection').style.display=hasXandr?'':'none';
   const showPixels=currentMode!=='surveys';
   ['stackadapt','xandr'].forEach(dsp=>{
     const wrap=document.getElementById(`pixelWrap_${dsp}`),field=document.getElementById(`pixel_${dsp}`);

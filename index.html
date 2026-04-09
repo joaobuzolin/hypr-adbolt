@@ -103,7 +103,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .flow-selector-header{text-align:center;margin-bottom:56px}
 .flow-selector-header h2{font-size:1.8rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px}
 .flow-selector-header p{font-size:0.92rem;color:var(--text-sec);max-width:460px;margin:0 auto;line-height:1.6}
-.flow-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.flow-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .flow-card{position:relative;background:var(--bg-surface);border:1.5px solid var(--border);border-radius:var(--r);padding:32px 24px;cursor:pointer;transition:all var(--dur) var(--ease);text-align:center;overflow:hidden}
 .flow-card::before{content:'';position:absolute;inset:0;background:var(--grad-surface);opacity:0;transition:opacity var(--dur)}
 .flow-card:hover{border-color:var(--border-active);transform:translateY(-4px);box-shadow:var(--shadow-lg),0 0 60px rgba(123,110,240,0.08)}
@@ -455,10 +455,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       <p>Escolha o tipo de criativo para começar. Gere templates e ative nas DSPs em um fluxo guiado.</p>
     </div>
     <div class="flow-cards">
-      <div class="flow-card" onclick="enterWizard('tags')"><div class="flow-card-icon"><span>📄</span></div><div class="flow-card-title">Tags CM360</div><div class="flow-card-desc">Upload de tags exportadas do Campaign Manager</div></div>
+      <div class="flow-card" onclick="enterWizard('tags')"><div class="flow-card-icon"><span>📄</span></div><div class="flow-card-title">3P Tags</div><div class="flow-card-desc">Upload de tags exportadas do Campaign Manager</div></div>
       <div class="flow-card" onclick="enterWizard('surveys')"><div class="flow-card-icon"><span>📊</span></div><div class="flow-card-title">Surveys</div><div class="flow-card-desc">Pesquisas Typeform embedded em iframes</div></div>
-      <div class="flow-card" onclick="enterWizard('assets')"><div class="flow-card-icon"><span>🎨</span></div><div class="flow-card-title">Assets</div><div class="flow-card-desc">Upload direto de imagens e vídeos nas DSPs</div></div>
-      <div class="flow-card" onclick="enterWizard('both')"><div class="flow-card-icon"><span>⚡</span></div><div class="flow-card-title">Tags + Surveys</div><div class="flow-card-desc">Combine tags CM360 com surveys numa única ativação</div></div>
+      <div class="flow-card" onclick="enterWizard('assets')"><div class="flow-card-icon"><span>🎨</span></div><div class="flow-card-title">Standard Images</div><div class="flow-card-desc">Upload direto de imagens e vídeos nas DSPs</div></div>
     </div>
   </div>
 
@@ -470,7 +469,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
     </div>
     <div class="wizard-content" id="wizardContent">
       <div class="step-view" id="stepTags" data-step="tags">
-        <div class="step-header"><h2>Upload de Tags</h2><p>Arraste o arquivo de tags exportado do Campaign Manager (.xlsx ou .csv)</p></div>
+        <div class="step-header"><h2>Upload de 3P Tags</h2><p>Arraste o arquivo de tags exportado do Campaign Manager (.xlsx ou .csv)</p></div>
         <div class="upload-zone" id="uploadZone">
           <span class="upload-icon">📄</span>
           <div class="upload-text">Arraste o arquivo aqui ou <strong>clique para selecionar</strong></div>
@@ -502,7 +501,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       </div>
 
       <div class="step-view full-width" id="stepAssets" data-step="assets">
-        <div class="step-header"><h2>Assets</h2><p>Upload de imagens e vídeos para ativação direta nas DSPs</p></div>
+        <div class="step-header"><h2>Standard Images</h2><p>Upload de imagens e vídeos para ativação direta nas DSPs</p></div>
         <div class="assets-upload-zone" id="assetsUploadZone">
           <span class="upload-icon">🎨</span>
           <div class="upload-text">Arraste arquivos aqui ou <strong>clique para selecionar</strong></div>
@@ -615,8 +614,8 @@ let toastTimer=null;
 function toast(msg,type=''){const el=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;el.className='toast '+type;clearTimeout(toastTimer);requestAnimationFrame(()=>el.classList.add('show'));if(type!=='error')toastTimer=setTimeout(()=>el.classList.remove('show'),3200)}
 
 // ── Wizard Navigation (NEW) ──
-const WIZARD_CONFIGS={tags:{steps:['tags','dsps','config','activate'],labels:['Upload Tags','DSPs','Config','Gerar & Ativar'],sublabels:['Arquivo CM360','Destino','Marca e opções','Templates']},surveys:{steps:['surveys','dsps','config','activate'],labels:['Surveys','DSPs','Config','Gerar & Ativar'],sublabels:['URLs Typeform','Destino','Marca e opções','Templates']},assets:{steps:['assets','dsps','config','activate'],labels:['Assets','DSPs','Config','Ativar'],sublabels:['Upload mídia','Destino','Marca e opções','Ativação']},both:{steps:['tags','surveys','dsps','config','activate'],labels:['Tags','Surveys','DSPs','Config','Gerar & Ativar'],sublabels:['CM360','Typeform','Destino','Marca','Templates']}};
-const MODE_LABELS={tags:'Tags CM360',surveys:'Surveys',assets:'Assets',both:'Tags + Surveys'};
+const WIZARD_CONFIGS={tags:{steps:['tags','dsps','config','activate'],labels:['Upload 3P Tags','DSPs','Config','Gerar & Ativar'],sublabels:['Arquivo CM360','Destino','Marca e opções','Templates']},surveys:{steps:['surveys','dsps','config','activate'],labels:['Surveys','DSPs','Config','Gerar & Ativar'],sublabels:['URLs Typeform','Destino','Marca e opções','Templates']},assets:{steps:['assets','dsps','config','activate'],labels:['Standard Images','DSPs','Config','Ativar'],sublabels:['Upload mídia','Destino','Marca e opções','Ativação']}};
+const MODE_LABELS={tags:'3P Tags',surveys:'Surveys',assets:'Standard Images'};
 
 function resetWizardState(){
   // Reset all shared state

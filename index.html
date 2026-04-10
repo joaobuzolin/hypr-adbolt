@@ -1201,30 +1201,31 @@ async function activateDV360Assets(token){
   try{
     const assets=generatedFiles._assets;
     if(!assets?.length)return{dsp:'DV360',status:'error',detail:'Nenhum asset pra ativar'};
-
     const advertiserId=document.getElementById('inputDV360AdvId')?.value?.trim()||'1426474713';
-    const results=[];
+    updateProgress('dv360',0,assets.length,'Preparando...');
+
+    // Convert all files to base64 first
+    const creatives=[];
     for(let i=0;i<assets.length;i++){
       const a=assets[i];
-      updateProgress('dv360',i,assets.length,a.name);
-      try{
-        const file=a.compressedFile||a.originalFile;
-        const base64=await fileToBase64(file);
-        const body={
-          advertiserId,
-          creatives:[{name:a.name,type:a.type,dimensions:a.dimensions,fileName:file.name,mimeType:file.type,fileBase64:base64,landingPage:a.landingPage,trackers:mergeTrackers(a.trackers,'dv360')}]
-        };
-        const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
-          method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)
-        });
-        const data=await res.json();
-        if(res.ok&&data.results?.length)results.push(...data.results);
-        else results.push({name:a.name,success:false,error:data.error||'Erro'});
-      }catch(err){results.push({name:a.name,success:false,error:err.message})}
-      updateProgress('dv360',i+1,assets.length,a.name);
+      updateProgress('dv360',0,assets.length,'Preparando '+(i+1)+'/'+assets.length);
+      const file=a.compressedFile||a.originalFile;
+      const base64=await fileToBase64(file);
+      creatives.push({name:a.name,type:a.type,dimensions:a.dimensions,fileName:file.name,mimeType:file.type,fileBase64:base64,landingPage:a.landingPage,trackers:mergeTrackers(a.trackers,'dv360')});
     }
 
+    // Send all in one request (backend processes in parallel batches of 3)
+    updateProgress('dv360',0,assets.length,'Enviando '+assets.length+' criativos...');
+    const body={advertiserId,campaignName:parsedData?.campaignName||'',advertiserName:parsedData?.advertiserName||'',brandName:document.getElementById('inputBrand')?.value||'',creatives};
+    const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)
+    });
+    const data=await res.json();
+    const results=data.results||[];
     const successCount=results.filter(r=>r.success).length;
+
+    // Update progress with final count
+    for(let i=0;i<=successCount;i++){updateProgress('dv360',i,assets.length)}
     finalizeProgress('dv360',successCount,results.length);
     return{dsp:'DV360',status:successCount===results.length?'success':successCount>0?'partial':'error',detail:`${successCount}/${results.length} criativos criados`,results};
   }catch(err){

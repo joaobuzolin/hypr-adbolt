@@ -487,6 +487,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .assets-filter-count{font-size:0.72rem;color:var(--text-tri);white-space:nowrap}
 .assets-filter-select-btn{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-xs);color:var(--accent);font-size:0.72rem;font-weight:500;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:all var(--dur-f)}
 .assets-filter-select-btn:hover{background:var(--accent-dim)}
+.assets-filter-clear-btn{background:var(--error-dim);border:1px solid var(--error);border-radius:var(--r-xs);color:var(--error);font-size:0.72rem;font-weight:500;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:all var(--dur-f);font-family:var(--font)}
+.assets-filter-clear-btn:hover{background:var(--error);color:var(--text-on-accent)}
 .cb-col{width:40px;text-align:center}
 .tracker-cell{min-width:200px}
 .tracker-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
@@ -707,6 +709,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
             </select>
             <span class="assets-filter-count" id="tagsFilterCount"></span>
             <button class="assets-filter-select-btn" id="tagsFilterSelect">Selecionar filtrados</button>
+            <button class="assets-filter-clear-btn" id="tagsFilterClear" style="display:none" onclick="clearTagsFilter()">✕ Limpar</button>
           </div>
           <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="tagsSelectAll" aria-label="Selecionar todos os placements"></th><th>Placement Name</th><th>Tipo</th><th>Size</th><th>Tag</th><th>Click URL</th><th>Tracker</th><th></th></tr></thead><tbody id="placementsBody"></tbody></table></div>
         </div>
@@ -750,6 +753,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
             </select>
             <span class="assets-filter-count" id="assetsFilterCount"></span>
             <button class="assets-filter-select-btn" id="assetsFilterSelect">Selecionar filtrados</button>
+            <button class="assets-filter-clear-btn" id="assetsFilterClear" style="display:none" onclick="clearAssetsFilter()">✕ Limpar</button>
           </div>
           <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="assetsSelectAll" aria-label="Selecionar todos os assets"></th><th></th><th>Nome</th><th>Tipo</th><th>Formato</th><th>Size</th><th>Peso</th><th>Landing Page</th><th>Tracker</th><th></th></tr></thead><tbody id="assetsTableBody"></tbody></table></div>
         </div>
@@ -1778,7 +1782,20 @@ function setTagsFilter(filterType,val,btn){
     if(btn)btn.classList.add('active');
   }
   if(filterType==='size')_tagsFilterSize=val;
+  updateTagsFilterClearBtn();
   renderPlacementsTable();
+}
+function clearTagsFilter(){
+  document.getElementById('tagsFilter').value='';
+  _tagsFilterType='all';_tagsFilterSize='all';
+  document.querySelectorAll('.tags-pill[data-filter="type"]').forEach(b=>b.classList.toggle('active',b.dataset.val==='all'));
+  const sel=document.getElementById('tagsSizeFilter');if(sel)sel.value='all';
+  updateTagsFilterClearBtn();
+  renderPlacementsTable();
+}
+function updateTagsFilterClearBtn(){
+  const hasFilter=(document.getElementById('tagsFilter')?.value||'').trim()||_tagsFilterType!=='all'||_tagsFilterSize!=='all';
+  const btn=document.getElementById('tagsFilterClear');if(btn)btn.style.display=hasFilter?'':'none';
 }
 function updateSizeFilterOptions(){
   const sel=document.getElementById('tagsSizeFilter');if(!sel||!parsedData)return;
@@ -2288,7 +2305,20 @@ let _assetsFilterType='all',_assetsFilterSize='all';
 function setAssetsFilter(ft,val,btn){
   if(ft==='type'){_assetsFilterType=val;document.querySelectorAll('.tags-pill[data-filter="atype"]').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active')}
   if(ft==='size')_assetsFilterSize=val;
+  updateAssetsFilterClearBtn();
   renderAssetsTable();
+}
+function clearAssetsFilter(){
+  document.getElementById('assetsFilter').value='';
+  _assetsFilterType='all';_assetsFilterSize='all';
+  document.querySelectorAll('.tags-pill[data-filter="atype"]').forEach(b=>b.classList.toggle('active',b.dataset.val==='all'));
+  const sel=document.getElementById('assetsSizeFilter');if(sel)sel.value='all';
+  updateAssetsFilterClearBtn();
+  renderAssetsTable();
+}
+function updateAssetsFilterClearBtn(){
+  const hasFilter=(document.getElementById('assetsFilter')?.value||'').trim()||_assetsFilterType!=='all'||_assetsFilterSize!=='all';
+  const btn=document.getElementById('assetsFilterClear');if(btn)btn.style.display=hasFilter?'':'none';
 }
 function updateAssetsSizeOptions(){
   const sel=document.getElementById('assetsSizeFilter');if(!sel)return;
@@ -2753,7 +2783,7 @@ ${scClose}`;
 }
 
 // Assets filter
-document.getElementById('assetsFilter').addEventListener('input',()=>renderAssetsTable());
+document.getElementById('assetsFilter').addEventListener('input',()=>{updateAssetsFilterClearBtn();renderAssetsTable()});
 document.getElementById('assetsFilterSelect').addEventListener('click',()=>{
   const filterVal=(document.getElementById('assetsFilter')?.value||'').toLowerCase();
   if(!filterVal){toast('Digite algo no filtro primeiro','error');return}
@@ -2909,7 +2939,7 @@ document.getElementById('tagsSelectAll').addEventListener('change',e=>{
   document.querySelectorAll('.tag-cb').forEach(c=>{c.checked=checked;const idx=parseInt(c.dataset.idx);if(checked)_selectedTagIds.add(idx);else _selectedTagIds.delete(idx)});
   updateTagsBulkBar();
 });
-document.getElementById('tagsFilter').addEventListener('input',()=>{if(parsedData)renderPlacementsTable()});
+document.getElementById('tagsFilter').addEventListener('input',()=>{updateTagsFilterClearBtn();if(parsedData)renderPlacementsTable()});
 document.getElementById('tagsFilterSelect').addEventListener('click',()=>{
   const filterVal=(document.getElementById('tagsFilter')?.value||'').toLowerCase();
   if(!filterVal){toast('Digite algo no filtro primeiro','error');return}

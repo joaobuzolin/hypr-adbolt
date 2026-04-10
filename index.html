@@ -2728,7 +2728,23 @@ document.getElementById('tagsFilterSelect').addEventListener('click',()=>{
 });
 
 // ── Dashboard ──
-let dashCreatives=[],dashGroups=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditGroup=null,dashExpandedKey=null,dashSelectedKeys=new Set(),dashIsOpen=false,_dashSearchTimer=null;
+let dashCreatives=[],dashGroups=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditGroup=null,dashExpandedKey=null,dashSelectedKeys=new Set(),dashIsOpen=false,_dashSearchTimer=null,_autoSyncTimer=null,_silentSyncing=false;
+
+// Silent sync: atualiza status sem skeleton/overlay, só re-renderiza a tabela
+async function silentSync(){
+  if(_silentSyncing||!sbClient||!currentUser||!dashIsOpen)return;
+  _silentSyncing=true;
+  const btn=document.getElementById('dashSyncBtn');
+  if(btn){btn.textContent='Syncing...';btn.classList.add('loading')}
+  try{
+    const tk=(await sbClient.auth.getSession()).data.session?.access_token;if(!tk)return;
+    const r=await fetch(SUPABASE_URL+'/functions/v1/creative-sync',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},body:JSON.stringify({})});
+    if(r.ok)await loadCreatives();
+  }catch(e){console.warn('silent sync error:',e)}
+  finally{_silentSyncing=false;if(btn){btn.textContent='Sync Status';btn.classList.remove('loading')}}
+}
+function startAutoSync(){stopAutoSync();silentSync();_autoSyncTimer=setInterval(silentSync,30000)}
+function stopAutoSync(){if(_autoSyncTimer){clearInterval(_autoSyncTimer);_autoSyncTimer=null}}
 
 function toggleDashHome(){if(dashIsOpen)closeDashboard();else openDashboard()}
 function updateTopbarBtn(){
@@ -2749,12 +2765,12 @@ function openDashboard(){
   document.getElementById('flowSelector').style.display='none';
   document.getElementById('wizard').classList.remove('active');
   document.getElementById('dashboard').classList.add('active');
-  dashIsOpen=true;updateTopbarBtn();loadCreatives();
+  dashIsOpen=true;updateTopbarBtn();loadCreatives();startAutoSync();
 }
 function closeDashboard(){
   document.getElementById('dashboard').classList.remove('active');
   document.getElementById('flowSelector').style.display='';
-  dashIsOpen=false;updateTopbarBtn();
+  dashIsOpen=false;updateTopbarBtn();stopAutoSync();
 }
 function setDashFilter(el){
   document.querySelectorAll('[data-dash-dsp]').forEach(b=>b.classList.remove('active'));

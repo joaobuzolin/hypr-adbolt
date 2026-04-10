@@ -103,84 +103,123 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 
 /* ── Flow Selector ── */
 /* ── Dashboard ── */
-.dashboard{display:none;padding:32px 40px;max-width:1320px;margin:0 auto;animation:fadeIn 0.3s var(--ease-out)}
-.dashboard.active{display:block}
-.dashboard-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap}
-.dashboard-header-left{display:flex;align-items:center;gap:14px}
-.dashboard-title{font-size:1.35rem;font-weight:700;letter-spacing:-0.5px}
-.dashboard-actions{display:flex;gap:8px;align-items:center}
-.dash-btn{padding:8px 16px;border-radius:var(--r-xs);font-size:0.78rem;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg-raised);color:var(--text);transition:all var(--dur-f);font-family:var(--font)}
-.dash-btn:hover{border-color:var(--border-active);background:var(--accent-dim)}
-.dash-btn.primary{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent)}
-.dash-btn.primary:hover{background:var(--accent-hover)}
-.dash-btn:disabled{opacity:0.4;cursor:not-allowed}
-.dash-btn-back{background:none;border:none;color:var(--text-sec);font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 0;font-family:var(--font);transition:color var(--dur-f)}
-.dash-btn-back:hover{color:var(--text)}
-.dash-btn-back svg{width:16px;height:16px}
-.dash-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px}
-.dash-stat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;position:relative;overflow:hidden}
-.dash-stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--border);transition:background var(--dur)}
-.dash-stat.st-approved::after{background:var(--success)}
-.dash-stat.st-pending::after{background:var(--warning)}
-.dash-stat.st-rejected::after{background:var(--error)}
-.dash-stat-val{font-size:1.5rem;font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
-.dash-stat-label{font-size:0.68rem;color:var(--text-tri);margin-top:3px;text-transform:uppercase;letter-spacing:0.6px;font-weight:500}
-.dash-toolbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-.dash-filter{padding:6px 14px;border-radius:var(--r-pill);font-size:0.74rem;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--text-tri);cursor:pointer;transition:all var(--dur-f);font-family:var(--font)}
-.dash-filter.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-ring)}
-.dash-filter:hover:not(.active){color:var(--text-sec);border-color:var(--border-active)}
-.dash-divider{width:1px;height:20px;background:var(--border);margin:0 2px}
-.dash-search{padding:7px 14px;border-radius:var(--r-pill);font-size:0.78rem;border:1px solid var(--border);background:var(--bg-input);color:var(--text);width:200px;font-family:var(--font);transition:border-color var(--dur-f)}
-.dash-search:focus{outline:none;border-color:var(--border-active)}
-.dash-table-wrap{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.dashboard{display:none;padding:0 40px 40px;max-width:1320px;margin:0 auto}
+.dashboard.active{display:block;animation:slideUp 0.4s var(--ease-out)}
+.dash-hero{padding:32px 0 28px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.dash-hero-left{display:flex;align-items:center;gap:16px}
+.dash-hero-back{width:36px;height:36px;border-radius:var(--r-xs);background:var(--bg-surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sec);transition:all var(--dur-f)}
+.dash-hero-back:hover{border-color:var(--border-active);color:var(--accent);background:var(--accent-dim)}
+.dash-hero-back svg{width:18px;height:18px}
+.dash-hero-title{font-size:1.6rem;font-weight:800;letter-spacing:-0.8px;background:linear-gradient(135deg,var(--text) 0%,var(--text-sec) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dash-hero-sub{font-size:0.78rem;color:var(--text-tri);margin-top:2px}
+.dash-hero-actions{display:flex;gap:8px;align-items:center;padding-top:6px}
+.dash-btn{padding:9px 18px;border-radius:var(--r-xs);font-size:0.78rem;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg-surface);color:var(--text);transition:all var(--dur-f);font-family:var(--font)}
+.dash-btn:hover{border-color:var(--border-active);background:var(--accent-dim);color:var(--accent)}
+.dash-btn.primary{background:var(--accent);color:var(--text-on-accent);border-color:transparent}
+.dash-btn.primary:hover{background:var(--accent-hover);border-color:transparent;color:var(--text-on-accent)}
+.dash-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.dash-btn-sync{position:relative;overflow:hidden}
+.dash-btn-sync.loading::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);animation:shimmer 1.5s infinite}
+/* Stats */
+.dash-stats{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:10px;margin-bottom:20px}
+.dash-stat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:18px 20px;position:relative;overflow:hidden;transition:border-color var(--dur-f)}
+.dash-stat:hover{border-color:var(--border-active)}
+.dash-stat.hero{background:var(--glass-bg);backdrop-filter:blur(12px);border-color:var(--accent-ring)}
+.dash-stat.hero .dash-stat-val{font-size:2.2rem}
+.dash-stat-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.dash-stat-dot{width:8px;height:8px;border-radius:50%}
+.dash-stat-dot.c-success{background:var(--success)}
+.dash-stat-dot.c-warning{background:var(--warning)}
+.dash-stat-dot.c-error{background:var(--error)}
+.dash-stat-val{font-size:1.6rem;font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
+.dash-stat-label{font-size:0.68rem;color:var(--text-tri);text-transform:uppercase;letter-spacing:0.5px;font-weight:500}
+/* Toolbar */
+.dash-toolbar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.dash-pill{padding:6px 15px;border-radius:var(--r-pill);font-size:0.73rem;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--text-tri);cursor:pointer;transition:all var(--dur-f) var(--ease);font-family:var(--font);user-select:none}
+.dash-pill.active{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent);box-shadow:0 2px 8px rgba(123,110,240,0.25)}
+.dash-pill:hover:not(.active){color:var(--text-sec);border-color:var(--border-active);background:var(--accent-glow)}
+.dash-divider{width:1px;height:18px;background:var(--border);margin:0 4px}
+.dash-search{padding:7px 16px;border-radius:var(--r-pill);font-size:0.78rem;border:1px solid var(--border);background:var(--bg-input);color:var(--text);width:200px;font-family:var(--font);transition:all var(--dur-f)}
+.dash-search:focus{outline:none;border-color:var(--accent-ring);box-shadow:0 0 0 3px var(--accent-glow)}
+.dash-density{display:flex;border:1px solid var(--border);border-radius:var(--r-xs);overflow:hidden;margin-left:4px}
+.dash-density button{padding:5px 10px;background:transparent;border:none;color:var(--text-tri);cursor:pointer;font-size:0.68rem;font-family:var(--font);transition:all var(--dur-f)}
+.dash-density button.active{background:var(--accent-dim);color:var(--accent)}
+.dash-density button:hover:not(.active){color:var(--text-sec)}
+/* Table */
+.dash-table-wrap{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative}
+.dash-table-wrap.loading::before{content:'';position:absolute;inset:0;z-index:2;background:var(--bg-overlay);backdrop-filter:blur(2px)}
+.dash-table-wrap.loading::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:shimmer 1.2s infinite}
 .dash-table{width:100%;border-collapse:collapse;font-size:0.8rem}
 .dash-table thead{background:var(--bg-raised)}
-.dash-table th{padding:11px 16px;text-align:left;font-weight:600;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-tri);border-bottom:1px solid var(--border);white-space:nowrap}
-.dash-table td{padding:12px 16px;border-bottom:1px solid var(--border-subtle);vertical-align:middle}
+.dash-table th{padding:11px 16px;text-align:left;font-weight:600;font-size:0.67rem;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-tri);border-bottom:1px solid var(--border);white-space:nowrap}
+.dash-table td{padding:13px 16px;border-bottom:1px solid var(--border-subtle);vertical-align:middle;transition:padding var(--dur-f)}
+.dash-table.compact td{padding:8px 16px}
+.dash-table.compact .td-name{font-size:0.78rem}
 .dash-table tr:last-child td{border-bottom:none}
 .dash-table tr{transition:background var(--dur-f)}
 .dash-table tbody tr:hover{background:var(--accent-glow)}
-.td-name{font-weight:500;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-table tbody tr.expanded{background:var(--accent-dim)}
+.td-name-wrap{display:flex;flex-direction:column;gap:2px;max-width:360px;cursor:pointer}
+.td-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-name-type{font-size:0.68rem;color:var(--text-tri)}
 .td-dims{font-family:var(--mono);font-size:0.74rem;color:var(--text-sec);letter-spacing:-0.3px}
 .td-meta{font-size:0.74rem;color:var(--text-tri)}
-.td-dsps{display:flex;flex-direction:column;gap:5px}
-.dsp-chip{display:inline-flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:600;letter-spacing:0.2px}
-.dsp-chip-label{text-transform:uppercase;color:var(--text-sec);min-width:36px}
-.dsp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.dsp-dot.pending{background:var(--warning)}
-.dsp-dot.approved{background:var(--success)}
-.dsp-dot.rejected{background:var(--error)}
+.td-dsps{display:flex;flex-direction:column;gap:4px}
+.dsp-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 0;font-size:0.73rem}
+.dsp-chip-label{font-weight:600;text-transform:uppercase;color:var(--text-sec);min-width:38px;letter-spacing:0.2px}
+.dsp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background var(--dur)}
+.dsp-dot.pending{background:var(--warning);box-shadow:0 0 6px var(--warning-dim)}
+.dsp-dot.approved{background:var(--success);box-shadow:0 0 6px var(--success-dim)}
+.dsp-dot.rejected{background:var(--error);box-shadow:0 0 6px var(--error-dim)}
 .dsp-dot.unknown{background:var(--text-tri)}
 .dsp-chip-status{font-size:0.68rem;font-weight:500;color:var(--text-tri);text-transform:capitalize}
+/* Expand row */
+.dash-expand{display:none;animation:slideUp 0.25s var(--ease-out)}
+.dash-expand.visible{display:table-row}
+.dash-expand td{padding:0 16px 16px;border-bottom:1px solid var(--border-subtle)}
+.dash-expand-inner{background:var(--bg-raised);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dash-expand-field{font-size:0.72rem}
+.dash-expand-label{color:var(--text-tri);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;font-size:0.64rem;margin-bottom:3px}
+.dash-expand-val{color:var(--text-sec);font-family:var(--mono);font-size:0.7rem;word-break:break-all;max-height:48px;overflow-y:auto}
+.dash-expand-val.full{grid-column:1/-1}
+/* Actions */
 .dash-edit-btn{padding:5px 12px;border-radius:var(--r-xs);font-size:0.72rem;font-weight:500;border:1px solid transparent;background:transparent;color:var(--text-tri);cursor:pointer;transition:all var(--dur-f);font-family:var(--font)}
 .dash-edit-btn:hover{border-color:var(--border);color:var(--accent);background:var(--accent-dim)}
-.dash-empty{padding:72px 20px;text-align:center}
-.dash-empty-icon{font-size:2.4rem;margin-bottom:12px;opacity:0.4}
-.dash-empty-text{font-size:0.9rem;color:var(--text-sec);font-weight:500}
-.dash-empty-sub{font-size:0.78rem;color:var(--text-tri);margin-top:6px}
+.dash-empty{padding:80px 20px;text-align:center}
+.dash-empty-icon{font-size:2.8rem;margin-bottom:16px;opacity:0.3;filter:grayscale(0.5)}
+.dash-empty-text{font-size:0.95rem;color:var(--text-sec);font-weight:500}
+.dash-empty-sub{font-size:0.8rem;color:var(--text-tri);margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto;line-height:1.5}
 .dash-pagination{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);font-size:0.74rem;color:var(--text-tri)}
+.dash-pg-btn{padding:5px 10px;border-radius:var(--r-xs);font-size:0.74rem;border:1px solid var(--border);background:transparent;color:var(--text-sec);cursor:pointer;font-family:var(--font);transition:all var(--dur-f)}
+.dash-pg-btn:hover:not(:disabled){border-color:var(--border-active);color:var(--accent)}
+.dash-pg-btn:disabled{opacity:0.3;cursor:not-allowed}
+/* Badge in topbar */
+.topbar-dash-badge{background:var(--warning);color:#000;font-size:0.58rem;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:2px}
+.topbar-dash-badge:empty{display:none}
 /* ── Edit Modal ── */
-.modal-overlay{position:fixed;inset:0;z-index:var(--z-overlay);background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
+.modal-overlay{position:fixed;inset:0;z-index:var(--z-overlay);background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center}
 .modal-overlay.visible{display:flex;animation:fadeIn 0.2s var(--ease-out)}
-.modal{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);width:540px;max-width:92vw;max-height:82vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:scaleIn 0.25s var(--ease-out)}
+.modal{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);width:540px;max-width:92vw;max-height:82vh;overflow-y:auto;box-shadow:var(--shadow-lg),0 0 80px rgba(0,0,0,0.2);animation:scaleIn 0.25s var(--ease-out)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:22px 28px;border-bottom:1px solid var(--border)}
 .modal-title{font-size:1.05rem;font-weight:700;letter-spacing:-0.3px}
-.modal-close{background:none;border:none;color:var(--text-tri);cursor:pointer;font-size:1.2rem;padding:4px;transition:color var(--dur-f)}
-.modal-close:hover{color:var(--text)}
+.modal-close{background:none;border:none;color:var(--text-tri);cursor:pointer;font-size:1.2rem;padding:4px 6px;border-radius:var(--r-xs);transition:all var(--dur-f)}
+.modal-close:hover{color:var(--text);background:var(--accent-dim)}
 .modal-body{padding:24px 28px}
 .modal-field{margin-bottom:16px}
 .modal-field label{display:block;font-size:0.72rem;font-weight:600;color:var(--text-sec);margin-bottom:6px;letter-spacing:0.2px}
-.modal-field input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--bg-input);color:var(--text);font-size:0.82rem;font-family:var(--font);transition:border-color var(--dur-f)}
-.modal-field input:focus{outline:none;border-color:var(--border-active)}
+.modal-field input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-xs);background:var(--bg-input);color:var(--text);font-size:0.82rem;font-family:var(--font);transition:all var(--dur-f)}
+.modal-field input:focus{outline:none;border-color:var(--accent-ring);box-shadow:0 0 0 3px var(--accent-glow)}
 .modal-field-ro{padding:10px 14px;background:var(--bg-raised);border:1px solid var(--border-subtle);border-radius:var(--r-xs);font-size:0.78rem;color:var(--text-tri);font-family:var(--mono);word-break:break-all;max-height:72px;overflow-y:auto}
-.modal-field-hint{font-size:0.66rem;color:var(--text-tri);margin-top:4px}
 .modal-dsp-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
 .modal-dsp-header{display:flex;align-items:center;gap:8px;margin-bottom:14px}
-.modal-dsp-tag{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;padding:3px 10px;border-radius:var(--r-pill)}
-.modal-dsp-tag.xandr{background:rgba(255,111,97,0.1);color:#ff6f61}
-.modal-dsp-tag.dv360{background:rgba(66,133,244,0.1);color:#4285f4}
+.modal-dsp-tag{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;padding:4px 12px;border-radius:var(--r-pill)}
+.modal-dsp-tag.xandr{background:rgba(255,111,97,0.12);color:#ff6f61}
+.modal-dsp-tag.dv360{background:rgba(66,133,244,0.12);color:#4285f4}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:18px 28px;border-top:1px solid var(--border)}
-@media(max-width:768px){.dashboard{padding:16px}.dash-stats{grid-template-columns:repeat(3,1fr)}.dash-search{width:100%}}
+/* ── View transitions ── */
+.view-exit{animation:viewExit 0.2s var(--ease) forwards}
+@keyframes viewExit{to{opacity:0;transform:translateY(-8px)}}
+@media(max-width:768px){.dashboard{padding:0 16px 16px}.dash-stats{grid-template-columns:1fr 1fr}.dash-stat.hero{grid-column:1/-1}.dash-search{width:100%;order:10}.dash-expand-inner{grid-template-columns:1fr}}
 .flow-selector{padding:80px 48px;max-width:900px;margin:0 auto;animation:fadeIn 0.5s var(--ease-out)}
 .flow-selector-header{text-align:center;margin-bottom:56px}
 .flow-selector-header h2{font-size:1.8rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px}
@@ -533,7 +572,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   <div class="topbar">
     <div class="topbar-brand"><div class="topbar-logo">H</div><span class="topbar-title">Creative Smart Bulk</span></div>
     <div class="topbar-right">
-      <button class="topbar-dash" onclick="openDashboard()" title="Dashboard de criativos"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+      <button class="topbar-dash" onclick="openDashboard()" title="Dashboard de criativos"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard<span class="topbar-dash-badge" id="dashBadge"></span></button>
       <div class="topbar-user" id="headerUser">
         <img class="topbar-avatar" id="headerAvatar" src="" alt="" width="28" height="28">
         <div class="topbar-initials" id="headerInitials" style="display:none"></div>
@@ -690,31 +729,35 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   </div>
 
   <div class="dashboard" id="dashboard">
-    <div class="dashboard-header">
-      <div class="dashboard-header-left">
-        <button class="dash-btn-back" onclick="closeDashboard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar</button>
-        <span class="dashboard-title">Criativos</span>
+    <div class="dash-hero">
+      <div class="dash-hero-left">
+        <button class="dash-hero-back" onclick="closeDashboard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+        <div><div class="dash-hero-title">Criativos</div><div class="dash-hero-sub" id="dashSubtitle">Carregando...</div></div>
       </div>
-      <div class="dashboard-actions">
-        <button class="dash-btn" id="dashSyncBtn" onclick="syncCreatives()">Sync Status</button>
+      <div class="dash-hero-actions">
+        <button class="dash-btn dash-btn-sync" id="dashSyncBtn" onclick="syncCreatives()">Sync Status</button>
+        <div class="dash-density" id="dashDensity">
+          <button class="active" onclick="setDashDensity('normal',this)">Normal</button>
+          <button onclick="setDashDensity('compact',this)">Compacto</button>
+        </div>
       </div>
     </div>
     <div class="dash-stats" id="dashStats"></div>
     <div class="dash-toolbar">
-      <button class="dash-filter active" data-dash-dsp="all" onclick="setDashFilter(this)">Todos</button>
-      <button class="dash-filter" data-dash-dsp="xandr" onclick="setDashFilter(this)">Xandr</button>
-      <button class="dash-filter" data-dash-dsp="dv360" onclick="setDashFilter(this)">DV360</button>
+      <button class="dash-pill active" data-dash-dsp="all" onclick="setDashFilter(this)">Todos</button>
+      <button class="dash-pill" data-dash-dsp="xandr" onclick="setDashFilter(this)">Xandr</button>
+      <button class="dash-pill" data-dash-dsp="dv360" onclick="setDashFilter(this)">DV360</button>
       <span class="dash-divider"></span>
-      <button class="dash-filter active" data-dash-audit="all" onclick="setDashAuditFilter(this)">All</button>
-      <button class="dash-filter" data-dash-audit="pending" onclick="setDashAuditFilter(this)">Pending</button>
-      <button class="dash-filter" data-dash-audit="approved" onclick="setDashAuditFilter(this)">Approved</button>
-      <button class="dash-filter" data-dash-audit="rejected" onclick="setDashAuditFilter(this)">Rejected</button>
+      <button class="dash-pill active" data-dash-audit="all" onclick="setDashAuditFilter(this)">All</button>
+      <button class="dash-pill" data-dash-audit="pending" onclick="setDashAuditFilter(this)">Pending</button>
+      <button class="dash-pill" data-dash-audit="approved" onclick="setDashAuditFilter(this)">Approved</button>
+      <button class="dash-pill" data-dash-audit="rejected" onclick="setDashAuditFilter(this)">Rejected</button>
       <div style="flex:1"></div>
       <input class="dash-search" id="dashSearch" placeholder="Buscar..." oninput="dashSearchDebounce()">
     </div>
-    <div class="dash-table-wrap">
-      <table class="dash-table">
-        <thead><tr><th style="width:40%">Nome</th><th>Size</th><th>Status por DSP</th><th>Criado</th><th>Data</th><th></th></tr></thead>
+    <div class="dash-table-wrap" id="dashTableWrap">
+      <table class="dash-table" id="dashTable">
+        <thead><tr><th style="width:38%">Nome</th><th>Size</th><th>Status</th><th>Criado</th><th>Data</th><th></th></tr></thead>
         <tbody id="dashBody"></tbody>
       </table>
       <div class="dash-pagination" id="dashPagination"></div>
@@ -2353,13 +2396,15 @@ document.getElementById('tagsFilterSelect').addEventListener('click',()=>{
 });
 
 // ══════════════════════════════════════════════
-// DASHBOARD (grouped by name+dimensions)
+// DASHBOARD
 // ══════════════════════════════════════════════
-let dashCreatives=[],dashGroups=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditGroup=null,_dashSearchTimer=null;
+let dashCreatives=[],dashGroups=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditGroup=null,dashDensity='normal',dashExpandedKey=null,_dashSearchTimer=null;
 
 function openDashboard(){
-  document.getElementById('flowSelector').style.display='none';
-  document.getElementById('wizard').classList.remove('active');
+  const flow=document.getElementById('flowSelector');
+  const wiz=document.getElementById('wizard');
+  flow.style.display='none';
+  wiz.classList.remove('active');
   document.getElementById('dashboard').classList.add('active');
   loadCreatives();
 }
@@ -2369,13 +2414,19 @@ function closeDashboard(){
 }
 function setDashFilter(el){
   document.querySelectorAll('[data-dash-dsp]').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');dashFilterDsp=el.dataset.dashDsp;dashPage=0;renderDashTable();
+  el.classList.add('active');dashFilterDsp=el.dataset.dashDsp;dashPage=0;dashExpandedKey=null;renderDashTable();
 }
 function setDashAuditFilter(el){
   document.querySelectorAll('[data-dash-audit]').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');dashFilterAudit=el.dataset.dashAudit;dashPage=0;renderDashTable();
+  el.classList.add('active');dashFilterAudit=el.dataset.dashAudit;dashPage=0;dashExpandedKey=null;renderDashTable();
 }
-function dashSearchDebounce(){clearTimeout(_dashSearchTimer);_dashSearchTimer=setTimeout(()=>{dashFilterSearch=document.getElementById('dashSearch').value.toLowerCase().trim();dashPage=0;renderDashTable()},250)}
+function setDashDensity(mode,el){
+  dashDensity=mode;
+  document.querySelectorAll('.dash-density button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('dashTable').classList.toggle('compact',mode==='compact');
+}
+function dashSearchDebounce(){clearTimeout(_dashSearchTimer);_dashSearchTimer=setTimeout(()=>{dashFilterSearch=document.getElementById('dashSearch').value.toLowerCase().trim();dashPage=0;dashExpandedKey=null;renderDashTable()},200)}
 
 function buildGroups(){
   const map=new Map();
@@ -2389,41 +2440,47 @@ function buildGroups(){
   dashGroups=Array.from(map.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 }
 
+function updateDashBadge(){
+  const pending=dashCreatives.filter(c=>c.audit_status==='pending').length;
+  const badge=document.getElementById('dashBadge');
+  if(badge)badge.textContent=pending>0?pending:'';
+}
+
 async function loadCreatives(){
   if(!sbClient||!currentUser)return;
-  document.getElementById('dashBody').innerHTML='<tr><td colspan="8" class="dash-empty">Carregando...</td></tr>';
+  document.getElementById('dashBody').innerHTML='<tr><td colspan="6" class="dash-empty"><div class="dash-empty-text">Carregando...</div></td></tr>';
   try{
     const{data,error}=await sbClient.from('creatives').select('*').order('created_at',{ascending:false}).limit(1000);
     if(error)throw error;
     dashCreatives=data||[];
-    buildGroups();renderDashStats();renderDashTable();
+    buildGroups();renderDashStats();renderDashTable();updateDashBadge();
+    document.getElementById('dashSubtitle').textContent=`${dashGroups.length} criativos em ${dashCreatives.length} registros`;
   }catch(err){toast('Erro ao carregar criativos: '+err.message,'error')}
 }
 
 function renderDashStats(){
-  const total=dashGroups.length;
-  const xn=dashCreatives.filter(c=>c.dsp==='xandr').length;
-  const dv=dashCreatives.filter(c=>c.dsp==='dv360').length;
+  const groups=dashGroups.length;
   const approved=dashCreatives.filter(c=>c.audit_status==='approved').length;
   const pending=dashCreatives.filter(c=>c.audit_status==='pending').length;
   const rejected=dashCreatives.filter(c=>c.audit_status==='rejected').length;
   document.getElementById('dashStats').innerHTML=
-    `<div class="dash-stat"><div class="dash-stat-val">${total}</div><div class="dash-stat-label">Criativos</div></div>`+
-    `<div class="dash-stat"><div class="dash-stat-val">${xn}</div><div class="dash-stat-label">Xandr</div></div>`+
-    `<div class="dash-stat"><div class="dash-stat-val">${dv}</div><div class="dash-stat-label">DV360</div></div>`+
-    `<div class="dash-stat st-approved"><div class="dash-stat-val">${approved}</div><div class="dash-stat-label">Approved</div></div>`+
-    `<div class="dash-stat st-pending"><div class="dash-stat-val">${pending}</div><div class="dash-stat-label">Pending</div></div>`+
-    `<div class="dash-stat st-rejected"><div class="dash-stat-val">${rejected}</div><div class="dash-stat-label">Rejected</div></div>`;
+    `<div class="dash-stat hero"><div class="dash-stat-val">${groups}</div><div class="dash-stat-label">Criativos únicos</div></div>`+
+    `<div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-dot c-success"></div><div class="dash-stat-label">Approved</div></div><div class="dash-stat-val">${approved}</div></div>`+
+    `<div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-dot c-warning"></div><div class="dash-stat-label">Pending</div></div><div class="dash-stat-val">${pending}</div></div>`+
+    `<div class="dash-stat"><div class="dash-stat-top"><div class="dash-stat-dot c-error"></div><div class="dash-stat-label">Rejected</div></div><div class="dash-stat-val">${rejected}</div></div>`;
 }
 
 function getFilteredGroups(){
   let list=dashGroups;
   if(dashFilterDsp!=='all')list=list.filter(g=>g.dsps[dashFilterDsp]);
-  if(dashFilterAudit!=='all'){
-    list=list.filter(g=>Object.values(g.dsps).some(d=>d.audit_status===dashFilterAudit));
-  }
+  if(dashFilterAudit!=='all')list=list.filter(g=>Object.values(g.dsps).some(d=>d.audit_status===dashFilterAudit));
   if(dashFilterSearch)list=list.filter(g=>g.name.toLowerCase().includes(dashFilterSearch));
   return list;
+}
+
+function toggleDashExpand(key){
+  dashExpandedKey=dashExpandedKey===key?null:key;
+  renderDashTable();
 }
 
 function renderDashTable(){
@@ -2434,12 +2491,12 @@ function renderDashTable(){
   const page=filtered.slice(start,start+dashPageSize);
   const body=document.getElementById('dashBody');
   if(page.length===0){
-    body.innerHTML=`<tr><td colspan="6" class="dash-empty"><div class="dash-empty-icon">📋</div><div class="dash-empty-text">Nenhum criativo encontrado</div><div class="dash-empty-sub">Ative criativos via Tags, Surveys ou Assets</div></td></tr>`;
-    document.getElementById('dashPagination').innerHTML='';
-    return;
+    body.innerHTML=`<tr><td colspan="6" class="dash-empty"><div class="dash-empty-icon">📋</div><div class="dash-empty-text">Nenhum criativo encontrado</div><div class="dash-empty-sub">Criativos ativados via Tags, Surveys ou Assets aparecem aqui automaticamente</div></td></tr>`;
+    document.getElementById('dashPagination').innerHTML='';return;
   }
   const dspNames={xandr:'Xandr',dv360:'DV360',stackadapt:'SA',amazondsp:'AMZN'};
-  body.innerHTML=page.map((g,gi)=>{
+  let html='';
+  page.forEach((g,gi)=>{
     const d=new Date(g.created_at);
     const dateStr=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
     const dspKeys=Object.keys(g.dsps).sort();
@@ -2447,27 +2504,50 @@ function renderDashTable(){
       const st=g.dsps[k].audit_status||'unknown';
       return`<div class="dsp-chip"><span class="dsp-dot ${st}"></span><span class="dsp-chip-label">${dspNames[k]||k}</span><span class="dsp-chip-status">${st}</span></div>`;
     }).join('');
-    const groupKey=encodeURIComponent(g.name+'||'+g.dimensions);
-    return`<tr style="animation:fadeRow 0.3s var(--ease-out) ${gi*30}ms both">
-      <td class="td-name" title="${esc(g.name)}">${esc(g.name)}</td>
+    const groupKey=g.name+'||'+g.dimensions;
+    const encodedKey=encodeURIComponent(groupKey);
+    const isExpanded=dashExpandedKey===groupKey;
+    html+=`<tr style="animation:fadeRow 0.25s var(--ease-out) ${gi*25}ms both" class="${isExpanded?'expanded':''}" onclick="toggleDashExpand('${groupKey.replace(/'/g,"\\'")}')">
+      <td><div class="td-name-wrap"><div class="td-name" title="${esc(g.name)}">${esc(g.name)}</div><div class="td-name-type">${g.creative_type||'display'} · ${dspKeys.length} DSP${dspKeys.length>1?'s':''}</div></div></td>
       <td class="td-dims">${g.dimensions||'-'}</td>
       <td><div class="td-dsps">${statusCol}</div></td>
       <td class="td-meta">${esc(g.created_by_name)}</td>
       <td class="td-meta">${dateStr}</td>
-      <td><button class="dash-edit-btn" onclick="openEditModal('${groupKey}')">Editar</button></td>
-    </tr>`}).join('');
+      <td><button class="dash-edit-btn" onclick="event.stopPropagation();openEditModal('${encodedKey}')">Editar</button></td>
+    </tr>`;
+    if(isExpanded){
+      const expandFields=dspKeys.map(k=>{
+        const dd=g.dsps[k];
+        let f=`<div class="dash-expand-field"><div class="dash-expand-label">${dspNames[k]} ID</div><div class="dash-expand-val">${dd.dsp_creative_id||'-'}</div></div>`;
+        if(dd.click_url)f+=`<div class="dash-expand-field"><div class="dash-expand-label">${dspNames[k]} Click URL</div><div class="dash-expand-val">${esc(dd.click_url)}</div></div>`;
+        if(dd.landing_page)f+=`<div class="dash-expand-field"><div class="dash-expand-label">${dspNames[k]} Landing Page</div><div class="dash-expand-val">${esc(dd.landing_page)}</div></div>`;
+        if(dd.sync_error)f+=`<div class="dash-expand-field"><div class="dash-expand-label">Sync Error</div><div class="dash-expand-val" style="color:var(--error)">${esc(dd.sync_error)}</div></div>`;
+        return f;
+      }).join('');
+      const hasTag=dspKeys.some(k=>g.dsps[k].js_tag||g.dsps[k].vast_tag);
+      let tagField='';
+      if(hasTag){
+        const tag=g.dsps[dspKeys[0]].js_tag||g.dsps[dspKeys[0]].vast_tag||'';
+        tagField=`<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">${g.dsps[dspKeys[0]].vast_tag?'VAST Tag':'JS Tag'}</div><div class="dash-expand-val">${esc(tag.substring(0,300))}${tag.length>300?'...':''}</div></div>`;
+      }
+      html+=`<tr class="dash-expand visible"><td colspan="6"><div class="dash-expand-inner">${expandFields}${tagField}</div></td></tr>`;
+    }
+  });
+  body.innerHTML=html;
   document.getElementById('dashPagination').innerHTML=
     `<span>${filtered.length} criativo${filtered.length!==1?'s':''}</span>`+
-    `<div style="display:flex;gap:6px">`+
-    `<button class="dash-btn" onclick="dashPage--;renderDashTable()" ${dashPage===0?'disabled':''}>←</button>`+
-    `<span style="padding:0 8px;line-height:30px">${dashPage+1} / ${totalPages}</span>`+
-    `<button class="dash-btn" onclick="dashPage++;renderDashTable()" ${dashPage>=totalPages-1?'disabled':''}>→</button></div>`;
+    `<div style="display:flex;gap:4px;align-items:center">`+
+    `<button class="dash-pg-btn" onclick="dashPage--;dashExpandedKey=null;renderDashTable()" ${dashPage===0?'disabled':''}>←</button>`+
+    `<span style="padding:0 10px;font-variant-numeric:tabular-nums">${dashPage+1} / ${totalPages}</span>`+
+    `<button class="dash-pg-btn" onclick="dashPage++;dashExpandedKey=null;renderDashTable()" ${dashPage>=totalPages-1?'disabled':''}>→</button></div>`;
 }
 
 async function syncCreatives(){
   if(!sbClient||!currentUser)return;
   const btn=document.getElementById('dashSyncBtn');
-  btn.disabled=true;btn.textContent='Sincronizando...';
+  const wrap=document.getElementById('dashTableWrap');
+  btn.disabled=true;btn.textContent='Sincronizando...';btn.classList.add('loading');
+  wrap.classList.add('loading');
   try{
     const token=(await sbClient.auth.getSession()).data.session?.access_token;
     if(!token)throw new Error('Sessão expirada');
@@ -2477,10 +2557,10 @@ async function syncCreatives(){
     });
     const data=await res.json();
     if(!res.ok)throw new Error(data.error||'Sync failed');
-    toast(`Sync completo: ${data.updated||0} atualizado(s) de ${data.synced||0}`,'success');
+    toast(`Sync: ${data.updated||0} atualizado(s) de ${data.synced||0} verificados`,'success');
     await loadCreatives();
   }catch(err){toast('Erro no sync: '+err.message,'error')}
-  finally{btn.disabled=false;btn.textContent='Sync Status'}
+  finally{btn.disabled=false;btn.textContent='Sync Status';btn.classList.remove('loading');wrap.classList.remove('loading')}
 }
 
 function openEditModal(groupKey){
@@ -2494,8 +2574,7 @@ function openEditModal(groupKey){
   html+=`<div class="modal-field"><label>Nome (aplica em todas as DSPs)</label><input id="editName" value="${esc(g.name||'')}"></div>`;
   for(const dsp of dspKeys){
     const d=g.dsps[dsp];
-    html+=`<div class="modal-dsp-section">`;
-    html+=`<div class="modal-dsp-header"><span class="modal-dsp-tag ${dsp}">${dspNames[dsp]||dsp}</span><span class="dsp-chip" style="margin-left:auto"><span class="dsp-dot ${d.audit_status||'unknown'}"></span><span class="dsp-chip-status">${d.audit_status||'unknown'}</span></span></div>`;
+    html+=`<div class="modal-dsp-section"><div class="modal-dsp-header"><span class="modal-dsp-tag ${dsp}">${dspNames[dsp]||dsp}</span><span class="dsp-chip" style="margin-left:auto"><span class="dsp-dot ${d.audit_status||'unknown'}"></span><span class="dsp-chip-status">${d.audit_status||'unknown'}</span></span></div>`;
     html+=`<div class="modal-field"><label>Creative ID</label><div class="modal-field-ro">${d.dsp_creative_id||'-'}</div></div>`;
     if(dsp==='xandr'){
       html+=`<div class="modal-field"><label>Click URL</label><input id="editClickUrl_${dsp}" value="${esc(d.click_url||'')}"></div>`;

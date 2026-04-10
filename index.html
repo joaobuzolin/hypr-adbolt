@@ -1052,6 +1052,9 @@ async function activateInDsps(){
   if(currentMode==='assets'){
     const missingLp=assetEntries.filter(a=>!a.landingPage.trim());
     if(missingLp.length){toast(`${missingLp.length} asset(s) sem landing page. Preencha antes de ativar.`,'error');return}
+    // Force fresh upload each activation — previous storagePaths may have been
+    // deleted by older edge function versions or expired from storage
+    assetEntries.forEach(a=>{delete a._storagePath;delete a._uploadedFile});
   }
 
   // Guard against re-activation

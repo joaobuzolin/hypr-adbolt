@@ -506,7 +506,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .tracker-add-input{background:transparent;border:1px solid var(--border);border-radius:var(--r-xs);color:var(--text);font-family:var(--mono);font-size:0.7rem;padding:var(--sp-1) var(--sp-2);width:100px;outline:none;min-width:60px;flex:1;transition:border-color var(--dur-f)}
 .tracker-add-input:focus{border-color:var(--accent)}
 .tracker-add-input::placeholder{color:var(--text-tri);font-size:0.65rem}
-.assets-bulk-bar{background:var(--accent);color:var(--text-on-accent);border-radius:var(--r-sm);padding:12px 18px;margin-top:14px;display:flex;align-items:center;gap:12px;font-size:0.78rem;font-weight:500;animation:slideUp 0.25s var(--ease-out)}
+.assets-bulk-bar{background:var(--accent);color:var(--text-on-accent);border-radius:var(--r-sm);padding:12px 18px;margin-top:14px;display:flex;align-items:center;gap:12px;font-size:0.78rem;font-weight:500;animation:slideUp 0.25s var(--ease-out);opacity:0;transform:translateY(-8px);transition:opacity 0.25s var(--ease-out),transform 0.25s var(--ease-out)}
+.assets-bulk-bar.bulk-bar-visible{opacity:1;transform:translateY(0)}
 .assets-bulk-bar button{background:rgba(255,255,255,0.18);color:var(--text-on-accent);border:none;border-radius:var(--r-xs);padding:6px 14px;font-size:0.74rem;font-weight:500;cursor:pointer;transition:background var(--dur-f);white-space:nowrap}
 .assets-bulk-bar button:hover{background:rgba(255,255,255,0.3)}
 .assets-bulk-count{opacity:0.85}
@@ -610,6 +611,30 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   .flow-cards{grid-template-columns:1fr}
   .survey-types{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── Inline edit flash ── */
+@keyframes editFlash{0%{border-color:var(--success);box-shadow:0 0 0 2px var(--success-dim)}100%{border-color:var(--border-subtle);box-shadow:none}}
+.asset-input.just-edited{animation:editFlash 0.6s var(--ease-out) forwards}
+
+/* ── Bulk bar transition ── */
+.bulk-bar-wrap{overflow:hidden;max-height:0;opacity:0;transition:max-height 0.25s var(--ease-out),opacity 0.2s var(--ease),margin 0.25s}
+.bulk-bar-wrap.visible{max-height:80px;opacity:1;margin-bottom:10px}
+
+/* ── Dashboard expand chevron ── */
+.td-expand-chevron{display:inline-block;width:16px;height:16px;transition:transform 0.2s var(--ease-out);color:var(--text-tri);flex-shrink:0}
+tr.expanded .td-expand-chevron{transform:rotate(90deg);color:var(--accent)}
+.dash-table tbody tr{cursor:pointer}
+
+/* ── Post-activation CTAs ── */
+.post-activation-ctas{display:flex;gap:10px;margin-top:20px;animation:slideUp 0.4s var(--ease-out) 0.3s both}
+.post-activation-ctas button{flex:1}
+
+/* ── Undo toast ── */
+.toast-undo{display:inline-block;background:rgba(255,255,255,0.2);color:inherit;border:1px solid rgba(255,255,255,0.15);border-radius:var(--r-xs);padding:4px 12px;margin-left:10px;font-size:0.75rem;font-weight:600;cursor:pointer;transition:background var(--dur-f)}
+.toast-undo:hover{background:rgba(255,255,255,0.35)}
+
+/* ── Sync timestamp ── */
+.dash-sync-ts{font-size:0.68rem;color:var(--text-tri);margin-left:8px;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -824,7 +849,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   <div class="dashboard" id="dashboard">
     <div class="dash-hero">
       <div class="dash-hero-left">
-        <div><h2 class="dash-hero-title">Criativos</h2><div class="dash-hero-sub" id="dashSubtitle">Carregando...</div></div>
+        <div><h2 class="dash-hero-title">Criativos</h2><div class="dash-hero-sub" id="dashSubtitle">Carregando...<span class="dash-sync-ts" id="dashSyncTs"></span></div></div>
       </div>
       <div class="dash-hero-actions">
         <button class="dash-btn dash-btn-sync" id="dashSyncBtn" onclick="syncCreatives()">Sync Status</button>
@@ -1033,7 +1058,7 @@ function navigateToStep(idx){
     }
   }
   if(currentMode==='assets')commitPendingTrackers();activeWizardStep=idx;const stepKey=config.steps[idx];document.querySelectorAll('.wizard-step').forEach((el,i)=>el.classList.toggle('active',i===idx));document.querySelectorAll('.step-view').forEach(v=>v.classList.remove('active'));const map={tags:'stepTags',surveys:'stepSurveys',assets:'stepAssets',dsps:'stepDsp',config:'stepConfig',activate:'stepActivate'};const target=document.getElementById(map[stepKey]);if(target){target.classList.add('active');target.scrollTop=0}document.getElementById('wizardContent').scrollTop=0;updateWizardStepStates();updateGenerateBtn();renderStepNav()}
-function renderStepNav(){const config=WIZARD_CONFIGS[currentMode];document.querySelectorAll('.step-nav').forEach(n=>n.remove());const activeView=document.querySelector('.step-view.active');if(!activeView)return;const isFirst=activeWizardStep===0;const isLast=activeWizardStep===config.steps.length-1;const nav=document.createElement('div');nav.className='step-nav';const prevLabel=isFirst?null:config.labels[activeWizardStep-1];const nextLabel=isLast?null:config.labels[activeWizardStep+1];nav.innerHTML=`${isFirst?'<div class="step-nav-spacer"></div>':`<button class="step-nav-btn" onclick="navigateToStep(${activeWizardStep-1})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${prevLabel}</button>`}<div class="step-nav-spacer"></div>${isLast?'':`<button class="step-nav-btn primary" onclick="navigateToStep(${activeWizardStep+1})">${nextLabel}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`}`;activeView.appendChild(nav)}
+function renderStepNav(){const config=WIZARD_CONFIGS[currentMode];document.querySelectorAll('.step-nav').forEach(n=>n.remove());const activeView=document.querySelector('.step-view.active');if(!activeView)return;const isFirst=activeWizardStep===0;const isLast=activeWizardStep===config.steps.length-1;const hasContent=!!(parsedData?.placements?.length||surveyEntries.length||assetEntries.length);const hasDsp=selectedDsps.size>0;const nextStep=isLast?null:config.steps[activeWizardStep+1];let nextDisabled=false;if(nextStep==='dsps'&&!hasContent)nextDisabled=true;if(nextStep==='config'&&(!hasContent||!hasDsp))nextDisabled=true;if(nextStep==='activate'&&(!hasContent||!hasDsp))nextDisabled=true;const nav=document.createElement('div');nav.className='step-nav';const prevLabel=isFirst?null:config.labels[activeWizardStep-1];const nextLabel=isLast?null:config.labels[activeWizardStep+1];nav.innerHTML=`${isFirst?'<div class="step-nav-spacer"></div>':`<button class="step-nav-btn" onclick="navigateToStep(${activeWizardStep-1})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${prevLabel}</button>`}<div class="step-nav-spacer"></div>${isLast?'':`<button class="step-nav-btn primary" onclick="navigateToStep(${activeWizardStep+1})"${nextDisabled?' disabled':''}>${nextLabel}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`}`;activeView.appendChild(nav)}
 function updateWizardStepStates(){
   const config=WIZARD_CONFIGS[currentMode];
   const hasContent=!!(parsedData?.placements?.length||surveyEntries.length||assetEntries.length);
@@ -1477,6 +1502,12 @@ function renderActivationResults(results){
     </div>`;
   }).join('');
   document.getElementById('activationResults').classList.add('visible');
+  const anySuccess=results.some(r=>r.status==='success'||r.status==='partial');
+  if(anySuccess){
+    let ctaDiv=document.getElementById('postActivationCtas');
+    if(!ctaDiv){ctaDiv=document.createElement('div');ctaDiv.id='postActivationCtas';ctaDiv.className='post-activation-ctas';document.getElementById('activationResults').appendChild(ctaDiv)}
+    ctaDiv.innerHTML=`<button class="btn-action-card" onclick="openDashboard()">Ver no Dashboard →</button><button class="btn-action-card" onclick="exitWizard()">Criar novos criativos</button>`;
+  }
   setTimeout(()=>document.getElementById('activationResults').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
 
@@ -1784,8 +1815,8 @@ function renderPlacementsTable(){
 function updateTagsBulkBar(){
   const selected=getSelectedTagIds();
   const bar=document.getElementById('tagsBulkBar');
-  if(!selected.length){bar.style.display='none';return}
-  bar.style.display='flex';bar.className='assets-bulk-bar';
+  if(!selected.length){bar.classList.remove('bulk-bar-visible');setTimeout(()=>{if(!bar.classList.contains('bulk-bar-visible'))bar.style.display='none'},250);return}
+  bar.style.display='flex';bar.className='assets-bulk-bar';requestAnimationFrame(()=>bar.classList.add('bulk-bar-visible'));
   bar.innerHTML=`<span class="assets-bulk-count">${selected.length} selecionado(s)</span>
     <button onclick="tagsBulkAddTracker()">+ Tracker</button>
     <button onclick="tagsBulkFindReplace()">Find & Replace</button>
@@ -2310,8 +2341,8 @@ function renderAssetsTable(){
 function updateAssetsBulkBar(){
   const selected=getSelectedAssetIds();
   const bar=document.getElementById('assetsBulkBar');
-  if(!selected.length){bar.style.display='none';return}
-  bar.style.display='flex';bar.className='assets-bulk-bar';
+  if(!selected.length){bar.classList.remove('bulk-bar-visible');setTimeout(()=>{if(!bar.classList.contains('bulk-bar-visible'))bar.style.display='none'},250);return}
+  bar.style.display='flex';bar.className='assets-bulk-bar';requestAnimationFrame(()=>bar.classList.add('bulk-bar-visible'));
   bar.innerHTML=`<span class="assets-bulk-count">${selected.length} selecionado(s)</span>
     <button onclick="bulkSetField('landingPage')">Landing Page</button>
     <button onclick="bulkAddTracker()">+ Tracker</button>
@@ -2797,7 +2828,7 @@ document.getElementById('assetsTableBody').addEventListener('click',async e=>{
   const dup=e.target.closest('[data-dup]');
   if(dup){const id=parseInt(dup.dataset.dup);const orig=assetEntries.find(a=>a.id===id);if(orig){assetEntries.push({...orig,id:++assetIdCounter,name:orig.name+'_copy',trackers:orig.trackers.map(t=>typeof t==='string'?{url:t,dsps:'all'}:{...t,dsps:t.dsps==='all'?'all':[...t.dsps]}),landingPage:''});renderAssetsTable()};return}
   const rm=e.target.closest('[data-rm]');
-  if(rm){const id=parseInt(rm.dataset.rm);assetEntries=assetEntries.filter(a=>a.id!==id);renderAssetsTable();updateVisibility();if(!assetEntries.length){document.getElementById('assetsUploadZone').classList.remove('has-files');document.getElementById('assetsContent').style.display='none'};return}
+  if(rm){const id=parseInt(rm.dataset.rm);const entry=assetEntries.find(a=>a.id===id);if(entry){const idx=assetEntries.indexOf(entry);removeWithUndo(assetEntries,()=>entry,()=>{assetEntries.splice(idx,1)},()=>{renderAssetsTable();updateVisibility();if(!assetEntries.length){document.getElementById('assetsUploadZone').classList.remove('has-files');document.getElementById('assetsContent').style.display='none'}},entry.name)};return}
   const cb=e.target.closest('.asset-cb');if(cb){const id=parseInt(cb.dataset.id);if(cb.checked)_selectedAssetIds.add(id);else _selectedAssetIds.delete(id);setTimeout(updateAssetsBulkBar,0)}
 });
 
@@ -2850,7 +2881,7 @@ document.getElementById('placementsBody').addEventListener('click',e=>{
   if(rm){const idx=parseInt(rm.dataset.tagTrackerRm),ti=parseInt(rm.dataset.ti);if(parsedData?.placements[idx]){parsedData.placements[idx].trackers.splice(ti,1);renderPlacementsTable()};return}
   // Row delete
   const rowRm=e.target.closest('[data-tag-rm]');
-  if(rowRm){const idx=parseInt(rowRm.dataset.tagRm);if(parsedData){parsedData.placements.splice(idx,1);_selectedTagIds.clear();renderPlacementsTable();updateVisibility();document.getElementById('uploadMeta').textContent=`${parsedData.placements.length} placements · ${parsedData.campaignName}`};return}
+  if(rowRm){const idx=parseInt(rowRm.dataset.tagRm);if(parsedData&&parsedData.placements[idx]){const removed=parsedData.placements[idx];removeWithUndo(parsedData.placements,()=>removed,()=>{parsedData.placements.splice(idx,1)},()=>{_selectedTagIds.clear();renderPlacementsTable();updateVisibility();document.getElementById('uploadMeta').textContent=`${parsedData.placements.length} placements · ${parsedData.campaignName}`},removed.placementName)};return}
   // Scope badge popover
   const scopeBtn=e.target.closest('[data-tag-scope-toggle]');
   if(scopeBtn){
@@ -3054,7 +3085,7 @@ async function loadCreatives(){
     if(error)throw error;
     dashCreatives=data||[];
     buildGroups();renderDashStats();renderDashTable();updateDashBadge();
-    document.getElementById('dashSubtitle').textContent=dashGroups.length+' criativos em '+dashCreatives.length+' registros';
+    document.getElementById('dashSubtitle').innerHTML=dashGroups.length+' criativos em '+dashCreatives.length+' registros <span class="dash-sync-ts" id="dashSyncTs"></span>';
   }catch(err){toast('Erro ao carregar criativos: '+err.message,'error')}
 }
 
@@ -3104,7 +3135,7 @@ function renderDashTable(){
     const isSel=dashSelectedKeys.has(gk);
     html+='<tr style="animation:fadeRow 0.25s var(--ease-out) '+gi*25+'ms both" class="'+(isExp?'expanded':'')+'" onclick="toggleDashExpand(\''+gk.replace(/'/g,"\\'")+'\')">';
     html+='<td onclick="event.stopPropagation()"><input type="checkbox" '+(isSel?'checked':'')+' onchange="toggleDashSelect(\''+gk.replace(/'/g,"\\'")+"',this.checked)\"></td>";
-    html+='<td><div class="td-name-wrap"><div class="td-name" title="'+esc(g.name)+'">'+esc(g.name)+'</div><div class="td-name-type">'+(g.creative_type||'display')+' · '+dk.length+' DSP'+(dk.length>1?'s':'')+'</div></div></td>';
+    html+='<td><div class="td-name-wrap"><div class="td-name" title="'+esc(g.name)+'"><svg class="td-expand-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>'+esc(g.name)+'</div><div class="td-name-type">'+(g.creative_type||'display')+' · '+dk.length+' DSP'+(dk.length>1?'s':'')+'</div></div></td>';
     html+='<td class="td-dims">'+(g.dimensions||'-')+'</td>';
     html+='<td class="td-format"><span class="asset-format-badge">'+getFormatLabel(g)+'</span></td>';
     html+='<td><div class="td-dsps">'+sc+'</div></td>';
@@ -3360,6 +3391,71 @@ async function saveEdit(){
 
 // Close modal on overlay click
 document.getElementById('editModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeEditModal()});
+
+// ── UX: Escape closes modals ──
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const edit=document.getElementById('editModal');
+  if(edit.classList.contains('visible')){closeEditModal();return}
+  const rename=document.getElementById('renameModal');
+  if(rename.classList.contains('visible')){closeRenameModal();return}
+  const frOverlay=document.querySelector('.fr-overlay');
+  if(frOverlay){frOverlay.remove();return}
+});
+
+// ── UX: Inline edit flash feedback ──
+function flashEditFeedback(input){input.classList.remove('just-edited');void input.offsetWidth;input.classList.add('just-edited')}
+document.addEventListener('focusout',e=>{
+  const inp=e.target.closest('.asset-input[data-field]');
+  if(!inp)return;
+  if(inp._prevVal!==undefined&&inp._prevVal!==inp.value)flashEditFeedback(inp);
+});
+document.addEventListener('focusin',e=>{
+  const inp=e.target.closest('.asset-input[data-field]');
+  if(inp)inp._prevVal=inp.value;
+});
+
+// ── UX: Sync timestamp ──
+let _lastSyncTime=null,_syncTsInterval=null;
+function updateSyncTimestamp(){
+  if(!_lastSyncTime)return;
+  const el=document.getElementById('dashSyncTs');if(!el)return;
+  const sec=Math.floor((Date.now()-_lastSyncTime)/1000);
+  if(sec<5)el.textContent='agora';
+  else if(sec<60)el.textContent=`há ${sec}s`;
+  else el.textContent=`há ${Math.floor(sec/60)}min`;
+}
+function startSyncTimestamp(){
+  _lastSyncTime=Date.now();
+  updateSyncTimestamp();
+  if(_syncTsInterval)clearInterval(_syncTsInterval);
+  _syncTsInterval=setInterval(updateSyncTimestamp,5000);
+}
+// Patch loadCreatives to update timestamp
+const _origLoadCreatives=loadCreatives;
+loadCreatives=async function(){await _origLoadCreatives();startSyncTimestamp()};
+
+// ── UX: Undo single remove ──
+let _undoBuffer=null,_undoTimer=null;
+function removeWithUndo(collection,findFn,removeFn,renderFn,itemLabel){
+  const item=findFn();if(!item)return;
+  const origIdx=collection.indexOf(item);
+  _undoBuffer={item,collection,insertFn:()=>{collection.splice(Math.min(origIdx,collection.length),0,item);renderFn()},label:itemLabel};
+  removeFn();renderFn();
+  clearTimeout(_undoTimer);
+  const el=document.getElementById('toast');
+  document.getElementById('toastMsg').innerHTML=`Removido: ${esc(itemLabel)} <button class="toast-undo" onclick="undoRemove()">Desfazer</button>`;
+  el.className='toast';clearTimeout(toastTimer);requestAnimationFrame(()=>el.classList.add('show'));
+  _undoTimer=setTimeout(()=>{_undoBuffer=null;el.classList.remove('show')},5000);
+}
+function undoRemove(){
+  if(!_undoBuffer)return;
+  _undoBuffer.insertFn();
+  _undoBuffer=null;clearTimeout(_undoTimer);
+  document.getElementById('toast').classList.remove('show');
+  toast('Restaurado','success');
+  updateVisibility();
+}
 
 initAuth();
 </script>

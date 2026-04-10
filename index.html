@@ -2800,25 +2800,35 @@ async function bulkDeleteCreatives(){
 
   // Show loading toast at top
   const overlay=document.createElement('div');
-  overlay.className='dash-sync-status';overlay.id='dashDeleteOverlay';
-  overlay.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;padding:20px 32px;border-radius:16px;background:var(--glass-bg);backdrop-filter:blur(20px);border:1px solid var(--border);box-shadow:var(--shadow-lg);text-align:center';
-  overlay.innerHTML='<div class="dash-sync-spinner"></div><div class="dash-sync-status-text">Deletando '+allIds.length+' criativos...</div><div class="dash-sync-status-sub">'+(xandrCount.length?xandrCount.length+' Xandr':'')+' '+(dv360Count.length?dv360Count.length+' DV360':'')+'</div>';
+  overlay.id='dashDeleteOverlay';
+  overlay.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;padding:20px 32px;border-radius:16px;background:var(--glass-bg);backdrop-filter:blur(20px);border:1px solid var(--border);box-shadow:var(--shadow-lg);text-align:center;min-width:280px';
+  overlay.innerHTML='<div class="dash-sync-spinner"></div><div class="dash-sync-status-text" id="deleteStatusText">Deletando 0/'+allIds.length+'...</div><div class="dash-sync-status-sub">'+(xandrCount.length?xandrCount.length+' Xandr ':'')+' '+(dv360Count.length?dv360Count.length+' DV360':'')+'</div>';
   document.body.appendChild(overlay);
   window.scrollTo({top:0,behavior:'smooth'});
 
   try{
-    const res=await fetch(SUPABASE_URL+'/functions/v1/creative-delete',{
-      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
-      body:JSON.stringify({creativeIds:allIds})
-    });
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||'Erro ao deletar');
-
+    const CHUNK=20;
+    let totalDeleted=0,totalArchived=0,totalFailed=0;
+    for(let i=0;i<allIds.length;i+=CHUNK){
+      const chunk=allIds.slice(i,i+CHUNK);
+      const stEl=document.getElementById('deleteStatusText');
+      if(stEl)stEl.textContent='Deletando '+(i+chunk.length)+'/'+allIds.length+'...';
+      try{
+        const res=await fetch(SUPABASE_URL+'/functions/v1/creative-delete',{
+          method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
+          body:JSON.stringify({creativeIds:chunk})
+        });
+        const data=await res.json();
+        if(data.deleted)totalDeleted+=data.deleted;
+        if(data.archived)totalArchived+=data.archived;
+        if(data.failed)totalFailed+=data.failed;
+      }catch(chunkErr){totalFailed+=chunk.length}
+    }
     const parts=[];
-    if(data.deleted)parts.push(data.deleted+' deletado(s) na Xandr');
-    if(data.archived)parts.push(data.archived+' arquivado(s) na DV360');
-    if(data.failed)parts.push(data.failed+' erro(s)');
-    toast(parts.join(', ')||'Nenhuma alteração',data.failed?'error':'success');
+    if(totalDeleted)parts.push(totalDeleted+' deletado(s) na Xandr');
+    if(totalArchived)parts.push(totalArchived+' arquivado(s) na DV360');
+    if(totalFailed)parts.push(totalFailed+' erro(s)');
+    toast(parts.join(', ')||'Nenhuma alteração',totalFailed?'error':'success');
     clearDashSelection();
     await loadCreatives();
   }catch(err){toast('Erro: '+err.message,'error')}

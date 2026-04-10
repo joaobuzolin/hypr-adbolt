@@ -1369,17 +1369,23 @@ function handleFile(file){
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const ws=wb.Sheets[wb.SheetNames.includes('Tags')?'Tags':wb.SheetNames[0]];
       const result=parseCM360(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));
       if(!result){toast('Estrutura CM360 não identificada.','error');return}
-      // Merge with existing manual tags instead of overwriting
+      // Merge with ALL existing placements (manual + previous files)
+      const newCount=result.placements.length;
       if(parsedData&&parsedData.placements.length>0){
-        const existingManual=parsedData.placements.filter(p=>p.placementId&&String(p.placementId).startsWith('manual_'));
-        result.placements=[...existingManual,...result.placements];
-        toast(`${result.placements.length-existingManual.length} placements do arquivo + ${existingManual.length} manual(is)`,'success');
+        const existing=parsedData.placements;
+        // Deduplicate by placementId (avoid adding same CM360 placement twice)
+        const existingIds=new Set(existing.map(p=>String(p.placementId)));
+        const newOnly=result.placements.filter(p=>!existingIds.has(String(p.placementId)));
+        result.placements=[...existing,...newOnly];
+        const added=newOnly.length;
+        const skipped=newCount-added;
+        toast(`${added} novo${added!==1?'s':''} adicionado${added!==1?'s':''}`+(skipped>0?`, ${skipped} já existente${skipped!==1?'s':''}`:'')+'  (total: '+result.placements.length+')','success');
       }else{
         toast(`${result.placements.length} placements extraídos`,'success');
       }
       parsedData=result;uploadZone.classList.add('has-file');uploadClear.style.display='flex';
       document.getElementById('uploadFilename').textContent=file.name;
-      document.getElementById('uploadMeta').textContent=`${result.placements.length} placements · ${result.campaignName}`;
+      document.getElementById('uploadMeta').textContent=`${result.placements.length} placements total`;
       document.getElementById('inputBrand').value=result.brandName;
       renderExtractedInfo(result);placementAssignment={};updateAssignment();updateVisibility();
     }catch(err){console.error(err);toast('Erro: '+err.message,'error')}

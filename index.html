@@ -333,8 +333,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .step-nav-spacer{flex:1}
 
 /* ── Upload / Cards / Tables ── */
-.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;position:relative;overflow:hidden}
-.card+.card{margin-top:16px}
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--sp-6);position:relative;overflow:hidden}
+.card+.card{margin-top:var(--sp-4)}
+.step-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);padding:var(--sp-6);margin-bottom:var(--sp-4)}
 .upload-zone,.assets-upload-zone{border:1.5px dashed var(--border);border-radius:var(--r);padding:48px 24px;text-align:center;cursor:pointer;transition:all var(--dur) var(--ease);background:var(--bg-surface);position:relative}
 .upload-zone:hover,.upload-zone.dragover,.assets-upload-zone:hover,.assets-upload-zone.dragover{border-color:var(--accent);background:var(--accent-dim)}
 .upload-zone input[type="file"],.assets-upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
@@ -702,16 +703,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 
       <div class="step-view" id="stepSurveys" data-step="surveys">
         <div class="step-header"><h2>Surveys</h2><p>Selecione o tipo de pesquisa e cole as URLs do Typeform</p></div>
-        <div class="survey-types" id="surveyTypes">
-          <button class="survey-type-btn" data-type="Awareness">Awareness</button>
-          <button class="survey-type-btn" data-type="Associação">Associação</button>
-          <button class="survey-type-btn" data-type="Atitude">Atitude</button>
-          <button class="survey-type-btn" data-type="Favoritismo">Favoritismo</button>
-          <button class="survey-type-btn" data-type="Intenção">Intenção</button>
-          <button class="survey-type-btn" data-type="Preferência">Preferência</button>
+        <div class="step-card">
+          <div class="survey-types" id="surveyTypes">
+            <button class="survey-type-btn" data-type="Awareness">Awareness</button>
+            <button class="survey-type-btn" data-type="Associação">Associação</button>
+            <button class="survey-type-btn" data-type="Atitude">Atitude</button>
+            <button class="survey-type-btn" data-type="Favoritismo">Favoritismo</button>
+            <button class="survey-type-btn" data-type="Intenção">Intenção</button>
+            <button class="survey-type-btn" data-type="Preferência">Preferência</button>
+          </div>
+          <div class="survey-custom-wrap"><input type="text" id="surveyCustomType" placeholder="Outro tipo — pressione Enter pra adicionar" aria-label="Tipo personalizado de survey"></div>
+          <div class="survey-entries" id="surveyEntries"></div>
         </div>
-        <div class="survey-custom-wrap"><input type="text" id="surveyCustomType" placeholder="Outro tipo — pressione Enter pra adicionar" aria-label="Tipo personalizado de survey"></div>
-        <div class="survey-entries" id="surveyEntries"></div>
       </div>
 
       <div class="step-view full-width" id="stepAssets" data-step="assets">
@@ -743,7 +746,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 
       <div class="step-view" id="stepDsp" data-step="dsps">
         <div class="step-header"><h2>DSPs de destino</h2><p>Selecione onde os criativos serão enviados</p></div>
-        <div class="dsp-grid" id="dspGrid">
+        <div class="step-card">
+          <div class="dsp-grid" id="dspGrid">
           <div class="dsp-card" data-dsp="dv360" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-icon">DV</div><div class="dsp-card-info"><div class="dsp-card-name">DV360</div><div class="dsp-card-sub">CSV · Third-Party Tags</div></div></div>
           <div class="dsp-card-expandable"><div class="dsp-card" data-dsp="stackadapt" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-icon">SA</div><div class="dsp-card-info"><div class="dsp-card-name">StackAdapt</div><div class="dsp-card-sub">XLSX · New Creatives</div></div></div><div class="dsp-pixel-input" id="pixelWrap_stackadapt"><label for="pixel_stackadapt">Impression Pixel <small>(todos os criativos)</small></label><input type="text" id="pixel_stackadapt" class="pixel-field" placeholder="Cole a URL ou tag do pixel"></div></div>
           <div class="dsp-card-expandable"><div class="dsp-card" data-dsp="xandr" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-icon">XN</div><div class="dsp-card-info"><div class="dsp-card-name">Xandr</div><div class="dsp-card-sub">XLSX · Third-Party Creative</div></div></div><div class="dsp-pixel-input" id="pixelWrap_xandr"><label for="pixel_xandr">Impression Pixel <small>(todos os criativos)</small></label><input type="text" id="pixel_xandr" class="pixel-field" placeholder="Cole a URL ou tag do pixel"></div></div>
@@ -753,6 +757,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
         <div class="assignment-wrap" id="assignmentSection">
           <div class="assignment-header"><span class="section-label">Atribuição por DSP</span><label class="checkbox-row" style="padding:0;font-size:0.78rem"><input type="checkbox" class="custom-cb" id="replicateAll" checked> Replicar todos</label></div>
           <div class="table-wrap" id="assignmentTableWrap" style="display:none"><table class="placements-table"><thead id="assignmentHead"></thead><tbody id="assignmentBody"></tbody></table></div>
+        </div>
         </div>
       </div>
 

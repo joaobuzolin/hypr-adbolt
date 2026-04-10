@@ -981,6 +981,10 @@ function resetWizardState(){
   ['manualTagName','manualTagWidth','manualTagHeight','manualTagCode','manualTagClickUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   _lastAutoW='';_lastAutoH='';_lastAutoClick='';
   const atb=document.getElementById('assetsTableBody');if(atb)atb.innerHTML='';
+  // Reset assets upload zone
+  const aZone=document.getElementById('assetsUploadZone');
+  if(aZone){aZone.classList.remove('has-files','dragover');aZone.innerHTML=EMPTY_ZONE_HTML+ASSET_FILE_INPUT_HTML;bindAssetFileInput()}
+  const aCont=document.getElementById('assetsContent');if(aCont)aCont.style.display='none';
   // Reset DSP card UI
   document.querySelectorAll('.dsp-card[data-dsp]').forEach(card=>{card.classList.remove('selected','dsp-unavailable')});
   document.querySelectorAll('.dsp-card-check').forEach(c=>{c.style.opacity='0';c.style.transform='scale(0.5)'});

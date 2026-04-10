@@ -927,9 +927,10 @@ function analyzeTracker(raw){
   // <script src="..."> → JavaScript URL
   const scriptSrc=t.match(/<script[^>]+src=["']([^"']+)/i);
   if(scriptSrc)return{url:scriptSrc[1],format:'url-js'};
-  // <script>...</script> with inline code (no src) → Raw JavaScript
-  const inlineScript=t.match(/<script[^>]*>([\s\S]+?)<\/script>/i);
-  if(inlineScript&&!scriptSrc)return{url:t,format:'raw-js'};
+  // Inline script block (no src) → Raw JavaScript
+  const scriptClose='<'+'/script>';
+  const inlineScript=t.toLowerCase().includes(scriptClose.toLowerCase())&&!scriptSrc;
+  if(inlineScript)return{url:t,format:'raw-js'};
   // <img src="..."> → Image URL
   const imgSrc=t.match(/<img[^>]+src=["']([^"']+)/i);
   if(imgSrc)return{url:imgSrc[1],format:'url-image'};

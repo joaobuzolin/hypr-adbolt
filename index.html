@@ -1421,34 +1421,47 @@ async function activateDV360Assets(token){
       }
     }
 
-    // Send in chunks of 5
-    const CHUNK=5;
+    // Split: videos go 1 at a time with 3s delay (DV360 transcoding is serial per advertiser),
+    // display/html5 go in chunks of 5 (no transcoding bottleneck)
+    const videoCreatives=creatives.filter(c=>!c._uploadError&&c.type==='video');
+    const otherCreatives=creatives.filter(c=>!c._uploadError&&c.type!=='video');
+    const errorCreatives=creatives.filter(c=>c._uploadError);
     const allResults=[];
     let successCount=0;
-    for(let i=0;i<creatives.length;i+=CHUNK){
-      const chunk=creatives.slice(i,i+CHUNK);
-      // Separate upload errors from valid creatives
-      const valid=chunk.filter(c=>!c._uploadError);
-      const errors=chunk.filter(c=>c._uploadError);
-      errors.forEach(c=>allResults.push({success:false,name:c.name,error:'Upload failed: '+c._uploadError}));
+    let processed=0;
+    errorCreatives.forEach(c=>allResults.push({success:false,name:c.name,error:'Upload failed: '+c._uploadError}));
 
-      if(!valid.length){updateProgress('dv360',i+chunk.length,total);continue}
-
-      const chunkNum=Math.floor(i/CHUNK)+1;
-      const totalChunks=Math.ceil(creatives.length/CHUNK);
-      updateProgress('dv360',i,total,`Ativando batch ${chunkNum}/${totalChunks}`);
+    // Videos: one at a time with delay to let DV360 transcoding breathe
+    for(let i=0;i<videoCreatives.length;i++){
+      if(i>0)await new Promise(r=>setTimeout(r,3000)); // 3s between videos
+      processed++;
+      updateProgress('dv360',processed,total,`Video ${i+1}/${videoCreatives.length}: ${videoCreatives[i].name}`);
       try{
         const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-          body:JSON.stringify({advertiserId,campaignName,advertiserName,brandName,creatives:valid})
+          body:JSON.stringify({advertiserId,campaignName,advertiserName,brandName,creatives:[videoCreatives[i]]})
         });
         const data=await res.json();
-        const results=data.results||[];
-        for(const r of results){allResults.push(r);if(r.success)successCount++}
-        updateProgress('dv360',i+chunk.length,total);
+        for(const r of (data.results||[])){allResults.push(r);if(r.success)successCount++}
+      }catch(err){allResults.push({success:false,name:videoCreatives[i].name,error:err.message||'Network error'})}
+    }
+
+    // Display/HTML5: chunks of 5 (fast, no transcoding)
+    const CHUNK=5;
+    for(let i=0;i<otherCreatives.length;i+=CHUNK){
+      const chunk=otherCreatives.slice(i,i+CHUNK);
+      processed+=chunk.length;
+      updateProgress('dv360',processed,total,`Display ${i+1}-${Math.min(i+CHUNK,otherCreatives.length)}/${otherCreatives.length}`);
+      try{
+        const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
+          method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({advertiserId,campaignName,advertiserName,brandName,creatives:chunk})
+        });
+        const data=await res.json();
+        for(const r of (data.results||[])){allResults.push(r);if(r.success)successCount++}
+        updateProgress('dv360',processed,total);
       }catch(chunkErr){
-        for(const c of valid)allResults.push({success:false,name:c.name,error:chunkErr.message||'Network error'});
-        updateProgress('dv360',i+chunk.length,total);
+        for(const c of chunk)allResults.push({success:false,name:c.name,error:chunkErr.message||'Network error'});
       }
     }
 

@@ -89,6 +89,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .topbar-logo{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--text-on-accent)}
 .topbar-title{font-size:0.92rem;font-weight:600;letter-spacing:-0.3px}
 .topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-dash{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--r-xs);font-size:0.78rem;font-weight:500;color:var(--text-sec);background:transparent;border:1px solid var(--border);cursor:pointer;transition:all var(--dur-f);font-family:var(--font)}
+.topbar-dash:hover{color:var(--accent);border-color:var(--accent-ring);background:var(--accent-dim)}
+.topbar-dash svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .topbar-user{display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--text-sec)}
 .topbar-avatar{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);object-fit:cover}
 .topbar-initials{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);font-size:0.65rem;font-weight:600;display:flex;align-items:center;justify-content:center}
@@ -167,7 +170,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .flow-selector-header{text-align:center;margin-bottom:56px}
 .flow-selector-header h2{font-size:1.8rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px}
 .flow-selector-header p{font-size:0.92rem;color:var(--text-sec);max-width:460px;margin:0 auto;line-height:1.6}
-.flow-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.flow-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .flow-card{position:relative;background:var(--bg-surface);border:1.5px solid var(--border);border-radius:var(--r);padding:32px 24px;cursor:pointer;transition:all var(--dur) var(--ease);text-align:center;overflow:hidden}
 .flow-card::before{content:'';position:absolute;inset:0;background:var(--grad-surface);opacity:0;transition:opacity var(--dur)}
 .flow-card:hover{border-color:var(--border-active);transform:translateY(-4px);box-shadow:var(--shadow-lg),0 0 60px rgba(123,110,240,0.08)}
@@ -515,6 +518,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   <div class="topbar">
     <div class="topbar-brand"><div class="topbar-logo">H</div><span class="topbar-title">Creative Smart Bulk</span></div>
     <div class="topbar-right">
+      <button class="topbar-dash" onclick="openDashboard()" title="Dashboard de criativos"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
       <div class="topbar-user" id="headerUser">
         <img class="topbar-avatar" id="headerAvatar" src="" alt="" width="28" height="28">
         <div class="topbar-initials" id="headerInitials" style="display:none"></div>
@@ -534,7 +538,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       <div class="flow-card" onclick="enterWizard('tags')"><div class="flow-card-icon"><span>📄</span></div><div class="flow-card-title">3P Tags</div><div class="flow-card-desc">Upload de tags exportadas do Campaign Manager</div></div>
       <div class="flow-card" onclick="enterWizard('surveys')"><div class="flow-card-icon"><span>📊</span></div><div class="flow-card-title">Surveys</div><div class="flow-card-desc">Pesquisas Typeform embedded em iframes</div></div>
       <div class="flow-card" onclick="enterWizard('assets')"><div class="flow-card-icon"><span>🎨</span></div><div class="flow-card-title">Standard Images</div><div class="flow-card-desc">Upload direto de imagens e vídeos nas DSPs</div></div>
-      <div class="flow-card" onclick="openDashboard()"><div class="flow-card-icon"><span>📋</span></div><div class="flow-card-title">Dashboard</div><div class="flow-card-desc">Visualize, edite e sincronize criativos ativados</div></div>
     </div>
   </div>
 
@@ -2339,6 +2342,7 @@ let dashCreatives=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch=
 
 function openDashboard(){
   document.getElementById('flowSelector').style.display='none';
+  document.getElementById('wizard').classList.remove('active');
   document.getElementById('dashboard').classList.add('active');
   loadCreatives();
 }

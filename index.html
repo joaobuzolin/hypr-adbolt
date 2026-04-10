@@ -3155,6 +3155,12 @@ async function saveEdit(){
         if(JSON.stringify(newTrackers)!==JSON.stringify(oldTrackers))ch.trackers=newTrackers;
       }
       if(!Object.keys(ch).length)continue;
+      // Normalize all URLs before sending
+      if(ch.landing_page)ch.landing_page=normalizeUrl(ch.landing_page);
+      if(ch.click_url)ch.click_url=normalizeUrl(ch.click_url);
+      if(ch.trackers)ch.trackers=ch.trackers.map(u=>normalizeUrl(u)).filter(Boolean);
+      if(ch.trackers&&!ch.trackers.length)delete ch.trackers;
+      if(!Object.keys(ch).length)continue;
       ps.push(fetch(SUPABASE_URL+'/functions/v1/creative-update',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},body:JSON.stringify({creativeId:d.id,changes:ch})}).then(async r=>{const j=await r.json();if(!r.ok||!j.success)fail++;else ok++}).catch(()=>fail++));
     }}
     await Promise.all(ps);

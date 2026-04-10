@@ -2584,8 +2584,8 @@ function toggleDashSelect(key,checked){if(checked)dashSelectedKeys.add(key);else
 function toggleDashSelectAll(checked){
   const filtered=getFilteredGroups();
   const page=filtered.slice(dashPage*dashPageSize,dashPage*dashPageSize+dashPageSize);
-  if(checked)page.forEach(g=>dashSelectedKeys.add(g.name+'||'+g.dimensions));
-  else page.forEach(g=>dashSelectedKeys.delete(g.name+'||'+g.dimensions));
+  if(checked)page.forEach(g=>dashSelectedKeys.add(g._gid));
+  else page.forEach(g=>dashSelectedKeys.delete(g._gid));
   renderDashTable();updateDashBulkBar();
 }
 function clearDashSelection(){dashSelectedKeys.clear();const sa=document.getElementById('dashSelectAll');if(sa)sa.checked=false;updateDashBulkBar()}
@@ -2597,17 +2597,31 @@ function updateDashBulkBar(){
 }
 
 function buildGroups(){
-  const map=new Map();
-  for(const c of dashCreatives){
-    const key=c.name+'||'+c.dimensions;
-    if(!map.has(key))map.set(key,{name:c.name,dimensions:c.dimensions,creative_type:c.creative_type,created_by_name:c.created_by_name||c.created_by_email||'-',created_at:c.created_at,last_edited_at:c.last_synced_at||c.updated_at||null,last_edited_by:c.last_edited_by_name||null,dsps:{}});
-    const g=map.get(key);
+  // Sort by created_at ascending first so we process oldest first
+  const sorted=[...dashCreatives].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const groups=[];
+  const findGroup=(name,dims,ts)=>{
+    // Find existing group with same name+dims where created_at is within 2 min
+    for(let i=groups.length-1;i>=0;i--){
+      const g=groups[i];
+      if(g.name===name&&g.dimensions===dims&&Math.abs(new Date(ts)-new Date(g.created_at))<120000)return g;
+    }
+    return null;
+  };
+  for(const c of sorted){
+    let g=findGroup(c.name,c.dimensions,c.created_at);
+    if(!g){
+      g={name:c.name,dimensions:c.dimensions,creative_type:c.creative_type,created_by_name:c.created_by_name||c.created_by_email||'-',created_at:c.created_at,last_edited_at:c.last_synced_at||c.updated_at||null,last_edited_by:c.last_edited_by_name||null,dsps:{}};
+      groups.push(g);
+    }
     g.dsps[c.dsp]={id:c.id,dsp_creative_id:c.dsp_creative_id,audit_status:c.audit_status||'unknown',click_url:c.click_url,landing_page:c.landing_page,js_tag:c.js_tag,vast_tag:c.vast_tag,sync_error:c.sync_error,dsp_config:c.dsp_config,trackers:c.trackers};
     if(new Date(c.created_at)<new Date(g.created_at))g.created_at=c.created_at;
     const editTs=c.last_synced_at||c.updated_at;
     if(editTs&&(!g.last_edited_at||new Date(editTs)>new Date(g.last_edited_at))){g.last_edited_at=editTs;g.last_edited_by=c.last_edited_by_name||null}
   }
-  dashGroups=Array.from(map.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  dashGroups=groups.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  // Assign unique group IDs
+  dashGroups.forEach((g,i)=>{g._gid='g'+i+'_'+g.name.substring(0,10)+'_'+g.dimensions});
 }
 function updateDashBadge(){const p=dashCreatives.filter(c=>c.audit_status==='pending').length;const b=document.getElementById('dashBadge');if(b)b.textContent=p>0?p:''}
 
@@ -2659,7 +2673,7 @@ function renderDashTable(){
     const editDt=g.last_edited_at?new Date(g.last_edited_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' '+new Date(g.last_edited_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'-';
     const dk=Object.keys(g.dsps).sort();
     const sc=dk.map(k=>'<div class="dsp-chip"><span class="dsp-dot '+(g.dsps[k].audit_status||'unknown')+'"></span><span class="dsp-chip-label">'+(dn[k]||k)+'</span><span class="dsp-chip-status">'+(g.dsps[k].audit_status||'unknown')+'</span></div>').join('');
-    const gk=g.name+'||'+g.dimensions;
+    const gk=g._gid;
     const ek=encodeURIComponent(gk);
     const isExp=dashExpandedKey===gk;
     const isSel=dashSelectedKeys.has(gk);
@@ -2718,11 +2732,11 @@ async function syncCreatives(){
 function bulkEditSelected(){
   if(dashSelectedKeys.size===0)return;
   const keys=Array.from(dashSelectedKeys);
-  const first=dashGroups.find(x=>x.name+'||'+x.dimensions===keys[0]);if(!first)return;
+  const first=dashGroups.find(x=>x._gid===keys[0]);if(!first)return;
   dashEditGroup=first;dashEditGroup._bulkKeys=keys;
   // Collect DSP stats from selection
   const dspCount={};
-  keys.forEach(k=>{const gg=dashGroups.find(x=>x.name+'||'+x.dimensions===k);if(gg)Object.keys(gg.dsps).forEach(d=>{dspCount[d]=(dspCount[d]||0)+1})});
+  keys.forEach(k=>{const gg=dashGroups.find(x=>x._gid===k);if(gg)Object.keys(gg.dsps).forEach(d=>{dspCount[d]=(dspCount[d]||0)+1})});
   const dspKeys=Object.keys(dspCount).sort();
   const dn={xandr:'Xandr',dv360:'DV360'};
   let h='<div style="font-size:0.78rem;color:var(--accent);margin-bottom:8px;font-weight:600">'+keys.length+' criativos selecionados</div>';
@@ -2746,7 +2760,7 @@ function bulkEditSelected(){
 
 function openEditModal(groupKey){
   const key=decodeURIComponent(groupKey);
-  const g=dashGroups.find(x=>x.name+'||'+x.dimensions===key);if(!g)return;
+  const g=dashGroups.find(x=>x._gid===key);if(!g)return;
   dashEditGroup=g;dashEditGroup._bulkKeys=null;
   const dk=Object.keys(g.dsps).sort(),dn={xandr:'Xandr',dv360:'DV360'};
   let h='<div class="modal-field"><label>Nome (aplica em todas as DSPs)</label><input id="editName" value="'+esc(g.name||'')+'"></div>';
@@ -2818,7 +2832,7 @@ async function saveEdit(){
   if(!tk){toast('Sessão expirada','error');return}
   const btn=document.getElementById('editSaveBtn');btn.disabled=true;btn.textContent='Salvando...';
   const isBulk=dashEditGroup._bulkKeys&&dashEditGroup._bulkKeys.length>1;
-  const groups=isBulk?dashEditGroup._bulkKeys.map(k=>dashGroups.find(x=>x.name+'||'+x.dimensions===k)).filter(Boolean):[dashEditGroup];
+  const groups=isBulk?dashEditGroup._bulkKeys.map(k=>dashGroups.find(x=>x._gid===k)).filter(Boolean):[dashEditGroup];
   const newName=document.getElementById('editName')?.value?.trim()||'';
   let ok=0,fail=0;
   try{

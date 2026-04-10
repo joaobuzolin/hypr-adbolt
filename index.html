@@ -1265,27 +1265,28 @@ uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.r
 fileInput.addEventListener('change',e=>{if(e.target.files.length)handleFile(e.target.files[0])});
 uploadClear.addEventListener('click',e=>{e.stopPropagation();clearUpload()});
 // Auto-detect dimensions and click URL when pasting tag
+let _lastAutoW='',_lastAutoH='',_lastAutoClick='';
 document.getElementById('manualTagCode').addEventListener('input',function(){
   const tag=this.value.trim();if(!tag)return;
   const wEl=document.getElementById('manualTagWidth'),hEl=document.getElementById('manualTagHeight'),clickEl=document.getElementById('manualTagClickUrl');
-  if(!wEl.value&&!hEl.value){
-    let w=0,h=0;
-    const dw=tag.match(/data-width\s*=\s*"(\d+)"/i),dh=tag.match(/data-height\s*=\s*"(\d+)"/i);
-    if(dw&&dh){w=parseInt(dw[1]);h=parseInt(dh[1])}
-    if(!w||!h){const wm=tag.match(/width\s*[:=]\s*"?(\d+)/i),hm=tag.match(/height\s*[:=]\s*"?(\d+)/i);if(wm&&hm){w=parseInt(wm[1]);h=parseInt(hm[1])}}
-    if(!w||!h){const dm=tag.match(/(\d{2,4})x(\d{2,4})/i);if(dm){w=parseInt(dm[1]);h=parseInt(dm[2])}}
-    if(w&&h){wEl.value=w;hEl.value=h}
+  // Always re-detect dimensions (overwrite if previously auto-filled)
+  let w=0,h=0;
+  const dw=tag.match(/data-width\s*=\s*"(\d+)"/i),dh=tag.match(/data-height\s*=\s*"(\d+)"/i);
+  if(dw&&dh){w=parseInt(dw[1]);h=parseInt(dh[1])}
+  if(!w||!h){const wm=tag.match(/width\s*[:=]\s*"?(\d+)/i),hm=tag.match(/height\s*[:=]\s*"?(\d+)/i);if(wm&&hm){w=parseInt(wm[1]);h=parseInt(hm[1])}}
+  if(!w||!h){const dm=tag.match(/(\d{2,4})x(\d{2,4})/i);if(dm){w=parseInt(dm[1]);h=parseInt(dm[2])}}
+  if(w&&h){
+    // Only overwrite if field is empty OR was previously auto-filled (not manually edited)
+    if(!wEl.value||wEl.value===_lastAutoW){wEl.value=w;_lastAutoW=String(w)}
+    if(!hEl.value||hEl.value===_lastAutoH){hEl.value=h;_lastAutoH=String(h)}
   }
-  if(!clickEl.value){
-    const cta=tag.match(/data-cta-url\s*=\s*"([^"]+)"/i);
-    if(cta)clickEl.value=cta[1];
-    else{
-      // Try data-click-tracker (Nexd/Adcanvas) - extract the real URL after ${CLICK_URL} macro
-      const ct=tag.match(/data-click-tracker\s*=\s*"(?:\$\{CLICK_URL\})?([^"]*https?:\/\/[^"]+)"/i);
-      if(ct)clickEl.value=ct[1];
-      else{const href=tag.match(/(?:href|landing[-_]?page|click[-_]?url|data-landing|data-redirect)\s*=\s*"(https?:\/\/[^"]+)"/i);if(href)clickEl.value=href[1]}
-    }
-  }
+  // Auto-detect click URL
+  let detectedClick='';
+  const cta=tag.match(/data-cta-url\s*=\s*"([^"]+)"/i);
+  if(cta)detectedClick=cta[1];
+  else{const ct=tag.match(/data-click-tracker\s*=\s*"(?:\$\{CLICK_URL\})?([^"]*https?:\/\/[^"]+)"/i);if(ct)detectedClick=ct[1];
+  else{const href=tag.match(/(?:href|landing[-_]?page|click[-_]?url|data-landing|data-redirect)\s*=\s*"(https?:\/\/[^"]+)"/i);if(href)detectedClick=href[1]}}
+  if(detectedClick&&(!clickEl.value||clickEl.value===_lastAutoClick)){clickEl.value=detectedClick;_lastAutoClick=detectedClick}
 });
 
 function addManualTag(){
@@ -1347,7 +1348,8 @@ function addManualTag(){
   renderPlacementsTable();
   updateVisibility();
   // Clear form
-  codeEl.value='';nameEl.value='';clickEl.value='';
+  codeEl.value='';nameEl.value='';clickEl.value='';widthEl.value='';heightEl.value='';
+  _lastAutoW='';_lastAutoH='';_lastAutoClick='';
   toast(name+' adicionado','success');
 }
 function clearUpload(){parsedData=null;placementAssignment={};_selectedTagIds.clear();fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('tagsTableSection').style.display='none';document.getElementById('results').classList.remove('visible');document.getElementById('assignmentSection').classList.remove('visible');updateVisibility()}

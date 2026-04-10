@@ -1348,12 +1348,19 @@ function handleFile(file){
       const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});const ws=wb.Sheets[wb.SheetNames.includes('Tags')?'Tags':wb.SheetNames[0]];
       const result=parseCM360(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}));
       if(!result){toast('Estrutura CM360 não identificada.','error');return}
+      // Merge with existing manual tags instead of overwriting
+      if(parsedData&&parsedData.placements.length>0){
+        const existingManual=parsedData.placements.filter(p=>p.placementId&&String(p.placementId).startsWith('manual_'));
+        result.placements=[...existingManual,...result.placements];
+        toast(`${result.placements.length-existingManual.length} placements do arquivo + ${existingManual.length} manual(is)`,'success');
+      }else{
+        toast(`${result.placements.length} placements extraídos`,'success');
+      }
       parsedData=result;uploadZone.classList.add('has-file');uploadClear.style.display='flex';
       document.getElementById('uploadFilename').textContent=file.name;
       document.getElementById('uploadMeta').textContent=`${result.placements.length} placements · ${result.campaignName}`;
       document.getElementById('inputBrand').value=result.brandName;
       renderExtractedInfo(result);placementAssignment={};updateAssignment();updateVisibility();
-      toast(`${result.placements.length} placements extraídos`,'success');
     }catch(err){console.error(err);toast('Erro: '+err.message,'error')}
   };reader.readAsArrayBuffer(file);
 }

@@ -101,15 +101,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .btn-text-sm{background:none;border:1px solid var(--border);color:var(--text-sec);font-size:0.72rem;cursor:pointer;padding:5px 12px;border-radius:var(--r-xs);transition:all var(--dur-f)}
 .btn-text-sm:hover{border-color:var(--error);color:var(--error)}
 
-/* ── Flow Selector ── */
 /* ── Dashboard ── */
 .dashboard{display:none;padding:0 40px 40px;max-width:1320px;margin:0 auto}
 .dashboard.active{display:block;animation:slideUp 0.4s var(--ease-out)}
 .dash-hero{padding:32px 0 28px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .dash-hero-left{display:flex;align-items:center;gap:16px}
-.dash-hero-back{width:36px;height:36px;border-radius:var(--r-xs);background:var(--bg-surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sec);transition:all var(--dur-f)}
-.dash-hero-back:hover{border-color:var(--border-active);color:var(--accent);background:var(--accent-dim)}
-.dash-hero-back svg{width:18px;height:18px}
 .dash-hero-title{font-size:1.6rem;font-weight:800;letter-spacing:-0.8px;background:linear-gradient(135deg,var(--text) 0%,var(--text-sec) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .dash-hero-sub{font-size:0.78rem;color:var(--text-tri);margin-top:2px}
 .dash-hero-actions{display:flex;gap:8px;align-items:center;padding-top:6px}
@@ -412,13 +408,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .dsp-card-sub{font-size:0.72rem;color:var(--text-tri)}
 .dsp-card.dsp-unavailable{opacity:0.35;pointer-events:none}
 .dsp-card.dsp-unavailable::after{content:'Em breve';position:absolute;top:10px;right:10px;font-size:0.62rem;background:var(--border);color:var(--text-sec);padding:2px 8px;border-radius:var(--r-pill);font-weight:500}
-.dsp-pixel-input{max-height:0;overflow:hidden;opacity:0;transition:all var(--dur) var(--ease-out);background:var(--bg-surface);border:1.5px solid var(--accent);border-top:none;border-radius:0 0 var(--r) var(--r);padding:0 14px}
-.dsp-pixel-input.visible{max-height:100px;opacity:1;padding:12px 14px}
-.dsp-pixel-input label{font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-tri);display:block;margin-bottom:6px}
-.dsp-pixel-input label small{display:inline;font-weight:400;text-transform:none;letter-spacing:0}
-.pixel-field{font-family:var(--mono);font-size:0.75rem;padding:8px 12px;border-radius:var(--r-xs)}
-.pixel-sync-row{max-height:0;overflow:hidden;opacity:0;transition:all var(--dur);margin-top:8px}
-.pixel-sync-row.visible{max-height:50px;opacity:1}
 
 /* ── Options ── */
 .option-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
@@ -531,17 +520,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .btn-action-card.loading{pointer-events:none;position:relative}
 @media(max-width:640px){.action-cards{grid-template-columns:1fr}}
 
-/* ── Generate / Activate / Results ── */
-.generate-wrap{text-align:center;margin:32px 0;opacity:0;transform:translateY(8px);transition:all var(--dur) var(--ease-out)}
-.generate-wrap.revealed{opacity:1;transform:translateY(0)}
-.btn-generate{background:var(--accent);color:var(--text-on-accent);border:none;border-radius:var(--r);padding:14px 40px;font-size:0.92rem;font-weight:600;cursor:pointer;transition:all var(--dur) var(--ease);position:relative}
-.btn-generate:disabled{opacity:0.35;cursor:not-allowed;transform:none}
-.btn-generate:not(:disabled):hover{filter:brightness(1.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(123,110,240,0.3)}
-.btn-generate.done{background:var(--success)}
-.btn-generate.asset-mode{background:var(--success)}
-.btn-generate.asset-mode:not(:disabled):hover{box-shadow:0 8px 24px rgba(46,219,214,0.3)}
-.sticky-cta{position:sticky;bottom:24px;z-index:var(--z-sticky)}
-.sticky-cta .btn-generate{box-shadow:var(--shadow-lg)}
+/* ── Results / Activation ── */
 .results{display:none;margin-top:24px}
 .results.visible{display:block;animation:slideUp var(--dur) var(--ease-out)}
 .result-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;opacity:0;animation:slideUp 0.35s var(--ease-out) forwards}
@@ -551,13 +530,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .btn-download{background:var(--bg-raised);border:1px solid var(--border);color:var(--text);border-radius:var(--r-xs);padding:8px 16px;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--dur-f)}
 .btn-download:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 .btn-download.downloaded{background:var(--success-dim);border-color:var(--success);color:var(--success)}
-.activate-wrap{text-align:center;margin:16px 0 28px;opacity:0;transform:translateY(8px);transition:all var(--dur) var(--ease-out)}
-.activate-wrap.revealed{opacity:1;transform:translateY(0)}
-.btn-activate{background:var(--success);color:var(--text-on-success);border:none;border-radius:var(--r);padding:14px 40px;font-size:0.92rem;font-weight:600;cursor:pointer;transition:all var(--dur)}
-.btn-activate:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.btn-activate:disabled{opacity:0.35;cursor:not-allowed;transform:none}
-.btn-activate.loading{pointer-events:none}
-.btn-activate.done{background:var(--accent)}
 .activation-results{margin-top:20px;opacity:0;transform:translateY(8px);transition:all var(--dur-s) var(--ease-out)}
 .activation-results.visible{opacity:1;transform:translateY(0)}
 .activation-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;opacity:0;animation:slideUp 0.35s var(--ease-out) forwards}
@@ -568,6 +540,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .act-status.partial{background:var(--accent-dim);color:var(--accent)}
 .act-status.error{background:var(--error-dim);color:var(--error)}
 .act-status.pending{background:var(--accent-dim);color:var(--text-tri)}
+.act-actions{display:flex;align-items:center;gap:10px}
+.act-detail{font-size:0.75rem;color:var(--text-sec);font-family:var(--mono)}
+.btn-copy-ids{background:var(--bg-raised);border:1px solid var(--border);color:var(--text-sec);border-radius:var(--r-xs);padding:5px 12px;font-size:0.72rem;font-weight:500;cursor:pointer;transition:all var(--dur-f);font-family:var(--font)}
+.btn-copy-ids:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
 .activation-progress{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:20px;animation:slideUp 0.3s var(--ease-out)}
 .activation-progress h3{font-size:0.85rem;font-weight:600;margin-bottom:18px}
 .ap-dsp{margin-bottom:16px}.ap-dsp:last-child{margin-bottom:0}
@@ -588,9 +564,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .toast-dismiss{position:absolute;top:50%;right:12px;transform:translateY(-50%);background:none;border:none;color:var(--text-tri);cursor:pointer;font-size:14px;padding:2px;transition:color var(--dur-f)}
 .toast-dismiss:hover{color:var(--text)}
 
-/* ── Theme Toggle ── */
-.theme-toggle{position:fixed;bottom:20px;right:20px;z-index:var(--z-sticky);width:36px;height:36px;border-radius:50%;background:var(--bg-surface);border:1px solid var(--border);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:14px;transition:all var(--dur-f);box-shadow:var(--shadow-md)}
-.theme-toggle:hover{border-color:var(--border-active);transform:scale(1.08)}
+/* ── Theme Toggle Icons ── */
 [data-theme="dark"] .icon-sun{display:inline}[data-theme="dark"] .icon-moon{display:none}
 [data-theme="light"] .icon-sun{display:none}[data-theme="light"] .icon-moon{display:inline}
 
@@ -646,9 +620,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       <p>Escolha o tipo de criativo para começar. Gere templates e ative nas DSPs em um fluxo guiado.</p>
     </div>
     <div class="flow-cards">
-      <div class="flow-card" onclick="enterWizard('tags')"><div class="flow-card-icon"><span>📄</span></div><div class="flow-card-title">3P Tags</div><div class="flow-card-desc">Upload de tags exportadas do Campaign Manager</div></div>
-      <div class="flow-card" onclick="enterWizard('surveys')"><div class="flow-card-icon"><span>📊</span></div><div class="flow-card-title">Surveys</div><div class="flow-card-desc">Pesquisas Typeform embedded em iframes</div></div>
-      <div class="flow-card" onclick="enterWizard('assets')"><div class="flow-card-icon"><span>🎨</span></div><div class="flow-card-title">Standard Images</div><div class="flow-card-desc">Upload direto de imagens e vídeos nas DSPs</div></div>
+      <div class="flow-card" role="button" tabindex="0" onclick="enterWizard('tags')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enterWizard('tags')}"><div class="flow-card-icon"><span>📄</span></div><div class="flow-card-title">3P Tags</div><div class="flow-card-desc">Upload de tags exportadas do Campaign Manager</div></div>
+      <div class="flow-card" role="button" tabindex="0" onclick="enterWizard('surveys')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enterWizard('surveys')}"><div class="flow-card-icon"><span>📊</span></div><div class="flow-card-title">Surveys</div><div class="flow-card-desc">Pesquisas Typeform embedded em iframes</div></div>
+      <div class="flow-card" role="button" tabindex="0" onclick="enterWizard('assets')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();enterWizard('assets')}"><div class="flow-card-icon"><span>🎨</span></div><div class="flow-card-title">Standard Images</div><div class="flow-card-desc">Upload direto de imagens e vídeos nas DSPs</div></div>
     </div>
   </div>
 
@@ -691,7 +665,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
         <div id="tagsTableSection" style="display:none">
           <div id="tagsBulkBar" style="display:none"></div>
           <div class="assets-filter-row" id="tagsFilterRow">
-            <input type="text" class="assets-filter-input" id="tagsFilter" placeholder="Filtrar por nome...">
+            <input type="text" class="assets-filter-input" id="tagsFilter" placeholder="Filtrar por nome..." aria-label="Filtrar placements por nome">
             <div class="tags-filter-pills">
               <button class="tags-pill active" data-filter="type" data-val="all" onclick="setTagsFilter('type','all',this)">Todos</button>
               <button class="tags-pill" data-filter="type" data-val="display" onclick="setTagsFilter('type','display',this)">Display</button>
@@ -703,7 +677,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
             <span class="assets-filter-count" id="tagsFilterCount"></span>
             <button class="assets-filter-select-btn" id="tagsFilterSelect">Selecionar filtrados</button>
           </div>
-          <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="tagsSelectAll"></th><th>Placement Name</th><th>Tipo</th><th>Size</th><th>Tag</th><th>Click URL</th><th>Tracker</th><th></th></tr></thead><tbody id="placementsBody"></tbody></table></div>
+          <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="tagsSelectAll" aria-label="Selecionar todos os placements"></th><th>Placement Name</th><th>Tipo</th><th>Size</th><th>Tag</th><th>Click URL</th><th>Tracker</th><th></th></tr></thead><tbody id="placementsBody"></tbody></table></div>
         </div>
       </div>
 
@@ -732,7 +706,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
         <div id="assetsContent" style="display:none">
           <div id="assetsBulkBar" style="display:none"></div>
           <div class="assets-filter-row" id="assetsFilterRow">
-            <input type="text" class="assets-filter-input" id="assetsFilter" placeholder="Filtrar por nome...">
+            <input type="text" class="assets-filter-input" id="assetsFilter" placeholder="Filtrar por nome..." aria-label="Filtrar assets por nome">
             <div class="tags-filter-pills">
               <button class="tags-pill active" data-filter="atype" data-val="all" onclick="setAssetsFilter('type','all',this)">Todos</button>
               <button class="tags-pill" data-filter="atype" data-val="display" onclick="setAssetsFilter('type','display',this)">Display</button>
@@ -744,7 +718,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
             <span class="assets-filter-count" id="assetsFilterCount"></span>
             <button class="assets-filter-select-btn" id="assetsFilterSelect">Selecionar filtrados</button>
           </div>
-          <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="assetsSelectAll"></th><th></th><th>Nome</th><th>Tipo</th><th>Size</th><th>Peso</th><th>Landing Page</th><th>Tracker</th><th></th></tr></thead><tbody id="assetsTableBody"></tbody></table></div>
+          <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="assetsSelectAll" aria-label="Selecionar todos os assets"></th><th></th><th>Nome</th><th>Tipo</th><th>Size</th><th>Peso</th><th>Landing Page</th><th>Tracker</th><th></th></tr></thead><tbody id="assetsTableBody"></tbody></table></div>
         </div>
       </div>
 
@@ -809,8 +783,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
         <div class="results" id="results"><span class="section-label">Downloads prontos</span><div id="resultCards" style="margin-top:12px"></div></div>
         <div class="activation-progress" id="activationProgress" style="display:none"></div>
         <div class="activation-results" id="activationResults"><span class="section-label">Ativação nas DSPs</span><div id="activationCards" style="margin-top:12px"></div></div>
-        <div class="generate-wrap" id="generateWrap" style="display:none"></div>
-        <div class="activate-wrap" id="activateWrap" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -835,7 +807,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       <button class="dash-pill" data-dash-audit="approved" onclick="setDashAuditFilter(this)">Approved</button>
       <button class="dash-pill" data-dash-audit="rejected" onclick="setDashAuditFilter(this)">Rejected</button>
       <div style="flex:1"></div>
-      <input class="dash-search" id="dashSearch" placeholder="Buscar..." oninput="dashSearchDebounce()">
+      <input class="dash-search" id="dashSearch" placeholder="Buscar..." oninput="dashSearchDebounce()" aria-label="Buscar criativos">
     </div>
     <div class="dash-bulk-bar" id="dashBulkBar" style="display:none">
       <span id="dashBulkCount">0 selecionados</span>
@@ -846,7 +818,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
     </div>
     <div class="dash-table-wrap" id="dashTableWrap">
       <table class="dash-table" id="dashTable">
-        <thead><tr><th style="width:32px"><input type="checkbox" id="dashSelectAll" onchange="toggleDashSelectAll(this.checked)"></th><th style="width:30%">Nome</th><th>Size</th><th>Status</th><th>Criado por</th><th>Criado em</th><th>Última edição</th><th></th></tr></thead>
+        <thead><tr><th style="width:32px"><input type="checkbox" id="dashSelectAll" onchange="toggleDashSelectAll(this.checked)" aria-label="Selecionar todos os criativos"></th><th style="width:30%">Nome</th><th>Size</th><th>Status</th><th>Criado por</th><th>Criado em</th><th>Última edição</th><th></th></tr></thead>
         <tbody id="dashBody"></tbody>
       </table>
       <div class="dash-pagination" id="dashPagination"></div>
@@ -855,7 +827,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 
   <div class="modal-overlay" id="renameModal">
     <div class="modal" style="max-width:560px">
-      <div class="modal-header"><span class="modal-title">Renomear</span><button class="modal-close" onclick="closeRenameModal()">✕</button></div>
+      <div class="modal-header"><span class="modal-title">Renomear</span><button class="modal-close" onclick="closeRenameModal()" aria-label="Fechar">✕</button></div>
       <div class="modal-body" id="renameModalBody">
         <div class="rename-section">
           <div class="rename-row">
@@ -875,7 +847,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 
   <div class="modal-overlay" id="editModal">
     <div class="modal">
-      <div class="modal-header"><span class="modal-title">Editar Criativo</span><button class="modal-close" onclick="closeEditModal()">✕</button></div>
+      <div class="modal-header"><span class="modal-title">Editar Criativo</span><button class="modal-close" onclick="closeEditModal()" aria-label="Fechar">✕</button></div>
       <div class="modal-body" id="editModalBody"></div>
       <div class="modal-footer">
         <button class="dash-btn" onclick="closeEditModal()">Cancelar</button>
@@ -885,7 +857,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   </div>
 
 </div>
-<div class="toast" id="toast" role="alert" aria-live="assertive"><span id="toastMsg"></span><button class="toast-dismiss" id="toastDismiss">✕</button></div>
+<div class="toast" id="toast" role="alert" aria-live="assertive"><span id="toastMsg"></span><button class="toast-dismiss" id="toastDismiss" aria-label="Fechar notificação">✕</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -908,11 +880,21 @@ async function doSignOut(){if(sbClient)await sbClient.auth.signOut();currentUser
 // ── Utils ──
 const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
 function cleanCR(s){return s.replace(/_x000d_/gi,'').replace(/\r/g,'')}
+function normalizeUrl(v){v=v.trim();if(!v)return'';if(!/^https?:\/\//i.test(v)&&/^[a-zA-Z0-9]/.test(v)&&v.includes('.'))v='https://'+v;return v}
+function extractTrackerUrl(raw){
+  const t=raw.trim();
+  if(!t.startsWith('<'))return t;
+  let m=t.match(/data-3rd-tracker=["']([^"']+)/);if(m)return m[1];
+  m=t.match(/src=["']([^"']+\.js[^"']*)/);if(m)return m[1];
+  m=t.match(/(https?:\/\/[^\s"'<>]+)/);if(m)return m[1];
+  return t;
+}
+function formatBytes(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(0)+'KB';return(b/1048576).toFixed(1)+'MB'}
 function toggleTheme(){const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('hypr-theme',n)}
 let toastTimer=null;
 function toast(msg,type=''){const el=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;el.className='toast '+type;clearTimeout(toastTimer);requestAnimationFrame(()=>el.classList.add('show'));if(type!=='error')toastTimer=setTimeout(()=>el.classList.remove('show'),3200)}
 
-// ── Wizard Navigation (NEW) ──
+// ── Wizard Navigation ──
 const WIZARD_CONFIGS={tags:{steps:['tags','dsps','config','activate'],labels:['Upload 3P Tags','DSPs','Config','Gerar & Ativar'],sublabels:['Arquivo CM360','Destino','Marca e opções','Templates']},surveys:{steps:['surveys','dsps','config','activate'],labels:['Surveys','DSPs','Config','Gerar & Ativar'],sublabels:['URLs Typeform','Destino','Marca e opções','Templates']},assets:{steps:['assets','dsps','config','activate'],labels:['Standard Images','DSPs','Config','Ativar'],sublabels:['Upload mídia','Destino','Marca e opções','Ativação']}};
 const MODE_LABELS={tags:'3P Tags',surveys:'Surveys',assets:'Standard Images'};
 
@@ -933,8 +915,6 @@ function resetWizardState(){
   // Reset manual tag fields
   ['manualTagName','manualTagWidth','manualTagHeight','manualTagCode','manualTagClickUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   _lastAutoW='';_lastAutoH='';_lastAutoClick='';
-  // Reset assets drop zone
-  const adz=document.getElementById('assetDropZone');if(adz){adz.classList.remove('has-file');const ai=adz.querySelector('.upload-filename');if(ai)ai.textContent='';const am=adz.querySelector('.upload-meta');if(am)am.textContent=''}
   const atb=document.getElementById('assetsTableBody');if(atb)atb.innerHTML='';
   // Reset DSP card UI
   document.querySelectorAll('.dsp-card[data-dsp]').forEach(card=>{card.classList.remove('selected','dsp-unavailable')});
@@ -968,9 +948,8 @@ function renderWizardSteps(){const config=WIZARD_CONFIGS[currentMode];document.g
 function navigateToStep(idx){const config=WIZARD_CONFIGS[currentMode];if(idx<0||idx>=config.steps.length)return;if(currentMode==='assets')commitPendingTrackers();activeWizardStep=idx;const stepKey=config.steps[idx];document.querySelectorAll('.wizard-step').forEach((el,i)=>el.classList.toggle('active',i===idx));document.querySelectorAll('.step-view').forEach(v=>v.classList.remove('active'));const map={tags:'stepTags',surveys:'stepSurveys',assets:'stepAssets',dsps:'stepDsp',config:'stepConfig',activate:'stepActivate'};const target=document.getElementById(map[stepKey]);if(target){target.classList.add('active');target.scrollTop=0}document.getElementById('wizardContent').scrollTop=0;updateWizardStepStates();updateGenerateBtn();renderStepNav()}
 function renderStepNav(){const config=WIZARD_CONFIGS[currentMode];document.querySelectorAll('.step-nav').forEach(n=>n.remove());const activeView=document.querySelector('.step-view.active');if(!activeView)return;const isFirst=activeWizardStep===0;const isLast=activeWizardStep===config.steps.length-1;const nav=document.createElement('div');nav.className='step-nav';const prevLabel=isFirst?null:config.labels[activeWizardStep-1];const nextLabel=isLast?null:config.labels[activeWizardStep+1];nav.innerHTML=`${isFirst?'<div class="step-nav-spacer"></div>':`<button class="step-nav-btn" onclick="navigateToStep(${activeWizardStep-1})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${prevLabel}</button>`}<div class="step-nav-spacer"></div>${isLast?'':`<button class="step-nav-btn primary" onclick="navigateToStep(${activeWizardStep+1})">${nextLabel}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>`}`;activeView.appendChild(nav)}
 function updateWizardStepStates(){const config=WIZARD_CONFIGS[currentMode];const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&!!parsedData;const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;const hasAssets=currentMode==='assets'&&assetEntries.length>0;const hasDsp=selectedDsps.size>0;document.querySelectorAll('.wizard-step').forEach((el,i)=>{const s=config.steps[i];let c=false;if(s==='tags')c=hasTags;if(s==='surveys')c=hasSurveys;if(s==='assets')c=hasAssets;if(s==='dsps')c=hasDsp;if(s==='config')c=hasDsp;el.classList.toggle('completed',c&&i<activeWizardStep)})}
-function updateVisibility(){updateWizardStepStates();updateGenerateBtn();updateActivateBtn();if(currentMode==='assets'&&assetEntries.length>0)renderAssetsTable()}
-function updateActivateBtn(){const wrap=document.getElementById('activateWrap');const btn=document.getElementById('btnActivate');const hasResults=document.getElementById('results').classList.contains('visible');if(!hasResults){wrap.classList.remove('revealed');return}wrap.classList.add('revealed');btn.disabled=!selectedDsps.size}
-// ── Activation Progress ──
+function updateVisibility(){updateWizardStepStates();updateGenerateBtn();if(currentMode==='assets'&&assetEntries.length>0)renderAssetsTable()}
+// ── Activation (progress, DSP API calls, results) ──
 function showActivationProgress(dsps,totalPerDsp){
   const panel=document.getElementById('activationProgress');
   panel.style.display='';
@@ -997,7 +976,6 @@ function finalizeProgress(dsp,successCount,total){
   if(cur)cur.textContent=successCount===total?`✓ ${successCount}/${total} criativos criados`:`⚠ ${successCount}/${total} criados (${total-successCount} erros)`;
 }
 
-// ── Ativação nas DSPs ──
 async function activateInDsps(){
   if(!currentUser){toast('Faça login primeiro','error');return}
   // Commit any tracker values left in input fields before activation
@@ -1164,7 +1142,6 @@ async function activateDV360(token){
     return{dsp:'DV360',status:'error',detail:err.message||'Erro de conexão'};
   }
 }
-// ── Asset Activation Helpers ──
 function fileToBase64(file){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -1275,8 +1252,6 @@ function renderActivationResults(results){
   setTimeout(()=>document.getElementById('activationResults').scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
 
-// (variables declared above in wizard init block)
-function renderActivationResults(results){const cards=results.map((r,i)=>`<div class="activation-card" style="animation-delay:${i*120}ms"><div class="act-info"><span class="act-dsp">${r.dsp}</span></div><span class="act-status ${r.status}">${r.detail}</span></div>`).join('');document.getElementById('activationCards').innerHTML=cards;document.getElementById('activationResults').classList.add('visible')}
 // ── DSP Selection ──
 function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility();invalidateResults()}
 function invalidateResults(){generatedFiles={};document.getElementById('results').classList.remove('visible');document.getElementById('activationResults').classList.remove('visible');document.getElementById('activationProgress').style.display='none';document.getElementById('activationCards').innerHTML='';document.getElementById('resultCards').innerHTML=''}
@@ -1291,21 +1266,7 @@ function updateOptions(){
   const hasAmazon=selectedDsps.has('amazondsp');
   document.getElementById('amazonDspConfigDivider').style.display=hasAmazon?'':'none';
   document.getElementById('amazonDspConfigSection').style.display=hasAmazon?'':'none';
-  const showPixels=false;
-  ['stackadapt','xandr'].forEach(dsp=>{
-    const wrap=document.getElementById(`pixelWrap_${dsp}`),field=document.getElementById(`pixel_${dsp}`);
-    const shouldShow=selectedDsps.has(dsp)&&showPixels,wasHidden=!wrap.classList.contains('visible');
-    wrap.classList.toggle('visible',shouldShow);
-    if(shouldShow&&wasHidden&&field.value){field.classList.remove('flash');void field.offsetWidth;field.classList.add('flash')}
-  });
-  document.getElementById('pixelSyncRow').classList.toggle('visible',hasSA&&hasXandr&&showPixels);
-  if(!(hasSA&&hasXandr))document.getElementById('syncPixels').checked=false;
-  // Hide entire options panel if no config-needing DSP is selected
-  const hasAnyConfig=hasXandr||hasDV360||hasAmazon||hasSA;
-  document.getElementById('sectionOptions').style.display=hasAnyConfig?'':'none';
 }
-function syncPixelFields(e){document.getElementById(e.target.id==='pixel_stackadapt'?'pixel_xandr':'pixel_stackadapt').value=e.target.value}
-function onSyncPixelChange(){const sa=document.getElementById('pixel_stackadapt'),x=document.getElementById('pixel_xandr');if(document.getElementById('syncPixels').checked){if(sa.value&&!x.value)x.value=sa.value;else if(x.value&&!sa.value)sa.value=x.value;sa.addEventListener('input',syncPixelFields);x.addEventListener('input',syncPixelFields)}else{sa.removeEventListener('input',syncPixelFields);x.removeEventListener('input',syncPixelFields)}}
 function getPixelForDsp(dsp){const raw=document.getElementById(`pixel_${dsp}`)?.value?.trim()||'';if(raw.startsWith('<')){const m=raw.match(/src=["']([^"']+)["']/);return m?m[1]:raw}return raw}
 // Commit any tracker values left in input fields (user pasted but didn't press Enter)
 function commitPendingTrackers(){
@@ -1600,65 +1561,23 @@ function smartName(name){
 // ── Tags table bulk actions ──
 function tagsBulkAddTracker(){
   const ids=getSelectedTagIds();if(!ids.length)return;
-  const overlay=document.createElement('div');overlay.className='fr-overlay';
-  const dspOpts=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
-  overlay.innerHTML=`<div class="fr-modal">
-    <h3>Adicionar tracker em ${ids.length} placement(s)</h3>
-    <label for="tagsBulkTrackerUrl">Pixel URL ou tag</label>
-    <input class="asset-input" id="tagsBulkTrackerUrl" placeholder="Cole a URL ou tag do pixel" style="font-family:var(--mono)">
-    <label style="margin-top:4px">Aplicar em quais DSPs?</label>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px">
-      <button type="button" class="bulk-scope-btn active" data-scope="all" onclick="toggleBulkScope(this)" style="background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:var(--r-xs);padding:6px 14px;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--dur-f)">Todas</button>
-      ${dspOpts.map(([k,l])=>`<button type="button" class="bulk-scope-btn" data-scope="${k}" onclick="toggleBulkScope(this)" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-sec);border-radius:var(--r-xs);padding:6px 14px;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--dur-f)">${l}</button>`).join('')}
-    </div>
-    <div class="fr-modal-actions">
-      <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
-      <button class="primary" onclick="execTagsBulkAddTracker()">Adicionar</button>
-    </div>
-  </div>`;
-  document.body.appendChild(overlay);
-  document.getElementById('tagsBulkTrackerUrl').focus();
-}
-function execTagsBulkAddTracker(){
-  const val=(document.getElementById('tagsBulkTrackerUrl')?.value||'').trim();
-  if(!val){toast('Cole a URL do pixel','error');return}
-  const url=normalizeUrl(extractTrackerUrl(val));
-  const allBtn=document.querySelector('.fr-overlay .bulk-scope-btn[data-scope="all"]');
-  const dsps=allBtn?.classList.contains('active')?'all':[...document.querySelectorAll('.fr-overlay .bulk-scope-btn.active:not([data-scope="all"])')].map(b=>b.dataset.scope);
-  if(dsps!=='all'&&!dsps.length){toast('Selecione ao menos uma DSP','error');return}
-  const ids=getSelectedTagIds();
-  ids.forEach(idx=>{
-    const p=parsedData.placements[idx];if(!p)return;
-    const existing=p.trackers.findIndex(t=>(typeof t==='string'?t:t.url)===url);
-    if(existing>=0){p.trackers[existing]={url,dsps:dsps==='all'?'all':[...dsps]}}
-    else{p.trackers.push({url,dsps:dsps==='all'?'all':[...dsps]})}
+  showBulkTrackerModal(ids.length,'placement',function(url,dsps){
+    ids.forEach(idx=>{
+      const p=parsedData.placements[idx];if(!p)return;
+      const existing=p.trackers.findIndex(t=>(typeof t==='string'?t:t.url)===url);
+      if(existing>=0){p.trackers[existing]={url,dsps:dsps==='all'?'all':[...dsps]}}
+      else{p.trackers.push({url,dsps:dsps==='all'?'all':[...dsps]})}
+    });
+    renderPlacementsTable();toast(`Pixel aplicado em ${ids.length} placement(s)`,'success');
   });
-  document.querySelector('.fr-overlay')?.remove();
-  renderPlacementsTable();toast(`Pixel aplicado em ${ids.length} placement(s)`,'success');
 }
 function tagsBulkFindReplace(){
   const ids=getSelectedTagIds();if(!ids.length)return;
-  const overlay=document.createElement('div');overlay.className='fr-overlay';
-  overlay.innerHTML=`<div class="fr-modal">
-    <h3>Find & Replace nos nomes (${ids.length} selecionados)</h3>
-    <label for="tagsFrFind">Buscar:</label><input class="asset-input" id="tagsFrFind" placeholder="Texto a buscar">
-    <label for="tagsFrReplace">Substituir por:</label><input class="asset-input" id="tagsFrReplace" placeholder="Novo texto">
-    <div class="fr-modal-actions">
-      <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
-      <button class="primary" onclick="execTagsFindReplace()">Aplicar</button>
-    </div>
-  </div>`;
-  document.body.appendChild(overlay);
-  document.getElementById('tagsFrFind').focus();
-}
-function execTagsFindReplace(){
-  const find=document.getElementById('tagsFrFind').value;
-  const replace=document.getElementById('tagsFrReplace').value;
-  if(!find){toast('Preencha o campo de busca','error');return}
-  const ids=getSelectedTagIds();let count=0;
-  ids.forEach(idx=>{const p=parsedData.placements[idx];if(p&&p.placementName.includes(find)){p.placementName=p.placementName.replaceAll(find,replace);count++}});
-  document.querySelector('.fr-overlay')?.remove();
-  renderPlacementsTable();toast(`${count} nome(s) alterado(s)`,'success');
+  showFindReplaceModal(ids.length,function(find,replace){
+    let count=0;
+    ids.forEach(idx=>{const p=parsedData.placements[idx];if(p&&p.placementName.includes(find)){p.placementName=p.placementName.replaceAll(find,replace);count++}});
+    renderPlacementsTable();toast(`${count} nome(s) alterado(s)`,'success');
+  });
 }
 function tagsBulkRemove(){
   const ids=getSelectedTagIds();if(!ids.length)return;
@@ -1908,7 +1827,7 @@ function renderResults(cards){document.getElementById('resultCards').innerHTML=c
   const isAsset=c.ext==='hosted';
   return`<div class="result-card" style="animation-delay:${i*120}ms"><div class="result-info"><div class="result-dsp">${c.dsp}</div><div class="result-details">${c.count} creatives · ${isAsset?'hosted':'.'+ c.ext}</div></div>${isAsset?`<span style="font-size:0.75rem;color:var(--text-muted)">Via API</span>`:`<button class="btn-download" data-dsp="${c.key||c.dsp.toLowerCase()}">Download</button>`}</div>`}).join('');document.getElementById('results').classList.add('visible')}
 
-// ── Events ──
+// ── Event Listeners (DSP grid, surveys, downloads, misc) ──
 document.getElementById('dspGrid').addEventListener('click',e=>{const card=e.target.closest('.dsp-card[data-dsp]');if(card&&!e.target.closest('.dsp-pixel-input'))toggleDsp(card)});
 document.getElementById('dspGrid').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const card=e.target.closest('.dsp-card[data-dsp]');if(card){e.preventDefault();toggleDsp(card)}}});
 document.getElementById('assignmentBody').addEventListener('change',e=>{if(e.target.classList.contains('assign-cb'))placementAssignment[e.target.dataset.key]=e.target.checked});
@@ -1919,7 +1838,6 @@ document.getElementById('surveyEntries').addEventListener('keydown',e=>{if(e.key
 document.getElementById('surveyEntries').addEventListener('click',e=>{const pill=e.target.closest('.survey-size-pill');if(pill){const id=parseInt(pill.dataset.id),entry=surveyEntries.find(s=>s.id===id);if(entry){entry.size=pill.dataset.val;pill.parentElement.querySelectorAll('.survey-size-pill').forEach(p=>p.classList.toggle('active',p.dataset.val===entry.size))}return}const rmUrl=e.target.closest('[data-remove-url]');if(rmUrl){const[eid,idx]=rmUrl.dataset.removeUrl.split('_');removeSurveyUrl(parseInt(eid),parseInt(idx));return}const rmEntry=e.target.closest('[data-remove]');if(rmEntry)removeSurveyEntry(parseInt(rmEntry.dataset.remove))});
 document.getElementById('toastDismiss').addEventListener('click',()=>document.getElementById('toast').classList.remove('show'));
 document.getElementById('themeToggle').addEventListener('click',toggleTheme);
-document.getElementById('syncPixels').addEventListener('change',onSyncPixelChange);
 document.getElementById('replicateAll').addEventListener('change',onReplicateChange);
 // ── Assets Mode ──
 // assetEntries/assetIdCounter declared in wizard init block
@@ -2038,6 +1956,19 @@ async function compressImage(file,maxBytes){
   });
 }
 
+const EMPTY_ZONE_HTML=`<span class="upload-icon">🎨</span><div class="upload-text">Arraste arquivos aqui ou <strong>clique para selecionar</strong></div><div class="upload-format">JPG · PNG · GIF · MP4 · ZIP</div>`;
+function refreshAssetsZone(){
+  const zone=document.getElementById('assetsUploadZone');
+  const dc=assetEntries.filter(a=>a.type==='display').length,vc=assetEntries.filter(a=>a.type==='video').length,hc=assetEntries.filter(a=>a.type==='html5').length;
+  const label=[dc?`${dc} display`:null,vc?`${vc} video`:null,hc?`${hc} HTML5`:null].filter(Boolean).join(' + ');
+  zone.classList.add('has-files');
+  zone.innerHTML=`<div class="assets-summary"><strong>${assetEntries.length}</strong> assets (${label})<button class="assets-clear" id="assetsClearAll" title="Remover todos">✕</button></div>${ASSET_FILE_INPUT_HTML}`;
+  bindAssetFileInput();
+  document.getElementById('assetsClearAll').addEventListener('click',e=>{e.stopPropagation();assetEntries=[];_selectedAssetIds.clear();zone.classList.remove('has-files');zone.innerHTML=EMPTY_ZONE_HTML+ASSET_FILE_INPUT_HTML;bindAssetFileInput();document.getElementById('assetsContent').style.display='none';updateVisibility()});
+  document.getElementById('assetsContent').style.display='';
+  renderAssetsTable();updateVisibility();
+}
+
 async function handleAssetFiles(files){
   const zone=document.getElementById('assetsUploadZone');
   for(const file of files){
@@ -2056,16 +1987,7 @@ async function handleAssetFiles(files){
     };
     assetEntries.push(entry);
   }
-  // Update upload zone to summary view
-  const dc=assetEntries.filter(a=>a.type==='display').length,vc=assetEntries.filter(a=>a.type==='video').length,hc=assetEntries.filter(a=>a.type==='html5').length;
-  const label=[dc?`${dc} display`:null,vc?`${vc} video`:null,hc?`${hc} HTML5`:null].filter(Boolean).join(' + ');
-  zone.classList.add('has-files');
-  zone.innerHTML=`<div class="assets-summary"><strong>${assetEntries.length}</strong> assets (${label})<button class="assets-clear" id="assetsClearAll" title="Remover todos">✕</button></div>
-    ${ASSET_FILE_INPUT_HTML}`;
-  bindAssetFileInput();
-  document.getElementById('assetsClearAll').addEventListener('click',e=>{e.stopPropagation();assetEntries=[];_selectedAssetIds.clear();zone.classList.remove('has-files');zone.innerHTML=`<span class="upload-icon">🎨</span><div class="upload-text">Arraste arquivos aqui ou <strong>clique para selecionar</strong></div><div class="upload-format">JPG · PNG · GIF · MP4 · ZIP</div>${ASSET_FILE_INPUT_HTML}`;bindAssetFileInput();document.getElementById('assetsContent').style.display='none';updateVisibility()});
-  document.getElementById('assetsContent').style.display='';
-  renderAssetsTable();updateVisibility();
+  refreshAssetsZone();
   toast(`${files.length} asset(s) adicionado(s)`,'success');
 }
 
@@ -2076,11 +1998,8 @@ function getWeightClass(entry){
   if(sz>maxWeight*1.5)return'over';if(sz>maxWeight*0.8)return'warn';return'ok';
 }
 
-function formatBytes(b){if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(0)+'KB';return(b/1048576).toFixed(1)+'MB'}
-
 let _selectedAssetIds=new Set();
 function getSelectedAssetIds(){return[..._selectedAssetIds]}
-function syncSelectionFromDom(){_selectedAssetIds=new Set([...document.querySelectorAll('.asset-cb:checked')].map(c=>parseInt(c.dataset.id)))}
 
 let _assetsFilterType='all',_assetsFilterSize='all';
 function setAssetsFilter(ft,val,btn){
@@ -2253,14 +2172,32 @@ function bulkSetField(field){
   renderAssetsTable();
 }
 
-function bulkAddTracker(){
-  const ids=getSelectedAssetIds();if(!ids.length)return;
+// ── Shared UI (modals, popovers) ──
+function showScopePopover(tr,badgeEl,onUpdate){
+  document.querySelectorAll('.tracker-scope-pop').forEach(p=>p.remove());
+  const dspList=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
+  const isAll=tr.dsps==='all';
+  const pop=document.createElement('div');pop.className='tracker-scope-pop';
+  pop.innerHTML=`<div class="tracker-scope-pop-item" data-pop-dsp="all"><div class="pop-cb${isAll?' checked':''}">✓</div><span>Todas</span></div><div class="tracker-scope-pop-divider"></div>${dspList.map(([k,l])=>{const on=isAll||tr.dsps.includes(k);return`<div class="tracker-scope-pop-item" data-pop-dsp="${k}"><div class="pop-cb${on?' checked':''}">✓</div><span>${l}</span></div>`}).join('')}`;
+  const rect=badgeEl.getBoundingClientRect();
+  pop.style.position='fixed';pop.style.top=(rect.bottom+6)+'px';pop.style.left=(rect.left+rect.width/2)+'px';pop.style.transform='translateX(-50%)';
+  document.body.appendChild(pop);
+  pop.addEventListener('click',ev=>{
+    ev.stopPropagation();const item=ev.target.closest('[data-pop-dsp]');if(!item)return;
+    const dspKey=item.dataset.popDsp;
+    if(dspKey==='all'){tr.dsps='all'}else{let arr=tr.dsps==='all'?[...dspList.map(d=>d[0])]:[...tr.dsps];if(arr.includes(dspKey))arr=arr.filter(d=>d!==dspKey);else arr.push(dspKey);tr.dsps=arr.length===0||arr.length===dspList.length?'all':arr}
+    pop.remove();onUpdate();
+  });
+  const closeHandler=ev=>{if(!pop.contains(ev.target)&&ev.target!==badgeEl){pop.remove();document.removeEventListener('click',closeHandler)}};
+  setTimeout(()=>document.addEventListener('click',closeHandler),0);
+}
+function showBulkTrackerModal(count,label,onApply){
   const overlay=document.createElement('div');overlay.className='fr-overlay';
   const dspOpts=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
   overlay.innerHTML=`<div class="fr-modal">
-    <h3>Adicionar tracker em ${ids.length} asset(s)</h3>
-    <label for="bulkTrackerUrl">Pixel URL ou tag</label>
-    <input class="asset-input" id="bulkTrackerUrl" placeholder="Cole a URL ou tag do pixel" style="font-family:var(--mono)">
+    <h3>Adicionar tracker em ${count} ${label}(s)</h3>
+    <label>Pixel URL ou tag</label>
+    <input class="asset-input" id="bulkTrackerUrlInput" placeholder="Cole a URL ou tag do pixel" style="font-family:var(--mono)">
     <label style="margin-top:4px">Aplicar em quais DSPs?</label>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px">
       <button type="button" class="bulk-scope-btn active" data-scope="all" onclick="toggleBulkScope(this)" style="background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:var(--r-xs);padding:6px 14px;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--dur-f)">Todas</button>
@@ -2268,77 +2205,80 @@ function bulkAddTracker(){
     </div>
     <div class="fr-modal-actions">
       <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
-      <button class="primary" onclick="execBulkAddTracker()">Adicionar</button>
+      <button class="primary" id="bulkTrackerApplyBtn">Adicionar</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
-  document.getElementById('bulkTrackerUrl').focus();
+  document.getElementById('bulkTrackerUrlInput').focus();
+  document.getElementById('bulkTrackerApplyBtn').addEventListener('click',()=>{
+    const val=(document.getElementById('bulkTrackerUrlInput')?.value||'').trim();
+    if(!val){toast('Cole a URL do pixel','error');return}
+    const url=normalizeUrl(extractTrackerUrl(val));
+    const allBtn=overlay.querySelector('.bulk-scope-btn[data-scope="all"]');
+    const dsps=allBtn?.classList.contains('active')?'all':[...overlay.querySelectorAll('.bulk-scope-btn.active:not([data-scope="all"])')].map(b=>b.dataset.scope);
+    if(dsps!=='all'&&!dsps.length){toast('Selecione ao menos uma DSP','error');return}
+    overlay.remove();
+    onApply(url,dsps);
+  });
 }
 function toggleBulkScope(btn){
-  const allBtn=document.querySelector('.bulk-scope-btn[data-scope="all"]');
-  const dspBtns=[...document.querySelectorAll('.bulk-scope-btn:not([data-scope="all"])')];
+  const container=btn.closest('.fr-modal');
+  const allBtn=container.querySelector('.bulk-scope-btn[data-scope="all"]');
+  const dspBtns=[...container.querySelectorAll('.bulk-scope-btn:not([data-scope="all"])')];
   if(btn.dataset.scope==='all'){
-    // Toggle all on, clear individuals
     dspBtns.forEach(b=>{b.classList.remove('active');b.style.background='var(--bg-input)';b.style.borderColor='var(--border)';b.style.color='var(--text-sec)'});
     allBtn.classList.add('active');allBtn.style.background='var(--accent-dim)';allBtn.style.borderColor='var(--accent)';allBtn.style.color='var(--accent)';
   }else{
     btn.classList.toggle('active');
     if(btn.classList.contains('active')){btn.style.background='var(--accent-dim)';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)'}
     else{btn.style.background='var(--bg-input)';btn.style.borderColor='var(--border)';btn.style.color='var(--text-sec)'}
-    // Uncheck "all" if any individual is active
     const anyDsp=dspBtns.some(b=>b.classList.contains('active'));
     if(anyDsp){allBtn.classList.remove('active');allBtn.style.background='var(--bg-input)';allBtn.style.borderColor='var(--border)';allBtn.style.color='var(--text-sec)'}
-    // If none selected, revert to all
     if(!anyDsp){allBtn.classList.add('active');allBtn.style.background='var(--accent-dim)';allBtn.style.borderColor='var(--accent)';allBtn.style.color='var(--accent)'}
   }
 }
-function execBulkAddTracker(){
-  const val=(document.getElementById('bulkTrackerUrl')?.value||'').trim();
-  if(!val){toast('Cole a URL do pixel','error');return}
-  const url=normalizeUrl(extractTrackerUrl(val));
-  const allBtn=document.querySelector('.bulk-scope-btn[data-scope="all"]');
-  const dsps=allBtn?.classList.contains('active')?'all':[...document.querySelectorAll('.bulk-scope-btn.active:not([data-scope="all"])')].map(b=>b.dataset.scope);
-  if(dsps!=='all'&&!dsps.length){toast('Selecione ao menos uma DSP','error');return}
-  const ids=getSelectedAssetIds();
-  ids.forEach(id=>{
-    const e=assetEntries.find(a=>a.id===id);if(!e)return;
-    const existing=e.trackers.findIndex(t=>(typeof t==='string'?t:t.url)===url);
-    if(existing>=0){
-      // Update scope of existing tracker
-      e.trackers[existing]={url,dsps:dsps==='all'?'all':[...(typeof dsps==='string'?[]:dsps)]};
-    }else{
-      e.trackers.push({url,dsps:dsps==='all'?'all':[...dsps]});
-    }
-  });
-  document.querySelector('.fr-overlay')?.remove();
-  const scopeLabel=dsps==='all'?'todas DSPs':dsps.map(d=>({xandr:'Xandr',dv360:'DV360',stackadapt:'StackAdapt',amazondsp:'Amazon DSP'}[d]||d)).join(', ');
-  renderAssetsTable();toast(`Pixel aplicado em ${ids.length} asset(s) → ${scopeLabel}${url!==val?' (URL extraída)':''}`,'success');
-}
-
-function showFindReplace(){
-  const ids=getSelectedAssetIds();if(!ids.length)return;
+function showFindReplaceModal(count,onApply){
   const overlay=document.createElement('div');overlay.className='fr-overlay';
   overlay.innerHTML=`<div class="fr-modal">
-    <h3>Find & Replace nos nomes (${ids.length} selecionados)</h3>
-    <label for="frFind">Buscar:</label><input class="asset-input" id="frFind" placeholder="Texto a buscar">
-    <label for="frReplace">Substituir por:</label><input class="asset-input" id="frReplace" placeholder="Novo texto">
+    <h3>Find & Replace nos nomes (${count} selecionados)</h3>
+    <label>Buscar:</label><input class="asset-input" id="frFindInput" placeholder="Texto a buscar">
+    <label>Substituir por:</label><input class="asset-input" id="frReplaceInput" placeholder="Novo texto">
     <div class="fr-modal-actions">
       <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
-      <button class="primary" onclick="execFindReplace()">Aplicar</button>
+      <button class="primary" id="frApplyBtn">Aplicar</button>
     </div>
   </div>`;
   document.body.appendChild(overlay);
-  document.getElementById('frFind').focus();
+  document.getElementById('frFindInput').focus();
+  document.getElementById('frApplyBtn').addEventListener('click',()=>{
+    const find=document.getElementById('frFindInput').value;
+    const replace=document.getElementById('frReplaceInput').value;
+    if(!find){toast('Preencha o campo de busca','error');return}
+    overlay.remove();
+    onApply(find,replace);
+  });
 }
 
-function execFindReplace(){
-  const find=document.getElementById('frFind').value;
-  const replace=document.getElementById('frReplace').value;
-  if(!find){toast('Preencha o campo de busca','error');return}
-  const ids=getSelectedAssetIds();let count=0;
-  ids.forEach(id=>{const e=assetEntries.find(a=>a.id===id);if(e&&e.name.includes(find)){e.name=e.name.replaceAll(find,replace);count++}});
-  document.querySelector('.fr-overlay')?.remove();
-  renderAssetsTable();toast(`${count} nome(s) alterado(s)`,'success');
+// ── Assets Bulk Actions ──
+function bulkAddTracker(){
+  const ids=getSelectedAssetIds();if(!ids.length)return;
+  showBulkTrackerModal(ids.length,'asset',function(url,dsps){
+    ids.forEach(id=>{
+      const e=assetEntries.find(a=>a.id===id);if(!e)return;
+      const existing=e.trackers.findIndex(t=>(typeof t==='string'?t:t.url)===url);
+      if(existing>=0){e.trackers[existing]={url,dsps:dsps==='all'?'all':[...(typeof dsps==='string'?[]:dsps)]}}
+      else{e.trackers.push({url,dsps:dsps==='all'?'all':[...dsps]})}
+    });
+    renderAssetsTable();toast(`Pixel aplicado em ${ids.length} asset(s)`,'success');
+  });
+}
+function showFindReplace(){
+  const ids=getSelectedAssetIds();if(!ids.length)return;
+  showFindReplaceModal(ids.length,function(find,replace){
+    let count=0;
+    ids.forEach(id=>{const e=assetEntries.find(a=>a.id===id);if(e&&e.name.includes(find)){e.name=e.name.replaceAll(find,replace);count++}});
+    renderAssetsTable();toast(`${count} nome(s) alterado(s)`,'success');
+  });
 }
 
 function bulkDuplicate(){
@@ -2511,17 +2451,7 @@ ${scClose}`;
     html5Warnings:warnings
   };
   assetEntries.push(entry);
-
-  // Update UI
-  const zone=document.getElementById('assetsUploadZone');
-  const dc=assetEntries.filter(a=>a.type==='display').length,vc=assetEntries.filter(a=>a.type==='video').length,hc=assetEntries.filter(a=>a.type==='html5').length;
-  const label=[dc?`${dc} display`:null,vc?`${vc} video`:null,hc?`${hc} HTML5`:null].filter(Boolean).join(' + ');
-  zone.classList.add('has-files');
-  zone.innerHTML=`<div class="assets-summary"><strong>${assetEntries.length}</strong> assets (${label})<button class="assets-clear" id="assetsClearAll" title="Remover todos">✕</button></div>${ASSET_FILE_INPUT_HTML}`;
-  bindAssetFileInput();
-  document.getElementById('assetsClearAll').addEventListener('click',e=>{e.stopPropagation();assetEntries=[];_selectedAssetIds.clear();zone.classList.remove('has-files');zone.innerHTML=`<span class="upload-icon">🎨</span><div class="upload-text">Arraste arquivos aqui ou <strong>clique para selecionar</strong></div><div class="upload-format">JPG · PNG · GIF · MP4 · ZIP</div>${ASSET_FILE_INPUT_HTML}`;bindAssetFileInput();document.getElementById('assetsContent').style.display='none';updateVisibility()});
-  document.getElementById('assetsContent').style.display='';
-  renderAssetsTable();updateVisibility();
+  refreshAssetsZone();
   const msg=warnings.length?`HTML5 creative ${w}x${h} (${warnings.join(', ')})`:`HTML5 creative ${w}x${h}`;
   toast(msg,warnings.length?'':'success');
 }
@@ -2539,7 +2469,6 @@ document.getElementById('assetsFilterSelect').addEventListener('click',()=>{
   toast(`${filtered.length} asset(s) selecionado(s)`,'success');
 });
 
-function normalizeUrl(v){v=v.trim();if(!v)return'';if(!/^https?:\/\//i.test(v)&&/^[a-zA-Z0-9]/.test(v)&&v.includes('.'))v='https://'+v;return v}
 document.getElementById('assetsTableBody').addEventListener('input',e=>{
   const inp=e.target.closest('.asset-input');if(!inp)return;
   const id=parseInt(inp.dataset.id),field=inp.dataset.field;
@@ -2588,42 +2517,12 @@ document.getElementById('assetsTableBody').addEventListener('click',async e=>{
   const scopeBtn=e.target.closest('[data-scope-toggle]');
   if(scopeBtn){
     e.stopPropagation();
-    // Close any existing popover
-    document.querySelectorAll('.tracker-scope-pop').forEach(p=>p.remove());
     const assetId=parseInt(scopeBtn.dataset.scopeToggle);
     const ti=parseInt(scopeBtn.dataset.ti);
     const entry=assetEntries.find(a=>a.id===assetId);
     if(!entry)return;
     const tr=typeof entry.trackers[ti]==='string'?{url:entry.trackers[ti],dsps:'all'}:entry.trackers[ti];
-    const dspList=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
-    const isAll=tr.dsps==='all';
-    const pop=document.createElement('div');pop.className='tracker-scope-pop';
-    pop.innerHTML=`<div class="tracker-scope-pop-item" data-pop-dsp="all"><div class="pop-cb${isAll?' checked':''}">✓</div><span>Todas</span></div><div class="tracker-scope-pop-divider"></div>${dspList.map(([k,l])=>{const on=isAll||tr.dsps.includes(k);return`<div class="tracker-scope-pop-item" data-pop-dsp="${k}"><div class="pop-cb${on?' checked':''}">✓</div><span>${l}</span></div>`}).join('')}`;
-    // Position popover in body using badge bounding rect
-    const rect=scopeBtn.getBoundingClientRect();
-    pop.style.position='fixed';
-    pop.style.top=(rect.bottom+6)+'px';
-    pop.style.left=(rect.left+rect.width/2)+'px';
-    pop.style.transform='translateX(-50%)';
-    document.body.appendChild(pop);
-    // Handle popover clicks
-    pop.addEventListener('click',ev=>{
-      ev.stopPropagation();
-      const item=ev.target.closest('[data-pop-dsp]');if(!item)return;
-      const dspKey=item.dataset.popDsp;
-      if(dspKey==='all'){
-        tr.dsps='all';
-      }else{
-        let arr=tr.dsps==='all'?[...dspList.map(d=>d[0])]:[...tr.dsps];
-        if(arr.includes(dspKey))arr=arr.filter(d=>d!==dspKey);else arr.push(dspKey);
-        tr.dsps=arr.length===0||arr.length===dspList.length?'all':arr;
-      }
-      entry.trackers[ti]=tr;
-      pop.remove();renderAssetsTable();
-    });
-    // Close on outside click
-    const closeHandler=ev=>{if(!pop.contains(ev.target)&&ev.target!==scopeBtn){pop.remove();document.removeEventListener('click',closeHandler)}};
-    setTimeout(()=>document.addEventListener('click',closeHandler),0);
+    showScopePopover(tr,scopeBtn,()=>{entry.trackers[ti]=tr;renderAssetsTable()});
     return;
   }
   const dup=e.target.closest('[data-dup]');
@@ -2632,19 +2531,6 @@ document.getElementById('assetsTableBody').addEventListener('click',async e=>{
   if(rm){const id=parseInt(rm.dataset.rm);assetEntries=assetEntries.filter(a=>a.id!==id);renderAssetsTable();updateVisibility();if(!assetEntries.length){document.getElementById('assetsUploadZone').classList.remove('has-files');document.getElementById('assetsContent').style.display='none'};return}
   const cb=e.target.closest('.asset-cb');if(cb){const id=parseInt(cb.dataset.id);if(cb.checked)_selectedAssetIds.add(id);else _selectedAssetIds.delete(id);setTimeout(updateAssetsBulkBar,0)}
 });
-// Tracker add on Enter
-// Extract tracker URL from HTML tags or return as-is if already a URL
-function extractTrackerUrl(raw){
-  const t=raw.trim();
-  if(!t.startsWith('<'))return t; // Already a URL
-  // Try data-3rd-tracker attribute (DV tags)
-  let m=t.match(/data-3rd-tracker=["']([^"']+)/);if(m)return m[1];
-  // Try src= from script tags  
-  m=t.match(/src=["']([^"']+\.js[^"']*)/);if(m)return m[1];
-  // Try any https URL in the tag
-  m=t.match(/(https?:\/\/[^\s"'<>]+)/);if(m)return m[1];
-  return t; // Fallback: return as-is
-}
 
 document.getElementById('assetsTableBody').addEventListener('keydown',e=>{
   const addInput=e.target.closest('[data-tracker-add]');
@@ -2702,26 +2588,11 @@ document.getElementById('placementsBody').addEventListener('click',e=>{
   const scopeBtn=e.target.closest('[data-tag-scope-toggle]');
   if(scopeBtn){
     e.stopPropagation();
-    document.querySelectorAll('.tracker-scope-pop').forEach(p=>p.remove());
     const idx=parseInt(scopeBtn.dataset.tagScopeToggle);
     const ti=parseInt(scopeBtn.dataset.ti);
     const p=parsedData?.placements[idx];if(!p)return;
     const tr=typeof p.trackers[ti]==='string'?{url:p.trackers[ti],dsps:'all'}:p.trackers[ti];
-    const dspList=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
-    const isAll=tr.dsps==='all';
-    const pop=document.createElement('div');pop.className='tracker-scope-pop';
-    pop.innerHTML=`<div class="tracker-scope-pop-item" data-pop-dsp="all"><div class="pop-cb${isAll?' checked':''}">✓</div><span>Todas</span></div><div class="tracker-scope-pop-divider"></div>${dspList.map(([k,l])=>{const on=isAll||tr.dsps.includes(k);return`<div class="tracker-scope-pop-item" data-pop-dsp="${k}"><div class="pop-cb${on?' checked':''}">✓</div><span>${l}</span></div>`}).join('')}`;
-    const rect=scopeBtn.getBoundingClientRect();
-    pop.style.position='fixed';pop.style.top=(rect.bottom+6)+'px';pop.style.left=(rect.left+rect.width/2)+'px';pop.style.transform='translateX(-50%)';
-    document.body.appendChild(pop);
-    pop.addEventListener('click',ev=>{
-      ev.stopPropagation();const item=ev.target.closest('[data-pop-dsp]');if(!item)return;
-      const dspKey=item.dataset.popDsp;
-      if(dspKey==='all'){tr.dsps='all'}else{let arr=tr.dsps==='all'?[...dspList.map(d=>d[0])]:[...tr.dsps];if(arr.includes(dspKey))arr=arr.filter(d=>d!==dspKey);else arr.push(dspKey);tr.dsps=arr.length===0||arr.length===dspList.length?'all':arr}
-      p.trackers[ti]=tr;pop.remove();renderPlacementsTable();
-    });
-    const closeHandler=ev=>{if(!pop.contains(ev.target)&&ev.target!==scopeBtn){pop.remove();document.removeEventListener('click',closeHandler)}};
-    setTimeout(()=>document.addEventListener('click',closeHandler),0);
+    showScopePopover(tr,scopeBtn,()=>{p.trackers[ti]=tr;renderPlacementsTable()});
     return;
   }
 });
@@ -2756,7 +2627,7 @@ document.getElementById('tagsFilterSelect').addEventListener('click',()=>{
   renderPlacementsTable();toast(`${filtered.length} placement(s) selecionado(s)`,'success');
 });
 
-// ── DASHBOARD ──
+// ── Dashboard ──
 let dashCreatives=[],dashGroups=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditGroup=null,dashExpandedKey=null,dashSelectedKeys=new Set(),dashIsOpen=false,_dashSearchTimer=null;
 
 function toggleDashHome(){if(dashIsOpen)closeDashboard();else openDashboard()}

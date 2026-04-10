@@ -494,7 +494,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
         <div class="extracted-info" id="extractedInfo">
           <h2 class="extracted-info-title">Dados extraídos</h2>
           <div class="info-grid" id="infoGrid"></div>
-          <div class="table-wrap"><table class="placements-table"><thead><tr><th>#</th><th>Placement Name</th><th>Size</th><th>Click URL</th></tr></thead><tbody id="placementsBody"></tbody></table></div>
+          <div id="tagsBulkBar" style="display:none"></div>
+          <div class="assets-filter-row" id="tagsFilterRow" style="display:none">
+            <input type="text" class="assets-filter-input" id="tagsFilter" placeholder="Filtrar por nome...">
+            <span class="assets-filter-count" id="tagsFilterCount"></span>
+            <button class="assets-filter-select-btn" id="tagsFilterSelect">Selecionar filtrados</button>
+          </div>
+          <div class="table-wrap"><table class="assets-table"><thead><tr><th class="cb-col"><input type="checkbox" class="custom-cb" id="tagsSelectAll"></th><th>Placement Name</th><th>Tipo</th><th>Size</th><th>Tag</th><th>Click URL</th><th>Tracker</th></tr></thead><tbody id="placementsBody"></tbody></table></div>
         </div>
       </div>
 
@@ -631,7 +637,7 @@ const MODE_LABELS={tags:'3P Tags',surveys:'Surveys',assets:'Standard Images'};
 
 function resetWizardState(){
   // Reset all shared state
-  selectedDsps=new Set();generatedFiles={};placementAssignment={};
+  selectedDsps=new Set();generatedFiles={};placementAssignment={};_selectedTagIds.clear();_selectedAssetIds.clear();
   // Reset DSP card UI
   document.querySelectorAll('.dsp-card[data-dsp]').forEach(card=>{card.classList.remove('selected','dsp-unavailable')});
   document.querySelectorAll('.dsp-card-check').forEach(c=>{c.style.opacity='0';c.style.transform='scale(0.5)'});
@@ -789,7 +795,8 @@ async function activateXandr(token){
         name:p.placementName,
         dimensions:p.dimensions,
         jsTag:p.jsTag,
-        clickUrl:p.clickUrl||''
+        clickUrl:p.clickUrl||'',
+        trackers:mergeTrackers(p.trackers||[],'xandr')
       }))
     };
 
@@ -833,7 +840,8 @@ async function activateDV360(token){
         jsTag:p.jsTag,
         clickUrl:p.clickUrl||'',
         type:p.type||'display',
-        vastTag:p.vastTag||''
+        vastTag:p.vastTag||'',
+        trackers:mergeTrackers(p.trackers||[],'dv360')
       }))
     };
 
@@ -1008,7 +1016,7 @@ function commitPendingTrackers(){
     if(entry&&!entry.trackers.some(t=>(typeof t==='string'?t:t.url)===url)){entry.trackers.push({url,dsps:'all'});input.value=''}
   });
 }
-function mergeTrackers(assetTrackers,dsp){if(currentMode!=='assets')return(assetTrackers||[]).map(t=>typeof t==='string'?t:t.url);const urls=[];(assetTrackers||[]).forEach(t=>{const tr=typeof t==='string'?{url:t,dsps:'all'}:t;if(tr.dsps==='all'||tr.dsps.includes(dsp)){if(!urls.includes(tr.url))urls.push(tr.url)}});['xandr','stackadapt'].forEach(d=>{const px=getPixelForDsp(d);if(px&&!urls.includes(px))urls.push(px)});return urls}
+function mergeTrackers(trackerList,dsp){const urls=[];(trackerList||[]).forEach(t=>{const tr=typeof t==='string'?{url:t,dsps:'all'}:t;if(tr.dsps==='all'||tr.dsps.includes(dsp)){if(!urls.includes(tr.url))urls.push(tr.url)}});if(currentMode==='assets'){['xandr','stackadapt'].forEach(d=>{const px=getPixelForDsp(d);if(px&&!urls.includes(px))urls.push(px)})}return urls}
 function updateGenerateBtn(){const hasTags=currentMode!=='surveys'&&currentMode!=='assets'&&!!parsedData;const hasSurveys=currentMode!=='tags'&&currentMode!=='assets'&&surveyEntries.length>0;const hasAssets=currentMode==='assets'&&assetEntries.length>0;const hasContent=hasTags||hasSurveys||hasAssets;const hasDsp=selectedDsps.size>0;const ready=hasContent&&hasDsp;
   const btnGen=document.getElementById('btnGenerate');const btnAct=document.getElementById('btnActivate');const dlCard=document.getElementById('actionDownload');const actCard=document.getElementById('actionActivate');
   if(btnGen)btnGen.disabled=!ready;if(btnAct)btnAct.disabled=!ready;
@@ -1033,7 +1041,7 @@ uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.r
 fileInput.addEventListener('change',e=>{if(e.target.files.length)handleFile(e.target.files[0])});
 uploadClear.addEventListener('click',e=>{e.stopPropagation();clearUpload()});
 
-function clearUpload(){parsedData=null;placementAssignment={};fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('results').classList.remove('visible');document.getElementById('assignmentSection').classList.remove('visible');updateVisibility()}
+function clearUpload(){parsedData=null;placementAssignment={};_selectedTagIds.clear();fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('results').classList.remove('visible');document.getElementById('assignmentSection').classList.remove('visible');document.getElementById('tagsFilterRow').style.display='none';updateVisibility()}
 
 function handleFile(file){
   if(!file.name.match(/\.(xlsx?|csv|xls)$/i)){toast(`"${file.name.split('.').pop()}" não é suportado. Use .xlsx, .xls ou .csv.`,'error');return}
@@ -1105,7 +1113,7 @@ function parseCM360(rows){
     }
 
     if(!advertiserName&&anr)advertiserName=anr;
-    placements.push({placementId:pid,placementName:pn,dimensions:finalDim,jsTag:jt,clickUrl:cu,type:placementType,vastTag:isVideo?vastTag:''})}
+    placements.push({placementId:pid,placementName:pn,dimensions:finalDim,jsTag:jt,clickUrl:cu,type:placementType,vastTag:isVideo?vastTag:'',trackers:[]})}
   if(!placements.length)return null;
   const hasVideo=placements.some(p=>p.type==='video'),hasDisplay=placements.some(p=>p.type==='display');
   const contentType=hasVideo&&hasDisplay?'mixed':hasVideo?'video':'display';
@@ -1115,13 +1123,120 @@ function extractBrand(a,c){let b=a;const m=b.match(/^PUB_[A-Z]+_[A-Z]{2,4}_(.+)$
 function renderExtractedInfo(d){
   const typeLabel=d.contentType==='video'?'Video':d.contentType==='mixed'?'Display + Video':'Display';
   document.getElementById('infoGrid').innerHTML=`<div class="info-item"><div class="info-item-label">Advertiser</div><div class="info-item-value">${esc(d.advertiserName)}</div></div><div class="info-item"><div class="info-item-label">Campaign</div><div class="info-item-value">${esc(d.campaignName)}</div></div><div class="info-item"><div class="info-item-label">Marca</div><div class="info-item-value" style="color:var(--accent)">${esc(d.brandName)}</div></div><div class="info-item"><div class="info-item-label">Placements</div><div class="info-item-value mono">${d.placements.length} creatives · ${typeLabel}</div></div>`;
-  document.getElementById('placementsBody').innerHTML=d.placements.map((p,i)=>`<tr style="animation-delay:${i*60}ms"><td>${i+1}</td><td>${smartName(p.placementName)}</td><td><span class="dim-badge">${esc(p.dimensions)}</span></td><td>${p.type==='video'?'<span style="color:var(--accent);font-size:0.72rem">VAST</span>':p.clickUrl?'✓':'—'}</td></tr>`).join('');
+  document.getElementById('tagsFilterRow').style.display='flex';
+  renderPlacementsTable();
   document.getElementById('extractedInfo').classList.add('visible')}
+
+let _selectedTagIds=new Set();
+function getSelectedTagIds(){return[..._selectedTagIds]}
+
+function renderPlacementsTable(){
+  if(!parsedData)return;
+  const existingIds=new Set(parsedData.placements.map((_,i)=>i));
+  _selectedTagIds.forEach(id=>{if(!existingIds.has(id))_selectedTagIds.delete(id)});
+  const tbody=document.getElementById('placementsBody');
+  const filterVal=(document.getElementById('tagsFilter')?.value||'').toLowerCase();
+  const placements=parsedData.placements;
+  const filtered=filterVal?placements.map((p,i)=>({p,i})).filter(({p})=>p.placementName.toLowerCase().includes(filterVal)):placements.map((p,i)=>({p,i}));
+  const countEl=document.getElementById('tagsFilterCount');
+  if(countEl)countEl.textContent=filterVal?`${filtered.length}/${placements.length}`:'';
+  tbody.innerHTML=filtered.map(({p,i},fi)=>{
+    const checked=_selectedTagIds.has(i)?' checked':'';
+    const tagPreview=p.type==='video'?(p.vastTag||p.jsTag):p.jsTag;
+    const tagShort=tagPreview.length>40?tagPreview.substring(0,40)+'…':tagPreview;
+    return`<tr style="animation-delay:${fi*40}ms" data-tag-idx="${i}">
+      <td class="cb-col"><input type="checkbox" class="custom-cb tag-cb" data-idx="${i}"${checked}></td>
+      <td><input class="asset-input asset-name-input" value="${esc(p.placementName)}" data-field="placementName" data-idx="${i}"></td>
+      <td><span class="asset-type-badge ${p.type}">${p.type==='video'?'video':'display'}</span></td>
+      <td><span class="dim-badge">${esc(p.dimensions)}</span></td>
+      <td><span class="tag-preview mono" title="${esc(tagPreview)}" data-idx="${i}" style="cursor:pointer;font-size:0.7rem;color:var(--text-sec);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${esc(tagShort)}</span></td>
+      <td><input class="asset-input mono" value="${esc(p.clickUrl)}" data-field="clickUrl" data-idx="${i}" style="width:140px;font-size:0.72rem"></td>
+      <td class="tracker-cell"><div class="tracker-chips">${(p.trackers||[]).map((t,ti)=>{const tr=typeof t==='string'?{url:t,dsps:'all'}:t;const scopeLabel=tr.dsps==='all'?'ALL':tr.dsps.map(d=>({xandr:'XN',dv360:'DV',stackadapt:'SA',amazondsp:'AZ'}[d]||d)).join('·');const scopeClass=tr.dsps==='all'?'scope-all':'scope-partial';return`<span class="tracker-chip"><span class="tracker-scope-badge ${scopeClass}" data-tag-scope-toggle="${i}" data-ti="${ti}" title="Clique pra escolher DSPs">${scopeLabel}</span><span class="tracker-chip-url" title="${esc(tr.url)}">${esc(tr.url)}</span><button class="tracker-chip-rm" data-tag-tracker-rm="${i}" data-ti="${ti}">✕</button></span>`}).join('')}<input class="tracker-add-input" data-tag-tracker-add="${i}" placeholder="+ pixel URL"></div></td>
+    </tr>`}).join('');
+  const selectAll=document.getElementById('tagsSelectAll');
+  if(selectAll)selectAll.checked=filtered.length>0&&filtered.every(({i})=>_selectedTagIds.has(i));
+  updateTagsBulkBar();
+}
+
+function updateTagsBulkBar(){
+  const selected=getSelectedTagIds();
+  const bar=document.getElementById('tagsBulkBar');
+  if(!selected.length){bar.style.display='none';return}
+  bar.style.display='flex';bar.className='assets-bulk-bar';
+  bar.innerHTML=`<span class="assets-bulk-count">${selected.length} selecionado(s)</span>
+    <button onclick="tagsBulkAddTracker()">+ Tracker</button>
+    <button onclick="tagsBulkFindReplace()">Find & Replace</button>`;
+}
 function smartName(name){
   if(name.length<50)return`<span title="${esc(name)}">${esc(name)}</span>`;
   const parts=name.split('|');
   if(parts.length<3)return`<span class="placement-name" title="${esc(name)}"><span class="placement-name-start">${esc(name)}</span></span>`;
   return`<span class="placement-name" title="${esc(name)}"><span class="placement-name-start">${esc(parts.slice(0,2).join('|'))}|…</span><span class="placement-name-end">|${esc(parts.slice(-2).join('|'))}</span></span>`}
+
+// ── Tags table bulk actions ──
+function tagsBulkAddTracker(){
+  const ids=getSelectedTagIds();if(!ids.length)return;
+  const overlay=document.createElement('div');overlay.className='fr-overlay';
+  const dspOpts=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
+  overlay.innerHTML=`<div class="fr-modal">
+    <h3>Adicionar tracker em ${ids.length} placement(s)</h3>
+    <label for="tagsBulkTrackerUrl">Pixel URL ou tag</label>
+    <input class="asset-input" id="tagsBulkTrackerUrl" placeholder="Cole a URL ou tag do pixel" style="font-family:var(--mono)">
+    <label style="margin-top:4px">Aplicar em quais DSPs?</label>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px">
+      <button type="button" class="bulk-scope-btn active" data-scope="all" onclick="toggleBulkScope(this)" style="background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:var(--r-xs);padding:6px 14px;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--dur-f)">Todas</button>
+      ${dspOpts.map(([k,l])=>`<button type="button" class="bulk-scope-btn" data-scope="${k}" onclick="toggleBulkScope(this)" style="background:var(--bg-input);border:1px solid var(--border);color:var(--text-sec);border-radius:var(--r-xs);padding:6px 14px;font-size:0.78rem;font-weight:500;cursor:pointer;transition:all var(--dur-f)">${l}</button>`).join('')}
+    </div>
+    <div class="fr-modal-actions">
+      <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
+      <button class="primary" onclick="execTagsBulkAddTracker()">Adicionar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('tagsBulkTrackerUrl').focus();
+}
+function execTagsBulkAddTracker(){
+  const val=(document.getElementById('tagsBulkTrackerUrl')?.value||'').trim();
+  if(!val){toast('Cole a URL do pixel','error');return}
+  const url=normalizeUrl(extractTrackerUrl(val));
+  const allBtn=document.querySelector('.fr-overlay .bulk-scope-btn[data-scope="all"]');
+  const dsps=allBtn?.classList.contains('active')?'all':[...document.querySelectorAll('.fr-overlay .bulk-scope-btn.active:not([data-scope="all"])')].map(b=>b.dataset.scope);
+  if(dsps!=='all'&&!dsps.length){toast('Selecione ao menos uma DSP','error');return}
+  const ids=getSelectedTagIds();
+  ids.forEach(idx=>{
+    const p=parsedData.placements[idx];if(!p)return;
+    const existing=p.trackers.findIndex(t=>(typeof t==='string'?t:t.url)===url);
+    if(existing>=0){p.trackers[existing]={url,dsps:dsps==='all'?'all':[...dsps]}}
+    else{p.trackers.push({url,dsps:dsps==='all'?'all':[...dsps]})}
+  });
+  document.querySelector('.fr-overlay')?.remove();
+  renderPlacementsTable();toast(`Pixel aplicado em ${ids.length} placement(s)`,'success');
+}
+function tagsBulkFindReplace(){
+  const ids=getSelectedTagIds();if(!ids.length)return;
+  const overlay=document.createElement('div');overlay.className='fr-overlay';
+  overlay.innerHTML=`<div class="fr-modal">
+    <h3>Find & Replace nos nomes (${ids.length} selecionados)</h3>
+    <label for="tagsFrFind">Buscar:</label><input class="asset-input" id="tagsFrFind" placeholder="Texto a buscar">
+    <label for="tagsFrReplace">Substituir por:</label><input class="asset-input" id="tagsFrReplace" placeholder="Novo texto">
+    <div class="fr-modal-actions">
+      <button onclick="this.closest('.fr-overlay').remove()">Cancelar</button>
+      <button class="primary" onclick="execTagsFindReplace()">Aplicar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('tagsFrFind').focus();
+}
+function execTagsFindReplace(){
+  const find=document.getElementById('tagsFrFind').value;
+  const replace=document.getElementById('tagsFrReplace').value;
+  if(!find){toast('Preencha o campo de busca','error');return}
+  const ids=getSelectedTagIds();let count=0;
+  ids.forEach(idx=>{const p=parsedData.placements[idx];if(p&&p.placementName.includes(find)){p.placementName=p.placementName.replaceAll(find,replace);count++}});
+  document.querySelector('.fr-overlay')?.remove();
+  renderPlacementsTable();toast(`${count} nome(s) alterado(s)`,'success');
+}
+
 // ── Surveys ──
 // Each entry: {id, type, size, urls: [{url, formId, title, variant}]}
 function addSurveyEntry(type){surveyEntries.push({id:++surveyIdCounter,type,size:'300x600',urls:[]});renderSurveyEntries();updateVisibility()}
@@ -1239,9 +1354,9 @@ function genDV360(d){
   video.forEach(p=>allRows.push([p.placementName,'','',p.vastTag||p.jsTag,'','video','','','','','','','','']));
   return{headers:allHeaders,rows:allRows,type:'csv',files,displayCount:display.length,videoCount:video.length}}
 
-function genSA(d,brand,pixel){const h=['Creative Name','HTML or JS Code','Size','Click URL','Sponsored By','Paid By','Impression Tracking URLs'],f=d.placements.filter(p=>!STACKADAPT_EXCLUDED_SIZES.has(p.dimensions));if(f.length<d.placements.length)toast(`StackAdapt: ${d.placements.length-f.length} removido(s) (336x280)`,'error');return{headers:h,rows:f.map(p=>[p.placementName,p.jsTag,p.dimensions,p.clickUrl,brand||d.brandName,'',p.isSurvey?'':(pixel?`"${pixel}"`:'')]),type:'xlsx',count:f.length,colWidths:[{wch:40},{wch:60},{wch:12},{wch:50},{wch:20},{wch:12},{wch:60}]}}
+function genSA(d,brand,pixel){const h=['Creative Name','HTML or JS Code','Size','Click URL','Sponsored By','Paid By','Impression Tracking URLs'],f=d.placements.filter(p=>!STACKADAPT_EXCLUDED_SIZES.has(p.dimensions));if(f.length<d.placements.length)toast(`StackAdapt: ${d.placements.length-f.length} removido(s) (336x280)`,'error');return{headers:h,rows:f.map(p=>{const pxUrls=mergeTrackers(p.trackers||[],'stackadapt');if(pixel&&!pxUrls.includes(pixel))pxUrls.unshift(pixel);const pxStr=p.isSurvey?'':(pxUrls.length?'"'+pxUrls.join('\n')+'"':'');return[p.placementName,p.jsTag,p.dimensions,p.clickUrl,brand||d.brandName,'',pxStr]}),type:'xlsx',count:f.length,colWidths:[{wch:40},{wch:60},{wch:12},{wch:50},{wch:20},{wch:12},{wch:60}]}}
 
-function genXandr(d,pixel,pol){const pv=pol?'Yes; non-EU':'No';return{headers:['Creative Name','Secure Content','Size','Trackers','External Identifier','Political Declaration'],rows:d.placements.map(p=>[p.placementName,p.jsTag,p.dimensions,p.isSurvey?'':(pixel||''),'',pv]),type:'xlsx',colWidths:[{wch:40},{wch:60},{wch:12},{wch:60},{wch:20},{wch:20}]}}
+function genXandr(d,pixel,pol){const pv=pol?'Yes; non-EU':'No';return{headers:['Creative Name','Secure Content','Size','Trackers','External Identifier','Political Declaration'],rows:d.placements.map(p=>{const pxUrls=mergeTrackers(p.trackers||[],'xandr');if(pixel&&!pxUrls.includes(pixel))pxUrls.unshift(pixel);const pxStr=p.isSurvey?'':(pxUrls.join('\n'));return[p.placementName,p.jsTag,p.dimensions,pxStr,'',pv]}),type:'xlsx',colWidths:[{wch:40},{wch:60},{wch:12},{wch:60},{wch:20},{wch:20}]}}
 
 const AMAZON_MARKETPLACE_LANG={'BR':'Portuguese','US':'English','MX':'Spanish','UK':'English','DE':'German','FR':'French','ES':'Spanish','IT':'Italian','JP':'Japanese','CA':'English','AU':'English','IN':'English','NL':'Dutch','SA':'Arabic','SE':'Swedish','TR':'Turkish','AE':'English'};
 function genAmazonDSP(d){
@@ -1249,7 +1364,7 @@ function genAmazonDSP(d){
   const marketplace=document.getElementById('inputAmazonMarketplace')?.value||'BR';
   const lang=AMAZON_MARKETPLACE_LANG[marketplace]||'Portuguese';
   const h=['Advertiser ID*','Creative Template*','Name*','Marketplace*','Language*','Creative ID','External ID','Size*','Tag Source*','Click-through destination*','Third party-impression URL','AdChoices location','Additional html'];
-  const rows=d.placements.filter(p=>p.type!=='video').map(p=>[advId,'Third-party Display',p.placementName,marketplace,lang,'','',p.dimensions,p.jsTag,'Links to another website','','','']);
+  const rows=d.placements.filter(p=>p.type!=='video').map(p=>{const pxUrls=mergeTrackers(p.trackers||[],'amazondsp');return[advId,'Third-party Display',p.placementName,marketplace,lang,'','',p.dimensions,p.jsTag,'Links to another website',pxUrls.join('\n'),'','']});
   return{headers:h,rows,type:'xlsx',sheetName:'THIRD-PARTY DISPLAY',colWidths:[{wch:16},{wch:18},{wch:45},{wch:15},{wch:14},{wch:12},{wch:12},{wch:12},{wch:60},{wch:28},{wch:40},{wch:16},{wch:30}]}}
 
 // ── Downloads ──
@@ -2013,6 +2128,82 @@ assetsZone.addEventListener('dragover',e=>{e.preventDefault();assetsZone.classLi
 assetsZone.addEventListener('dragleave',()=>assetsZone.classList.remove('dragover'));
 assetsZone.addEventListener('drop',e=>{e.preventDefault();assetsZone.classList.remove('dragover');if(e.dataTransfer.files.length)handleAssetInput([...e.dataTransfer.files])});
 bindAssetFileInput();
+
+// ── Tags table event handlers ──
+document.getElementById('placementsBody').addEventListener('input',e=>{
+  const inp=e.target.closest('.asset-input[data-idx]');if(!inp||!parsedData)return;
+  const idx=parseInt(inp.dataset.idx),field=inp.dataset.field;
+  const p=parsedData.placements[idx];
+  if(p&&field)p[field]=inp.value;
+});
+document.getElementById('placementsBody').addEventListener('focusout',e=>{
+  const inp=e.target.closest('.asset-input[data-field="clickUrl"]');
+  if(inp&&inp.value.trim()){const n=normalizeUrl(inp.value);if(n!==inp.value){inp.value=n;const idx=parseInt(inp.dataset.idx);if(parsedData?.placements[idx])parsedData.placements[idx].clickUrl=n}}
+});
+document.getElementById('placementsBody').addEventListener('click',e=>{
+  // Checkbox
+  const cb=e.target.closest('.tag-cb');
+  if(cb){const idx=parseInt(cb.dataset.idx);if(cb.checked)_selectedTagIds.add(idx);else _selectedTagIds.delete(idx);setTimeout(updateTagsBulkBar,0);return}
+  // Tracker remove
+  const rm=e.target.closest('[data-tag-tracker-rm]');
+  if(rm){const idx=parseInt(rm.dataset.tagTrackerRm),ti=parseInt(rm.dataset.ti);if(parsedData?.placements[idx]){parsedData.placements[idx].trackers.splice(ti,1);renderPlacementsTable()};return}
+  // Scope badge popover
+  const scopeBtn=e.target.closest('[data-tag-scope-toggle]');
+  if(scopeBtn){
+    e.stopPropagation();
+    document.querySelectorAll('.tracker-scope-pop').forEach(p=>p.remove());
+    const idx=parseInt(scopeBtn.dataset.tagScopeToggle);
+    const ti=parseInt(scopeBtn.dataset.ti);
+    const p=parsedData?.placements[idx];if(!p)return;
+    const tr=typeof p.trackers[ti]==='string'?{url:p.trackers[ti],dsps:'all'}:p.trackers[ti];
+    const dspList=[['xandr','Xandr'],['dv360','DV360'],['stackadapt','StackAdapt'],['amazondsp','Amazon DSP']];
+    const isAll=tr.dsps==='all';
+    const pop=document.createElement('div');pop.className='tracker-scope-pop';
+    pop.innerHTML=`<div class="tracker-scope-pop-item" data-pop-dsp="all"><div class="pop-cb${isAll?' checked':''}">✓</div><span>Todas</span></div><div class="tracker-scope-pop-divider"></div>${dspList.map(([k,l])=>{const on=isAll||tr.dsps.includes(k);return`<div class="tracker-scope-pop-item" data-pop-dsp="${k}"><div class="pop-cb${on?' checked':''}">✓</div><span>${l}</span></div>`}).join('')}`;
+    const rect=scopeBtn.getBoundingClientRect();
+    pop.style.position='fixed';pop.style.top=(rect.bottom+6)+'px';pop.style.left=(rect.left+rect.width/2)+'px';pop.style.transform='translateX(-50%)';
+    document.body.appendChild(pop);
+    pop.addEventListener('click',ev=>{
+      ev.stopPropagation();const item=ev.target.closest('[data-pop-dsp]');if(!item)return;
+      const dspKey=item.dataset.popDsp;
+      if(dspKey==='all'){tr.dsps='all'}else{let arr=tr.dsps==='all'?[...dspList.map(d=>d[0])]:[...tr.dsps];if(arr.includes(dspKey))arr=arr.filter(d=>d!==dspKey);else arr.push(dspKey);tr.dsps=arr.length===0||arr.length===dspList.length?'all':arr}
+      p.trackers[ti]=tr;pop.remove();renderPlacementsTable();
+    });
+    const closeHandler=ev=>{if(!pop.contains(ev.target)&&ev.target!==scopeBtn){pop.remove();document.removeEventListener('click',closeHandler)}};
+    setTimeout(()=>document.addEventListener('click',closeHandler),0);
+    return;
+  }
+});
+// Tags tracker add on Enter/blur
+document.getElementById('placementsBody').addEventListener('keydown',e=>{
+  const addInput=e.target.closest('[data-tag-tracker-add]');
+  if(addInput&&e.key==='Enter'){e.preventDefault();commitTagTracker(addInput)}
+});
+document.getElementById('placementsBody').addEventListener('focusout',e=>{
+  const addInput=e.target.closest('[data-tag-tracker-add]');
+  if(addInput&&addInput.value.trim())commitTagTracker(addInput);
+});
+function commitTagTracker(input){
+  const raw=input.value.trim();if(!raw)return;
+  const url=normalizeUrl(extractTrackerUrl(raw));
+  const idx=parseInt(input.dataset.tagTrackerAdd);
+  const p=parsedData?.placements[idx];
+  if(p&&!p.trackers.some(t=>(typeof t==='string'?t:t.url)===url)){p.trackers.push({url,dsps:'all'});renderPlacementsTable();if(url!==raw)toast('URL extraída da tag automaticamente','success')}
+}
+document.getElementById('tagsSelectAll').addEventListener('change',e=>{
+  const checked=e.target.checked;
+  document.querySelectorAll('.tag-cb').forEach(c=>{c.checked=checked;const idx=parseInt(c.dataset.idx);if(checked)_selectedTagIds.add(idx);else _selectedTagIds.delete(idx)});
+  updateTagsBulkBar();
+});
+document.getElementById('tagsFilter').addEventListener('input',()=>{if(parsedData)renderPlacementsTable()});
+document.getElementById('tagsFilterSelect').addEventListener('click',()=>{
+  const filterVal=(document.getElementById('tagsFilter')?.value||'').toLowerCase();
+  if(!filterVal){toast('Digite algo no filtro primeiro','error');return}
+  _selectedTagIds.clear();
+  const filtered=parsedData.placements.map((p,i)=>({p,i})).filter(({p})=>p.placementName.toLowerCase().includes(filterVal));
+  filtered.forEach(({i})=>_selectedTagIds.add(i));
+  renderPlacementsTable();toast(`${filtered.length} placement(s) selecionado(s)`,'success');
+});
 
 initAuth();
 </script>

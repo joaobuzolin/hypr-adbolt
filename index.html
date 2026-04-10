@@ -1051,14 +1051,14 @@ function showActivationProgress(dsps,totalPerDsp){
   </div>`).join('')}`;
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-function updateProgress(dsp,current,total,name,success){
-  const pct=Math.round((current/total)*100);
+function updateProgress(dsp,current,total,msg){
+  const pct=total>0?Math.round((current/total)*100):0;
   const bar=document.getElementById(`ap-bar-${dsp}`);
   const count=document.getElementById(`ap-count-${dsp}`);
   const cur=document.getElementById(`ap-current-${dsp}`);
   if(bar)bar.style.width=pct+'%';
   if(count)count.textContent=`${current}/${total}`;
-  if(cur)cur.textContent=current<total?`Enviando ${current+1}/${total}: ${name||'...'}`:'Enviando pras DSPs...';
+  if(cur)cur.textContent=msg||`${current}/${total}`;
 }
 function finalizeProgress(dsp,successCount,total){
   const bar=document.getElementById(`ap-bar-${dsp}`);
@@ -1136,13 +1136,16 @@ async function activateInDsps(){
     // ── Centralized upload: upload all assets to Storage once ──
     if(activeDsps.length){
       showActivationProgress(activeDsps,assetCount);
+      // Phase 1: Upload to storage (show on first DSP bar)
       const firstDsp=activeDsps[0];
       for(let i=0;i<assets.length;i++){
         const a=assets[i];
-        updateProgress(firstDsp,0,assetCount,'Enviando '+(i+1)+'/'+assetCount+': '+a.name);
-        try{await uploadAssetToStorage(a,token,msg=>updateProgress(firstDsp,0,assetCount,msg))}
+        updateProgress(firstDsp,i,assetCount,`Upload ${i+1}/${assetCount}: ${a.name}`);
+        try{await uploadAssetToStorage(a,token,msg=>updateProgress(firstDsp,i,assetCount,msg))}
         catch(e){console.error('Upload failed for',a.name,e)}
       }
+      // Reset bars for Phase 2: activation
+      activeDsps.forEach(d=>{updateProgress(d,0,assetCount,'Aguardando ativação...')});
     }
 
     if(selectedDsps.has('xandr'))results.push(await activateXandrAssets(token));
@@ -1392,7 +1395,7 @@ async function activateXandrAssets(token){
     const results=[];
     for(let i=0;i<assets.length;i++){
       const a=assets[i];
-      updateProgress('xandr',i,assets.length,a.name);
+      updateProgress('xandr',i,assets.length,`Criando ${i+1}/${assets.length} na Xandr: ${a.name}`);
       try{
         const prepared=buildCreativePayload(a,'xandr');
         if(!prepared.storagePath){
@@ -1415,7 +1418,7 @@ async function activateXandrAssets(token){
         if(res.ok&&data.results?.length)results.push(...data.results);
         else results.push({name:a.name,success:false,error:data.error||'Erro'});
       }catch(err){results.push({name:a.name,success:false,error:err.message})}
-      updateProgress('xandr',i+1,assets.length,a.name);
+      updateProgress('xandr',i+1,assets.length,`✓ ${i+1}/${assets.length}`);
     }
 
     const successCount=results.filter(r=>r.success).length;
@@ -1465,7 +1468,7 @@ async function activateDV360Assets(token){
     for(let i=0;i<videoCreatives.length;i++){
       if(i>0)await new Promise(r=>setTimeout(r,3000)); // 3s between videos
       processed++;
-      updateProgress('dv360',processed,total,`Video ${i+1}/${videoCreatives.length}: ${videoCreatives[i].name}`);
+      updateProgress('dv360',processed,total,`Criando video ${i+1}/${videoCreatives.length} na DV360: ${videoCreatives[i].name}`);
       try{
         const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -1481,7 +1484,7 @@ async function activateDV360Assets(token){
     for(let i=0;i<otherCreatives.length;i+=CHUNK){
       const chunk=otherCreatives.slice(i,i+CHUNK);
       processed+=chunk.length;
-      updateProgress('dv360',processed,total,`Display ${i+1}-${Math.min(i+CHUNK,otherCreatives.length)}/${otherCreatives.length}`);
+      updateProgress('dv360',processed,total,`Criando display ${Math.min(i+CHUNK,otherCreatives.length)}/${otherCreatives.length} na DV360...`);
       try{
         const res=await fetch(SUPABASE_URL+'/functions/v1/dsp-dv360-asset',{
           method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -1489,7 +1492,7 @@ async function activateDV360Assets(token){
         });
         const data=await res.json();
         for(const r of (data.results||[])){allResults.push(r);if(r.success)successCount++}
-        updateProgress('dv360',processed,total);
+        updateProgress('dv360',processed,total,`Criando ${processed}/${total} na DV360...`);
       }catch(chunkErr){
         for(const c of chunk)allResults.push({success:false,name:c.name,error:chunkErr.message||'Network error'});
       }

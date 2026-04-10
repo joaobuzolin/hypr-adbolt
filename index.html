@@ -699,7 +699,8 @@ async function activateInDsps(){
   if(currentMode==='assets')commitPendingTrackers();
 
   if(selectedDsps.has('xandr')){
-    const brandUrl=document.getElementById('inputXandrBrandUrl').value.trim();
+    let brandUrl=document.getElementById('inputXandrBrandUrl').value.trim();
+    if(brandUrl&&!/^https?:\/\//i.test(brandUrl)&&brandUrl.includes('.')){brandUrl='https://'+brandUrl;document.getElementById('inputXandrBrandUrl').value=brandUrl}
     if(!brandUrl){toast('Preencha a Brand URL na seção Auditoria Xandr','error');document.getElementById('inputXandrBrandUrl').focus();return}
   }
 
@@ -719,6 +720,8 @@ async function activateInDsps(){
     if(selectedDsps.has('amazondsp')){const tp=hasTags?getPlacementsForDsp('amazondsp'):[],all=[...tp,...surveyPl];if(all.length)generatedFiles.amazondsp=genAmazonDSP({placements:all})}
   }
   if(isAssetMode&&!generatedFiles._assets){
+    // Normalize landing pages before activation
+    assetEntries.forEach(a=>{a.landingPage=normalizeUrl(a.landingPage)});
     generatedFiles={_assets:assetEntries};
     selectedDsps.forEach(dsp=>generatedFiles[dsp]={type:'assets',count:assetEntries.length});
   }
@@ -1581,7 +1584,8 @@ function bulkSetField(field){
   const labels={landingPage:'Landing Page'};
   const val=prompt(`${labels[field]} pra ${ids.length} asset(s):`);
   if(val===null)return;
-  ids.forEach(id=>{const e=assetEntries.find(a=>a.id===id);if(e)e[field]=val});
+  const finalVal=field==='landingPage'?normalizeUrl(val):val;
+  ids.forEach(id=>{const e=assetEntries.find(a=>a.id===id);if(e)e[field]=finalVal});
   renderAssetsTable();
 }
 
@@ -1871,11 +1875,16 @@ document.getElementById('assetsFilterSelect').addEventListener('click',()=>{
   toast(`${filtered.length} asset(s) selecionado(s)`,'success');
 });
 
+function normalizeUrl(v){v=v.trim();if(!v)return'';if(!/^https?:\/\//i.test(v)&&/^[a-zA-Z0-9]/.test(v)&&v.includes('.'))v='https://'+v;return v}
 document.getElementById('assetsTableBody').addEventListener('input',e=>{
   const inp=e.target.closest('.asset-input');if(!inp)return;
   const id=parseInt(inp.dataset.id),field=inp.dataset.field;
   const entry=assetEntries.find(a=>a.id===id);
   if(entry&&field)entry[field]=inp.value;
+});
+document.getElementById('assetsTableBody').addEventListener('focusout',e=>{
+  const inp=e.target.closest('.asset-input[data-field="landingPage"]');
+  if(inp&&inp.value.trim()){const n=normalizeUrl(inp.value);if(n!==inp.value){inp.value=n;const id=parseInt(inp.dataset.id);const entry=assetEntries.find(a=>a.id===id);if(entry)entry.landingPage=n}}
 });
 document.getElementById('assetsTableBody').addEventListener('change',e=>{
   const inp=e.target.closest('.asset-input[data-field="dimensions"]');if(!inp)return;

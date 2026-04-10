@@ -2798,12 +2798,13 @@ async function bulkDeleteCreatives(){
   const tk=(await sbClient.auth.getSession()).data.session?.access_token;
   if(!tk){toast('Sessão expirada','error');return}
 
-  // Show loading overlay
-  const wrap=document.getElementById('dashTableWrap');
+  // Show loading toast at top
   const overlay=document.createElement('div');
   overlay.className='dash-sync-status';overlay.id='dashDeleteOverlay';
+  overlay.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9999;padding:20px 32px;border-radius:16px;background:var(--glass-bg);backdrop-filter:blur(20px);border:1px solid var(--border);box-shadow:var(--shadow-lg);text-align:center';
   overlay.innerHTML='<div class="dash-sync-spinner"></div><div class="dash-sync-status-text">Deletando '+allIds.length+' criativos...</div><div class="dash-sync-status-sub">'+(xandrCount.length?xandrCount.length+' Xandr':'')+' '+(dv360Count.length?dv360Count.length+' DV360':'')+'</div>';
-  wrap.style.position='relative';wrap.appendChild(overlay);
+  document.body.appendChild(overlay);
+  window.scrollTo({top:0,behavior:'smooth'});
 
   try{
     const res=await fetch(SUPABASE_URL+'/functions/v1/creative-delete',{

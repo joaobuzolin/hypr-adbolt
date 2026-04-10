@@ -261,6 +261,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .manual-tag-field select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238585a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 .manual-tag-add-btn{align-self:flex-start;padding:10px 24px;border-radius:var(--r-xs);font-size:0.8rem;font-weight:500;border:none;background:var(--accent);color:var(--text-on-accent);cursor:pointer;font-family:var(--font);transition:all var(--dur-f)}
 .manual-tag-add-btn:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(123,110,240,0.25)}
+.tags-filter-pills{display:flex;gap:4px}
+.tags-pill{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-tri);font-size:0.7rem;font-family:var(--font);cursor:pointer;transition:all var(--dur-f);white-space:nowrap}
+.tags-pill.active{background:var(--accent);color:var(--text-on-accent);border-color:var(--accent)}
+.tags-pill:not(.active):hover{border-color:var(--text-tri);color:var(--text-sec)}
+.tags-size-select{padding:5px 28px 5px 10px;border:1px solid var(--border);border-radius:20px;background:var(--bg-input);color:var(--text-sec);font-size:0.7rem;font-family:var(--font);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238585a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:all var(--dur-f)}
+.tags-size-select:focus{outline:none;border-color:var(--accent-ring)}
 .flow-selector{padding:80px 48px;max-width:900px;margin:0 auto;animation:fadeIn 0.5s var(--ease-out)}
 .flow-selector-header{text-align:center;margin-bottom:56px}
 .flow-selector-header h2{font-size:1.8rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px}
@@ -676,6 +682,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
           <div id="tagsBulkBar" style="display:none"></div>
           <div class="assets-filter-row" id="tagsFilterRow">
             <input type="text" class="assets-filter-input" id="tagsFilter" placeholder="Filtrar por nome...">
+            <div class="tags-filter-pills">
+              <button class="tags-pill active" data-filter="type" data-val="all" onclick="setTagsFilter('type','all',this)">Todos</button>
+              <button class="tags-pill" data-filter="type" data-val="display" onclick="setTagsFilter('type','display',this)">Display</button>
+              <button class="tags-pill" data-filter="type" data-val="video" onclick="setTagsFilter('type','video',this)">Video</button>
+            </div>
+            <select class="tags-size-select" id="tagsSizeFilter" onchange="setTagsFilter('size',this.value)">
+              <option value="all">Todos os sizes</option>
+            </select>
             <span class="assets-filter-count" id="tagsFilterCount"></span>
             <button class="assets-filter-select-btn" id="tagsFilterSelect">Selecionar filtrados</button>
           </div>
@@ -1459,16 +1473,37 @@ function renderExtractedInfo(d){
 let _selectedTagIds=new Set();
 function getSelectedTagIds(){return[..._selectedTagIds]}
 
+let _tagsFilterType='all',_tagsFilterSize='all';
+function setTagsFilter(filterType,val,btn){
+  if(filterType==='type'){
+    _tagsFilterType=val;
+    document.querySelectorAll('.tags-pill[data-filter="type"]').forEach(b=>b.classList.remove('active'));
+    if(btn)btn.classList.add('active');
+  }
+  if(filterType==='size')_tagsFilterSize=val;
+  renderPlacementsTable();
+}
+function updateSizeFilterOptions(){
+  const sel=document.getElementById('tagsSizeFilter');if(!sel||!parsedData)return;
+  const sizes=new Set(parsedData.placements.map(p=>p.dimensions));
+  const sorted=[...sizes].sort((a,b)=>{const [aw]=a.split('x').map(Number);const [bw]=b.split('x').map(Number);return bw-aw});
+  sel.innerHTML='<option value="all">Todos os sizes ('+sizes.size+')</option>'+sorted.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
+  sel.value=_tagsFilterSize;
+}
 function renderPlacementsTable(){
   if(!parsedData)return;
+  updateSizeFilterOptions();
   const existingIds=new Set(parsedData.placements.map((_,i)=>i));
   _selectedTagIds.forEach(id=>{if(!existingIds.has(id))_selectedTagIds.delete(id)});
   const tbody=document.getElementById('placementsBody');
   const filterVal=(document.getElementById('tagsFilter')?.value||'').toLowerCase();
   const placements=parsedData.placements;
-  const filtered=filterVal?placements.map((p,i)=>({p,i})).filter(({p})=>p.placementName.toLowerCase().includes(filterVal)):placements.map((p,i)=>({p,i}));
+  let filtered=placements.map((p,i)=>({p,i}));
+  if(filterVal)filtered=filtered.filter(({p})=>p.placementName.toLowerCase().includes(filterVal));
+  if(_tagsFilterType!=='all')filtered=filtered.filter(({p})=>p.type===_tagsFilterType);
+  if(_tagsFilterSize!=='all')filtered=filtered.filter(({p})=>p.dimensions===_tagsFilterSize);
   const countEl=document.getElementById('tagsFilterCount');
-  if(countEl)countEl.textContent=filterVal?`${filtered.length}/${placements.length}`:'';
+  if(countEl)countEl.textContent=(filterVal||_tagsFilterType!=='all'||_tagsFilterSize!=='all')?`${filtered.length}/${placements.length}`:'';
   tbody.innerHTML=filtered.map(({p,i},fi)=>{
     const checked=_selectedTagIds.has(i)?' checked':'';
     const tagPreview=p.type==='video'?(p.vastTag||p.jsTag):p.jsTag;

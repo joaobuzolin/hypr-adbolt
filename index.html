@@ -480,7 +480,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
       <div class="wizard-steps" id="wizardSteps"></div>
     </div>
     <div class="wizard-content" id="wizardContent">
-      <div class="step-view" id="stepTags" data-step="tags">
+      <div class="step-view full-width" id="stepTags" data-step="tags">
         <div class="step-header"><h2>Upload de 3P Tags</h2><p>Arraste o arquivo de tags exportado do Campaign Manager (.xlsx ou .csv)</p></div>
         <div class="upload-zone" id="uploadZone">
           <span class="upload-icon">📄</span>
@@ -494,8 +494,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
         <div class="extracted-info" id="extractedInfo">
           <h2 class="extracted-info-title">Dados extraídos</h2>
           <div class="info-grid" id="infoGrid"></div>
+        </div>
+        <div id="tagsTableSection" style="display:none">
           <div id="tagsBulkBar" style="display:none"></div>
-          <div class="assets-filter-row" id="tagsFilterRow" style="display:none">
+          <div class="assets-filter-row" id="tagsFilterRow">
             <input type="text" class="assets-filter-input" id="tagsFilter" placeholder="Filtrar por nome...">
             <span class="assets-filter-count" id="tagsFilterCount"></span>
             <button class="assets-filter-select-btn" id="tagsFilterSelect">Selecionar filtrados</button>
@@ -1041,7 +1043,7 @@ uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.r
 fileInput.addEventListener('change',e=>{if(e.target.files.length)handleFile(e.target.files[0])});
 uploadClear.addEventListener('click',e=>{e.stopPropagation();clearUpload()});
 
-function clearUpload(){parsedData=null;placementAssignment={};_selectedTagIds.clear();fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('results').classList.remove('visible');document.getElementById('assignmentSection').classList.remove('visible');document.getElementById('tagsFilterRow').style.display='none';updateVisibility()}
+function clearUpload(){parsedData=null;placementAssignment={};_selectedTagIds.clear();fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('tagsTableSection').style.display='none';document.getElementById('results').classList.remove('visible');document.getElementById('assignmentSection').classList.remove('visible');updateVisibility()}
 
 function handleFile(file){
   if(!file.name.match(/\.(xlsx?|csv|xls)$/i)){toast(`"${file.name.split('.').pop()}" não é suportado. Use .xlsx, .xls ou .csv.`,'error');return}
@@ -1123,7 +1125,7 @@ function extractBrand(a,c){let b=a;const m=b.match(/^PUB_[A-Z]+_[A-Z]{2,4}_(.+)$
 function renderExtractedInfo(d){
   const typeLabel=d.contentType==='video'?'Video':d.contentType==='mixed'?'Display + Video':'Display';
   document.getElementById('infoGrid').innerHTML=`<div class="info-item"><div class="info-item-label">Advertiser</div><div class="info-item-value">${esc(d.advertiserName)}</div></div><div class="info-item"><div class="info-item-label">Campaign</div><div class="info-item-value">${esc(d.campaignName)}</div></div><div class="info-item"><div class="info-item-label">Marca</div><div class="info-item-value" style="color:var(--accent)">${esc(d.brandName)}</div></div><div class="info-item"><div class="info-item-label">Placements</div><div class="info-item-value mono">${d.placements.length} creatives · ${typeLabel}</div></div>`;
-  document.getElementById('tagsFilterRow').style.display='flex';
+  document.getElementById('tagsTableSection').style.display='';
   renderPlacementsTable();
   document.getElementById('extractedInfo').classList.add('visible')}
 
@@ -1149,8 +1151,8 @@ function renderPlacementsTable(){
       <td><input class="asset-input asset-name-input" value="${esc(p.placementName)}" data-field="placementName" data-idx="${i}"></td>
       <td><span class="asset-type-badge ${p.type}">${p.type==='video'?'video':'display'}</span></td>
       <td><span class="dim-badge">${esc(p.dimensions)}</span></td>
-      <td><span class="tag-preview mono" title="${esc(tagPreview)}" data-idx="${i}" style="cursor:pointer;font-size:0.7rem;color:var(--text-sec);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${esc(tagShort)}</span></td>
-      <td><input class="asset-input mono" value="${esc(p.clickUrl)}" data-field="clickUrl" data-idx="${i}" style="width:140px;font-size:0.72rem"></td>
+      <td><span class="tag-preview mono" title="${esc(tagPreview)}" data-idx="${i}" style="cursor:pointer;font-size:0.7rem;color:var(--text-sec);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${esc(tagShort)}</span></td>
+      <td><input class="asset-input asset-url-input mono" value="${esc(p.clickUrl)}" data-field="clickUrl" data-idx="${i}"></td>
       <td class="tracker-cell"><div class="tracker-chips">${(p.trackers||[]).map((t,ti)=>{const tr=typeof t==='string'?{url:t,dsps:'all'}:t;const scopeLabel=tr.dsps==='all'?'ALL':tr.dsps.map(d=>({xandr:'XN',dv360:'DV',stackadapt:'SA',amazondsp:'AZ'}[d]||d)).join('·');const scopeClass=tr.dsps==='all'?'scope-all':'scope-partial';return`<span class="tracker-chip"><span class="tracker-scope-badge ${scopeClass}" data-tag-scope-toggle="${i}" data-ti="${ti}" title="Clique pra escolher DSPs">${scopeLabel}</span><span class="tracker-chip-url" title="${esc(tr.url)}">${esc(tr.url)}</span><button class="tracker-chip-rm" data-tag-tracker-rm="${i}" data-ti="${ti}">✕</button></span>`}).join('')}<input class="tracker-add-input" data-tag-tracker-add="${i}" placeholder="+ pixel URL"></div></td>
     </tr>`}).join('');
   const selectAll=document.getElementById('tagsSelectAll');

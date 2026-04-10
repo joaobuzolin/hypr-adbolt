@@ -146,6 +146,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .dash-table .td-date{font-size:0.72rem;color:var(--text-tri)}
 .dash-edit-btn{padding:4px 10px;border-radius:var(--r-xs);font-size:0.72rem;border:1px solid var(--border);background:transparent;color:var(--text-sec);cursor:pointer;transition:all var(--dur-f);font-family:var(--font)}
 .dash-edit-btn:hover{border-color:var(--accent-ring);color:var(--accent);background:var(--accent-dim)}
+.dash-dsp-badges{display:flex;flex-direction:column;gap:4px}
+.dash-dsp-badge-row{display:flex;align-items:center;gap:6px}
+.dash-dsp-badge-row .td-dsp{font-size:0.65rem;min-width:42px;text-align:center}
+.dash-dsp-badge-row .dash-badge{font-size:0.65rem;padding:2px 8px}
 .dash-empty{padding:60px 20px;text-align:center;color:var(--text-tri);font-size:0.88rem}
 .dash-empty-sub{font-size:0.78rem;margin-top:8px;color:var(--text-tri);opacity:0.7}
 .dash-pagination{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--border);font-size:0.74rem;color:var(--text-tri)}
@@ -697,7 +701,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
     </div>
     <div class="dash-table-wrap">
       <table class="dash-table">
-        <thead><tr><th>Nome</th><th>DSP</th><th>Tipo</th><th>Size</th><th>Audit</th><th>Criado por</th><th>Data</th><th></th></tr></thead>
+        <thead><tr><th>Nome</th><th>Tipo</th><th>Size</th><th>DSPs</th><th>Audit Status</th><th>Criado por</th><th>Data</th><th></th></tr></thead>
         <tbody id="dashBody"></tbody>
       </table>
       <div class="dash-pagination" id="dashPagination"></div>
@@ -2336,9 +2340,9 @@ document.getElementById('tagsFilterSelect').addEventListener('click',()=>{
 });
 
 // ══════════════════════════════════════════════
-// DASHBOARD
+// DASHBOARD (grouped by name+dimensions)
 // ══════════════════════════════════════════════
-let dashCreatives=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditId=null,_dashSearchTimer=null;
+let dashCreatives=[],dashGroups=[],dashFilterDsp='all',dashFilterAudit='all',dashFilterSearch='',dashPage=0,dashPageSize=50,dashEditGroup=null,_dashSearchTimer=null;
 
 function openDashboard(){
   document.getElementById('flowSelector').style.display='none';
@@ -2360,6 +2364,18 @@ function setDashAuditFilter(el){
 }
 function dashSearchDebounce(){clearTimeout(_dashSearchTimer);_dashSearchTimer=setTimeout(()=>{dashFilterSearch=document.getElementById('dashSearch').value.toLowerCase().trim();dashPage=0;renderDashTable()},250)}
 
+function buildGroups(){
+  const map=new Map();
+  for(const c of dashCreatives){
+    const key=c.name+'||'+c.dimensions;
+    if(!map.has(key))map.set(key,{name:c.name,dimensions:c.dimensions,creative_type:c.creative_type,created_by_name:c.created_by_name||c.created_by_email||'-',created_at:c.created_at,dsps:{}});
+    const g=map.get(key);
+    g.dsps[c.dsp]={id:c.id,dsp_creative_id:c.dsp_creative_id,audit_status:c.audit_status||'unknown',click_url:c.click_url,landing_page:c.landing_page,js_tag:c.js_tag,vast_tag:c.vast_tag,sync_error:c.sync_error,dsp_config:c.dsp_config};
+    if(new Date(c.created_at)<new Date(g.created_at))g.created_at=c.created_at;
+  }
+  dashGroups=Array.from(map.values()).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+}
+
 async function loadCreatives(){
   if(!sbClient||!currentUser)return;
   document.getElementById('dashBody').innerHTML='<tr><td colspan="8" class="dash-empty">Carregando...</td></tr>';
@@ -2367,7 +2383,7 @@ async function loadCreatives(){
     const{data,error}=await sbClient.from('creatives').select('*').order('created_at',{ascending:false}).limit(1000);
     if(error)throw error;
     dashCreatives=data||[];
-    renderDashStats();renderDashTable();
+    buildGroups();renderDashStats();renderDashTable();
   }catch(err){toast('Erro ao carregar criativos: '+err.message,'error')}
 }
 
@@ -2387,20 +2403,20 @@ function renderDashStats(){
     `<div class="dash-stat"><div class="dash-stat-val" style="color:var(--error)">${rejected}</div><div class="dash-stat-label">Rejeitados</div></div>`;
 }
 
-function getFilteredCreatives(){
-  let list=dashCreatives;
-  if(dashFilterDsp!=='all')list=list.filter(c=>c.dsp===dashFilterDsp);
+function getFilteredGroups(){
+  let list=dashGroups;
+  if(dashFilterDsp!=='all')list=list.filter(g=>g.dsps[dashFilterDsp]);
   if(dashFilterAudit!=='all'){
     const auditMap={pending:['pending','PENDING','no_audit'],audited:['audited','APPROVED'],rejected:['rejected','REJECTED']};
     const vals=auditMap[dashFilterAudit]||[];
-    list=list.filter(c=>vals.includes(c.audit_status));
+    list=list.filter(g=>Object.values(g.dsps).some(d=>vals.includes(d.audit_status)));
   }
-  if(dashFilterSearch)list=list.filter(c=>c.name.toLowerCase().includes(dashFilterSearch));
+  if(dashFilterSearch)list=list.filter(g=>g.name.toLowerCase().includes(dashFilterSearch));
   return list;
 }
 
 function renderDashTable(){
-  const filtered=getFilteredCreatives();
+  const filtered=getFilteredGroups();
   const totalPages=Math.ceil(filtered.length/dashPageSize)||1;
   if(dashPage>=totalPages)dashPage=totalPages-1;
   const start=dashPage*dashPageSize;
@@ -2411,20 +2427,26 @@ function renderDashTable(){
     document.getElementById('dashPagination').innerHTML='';
     return;
   }
-  body.innerHTML=page.map(c=>{
-    const d=new Date(c.created_at);
+  const dspLabel={xandr:'XN',dv360:'DV360',stackadapt:'SA',amazondsp:'AZ'};
+  body.innerHTML=page.map((g,gi)=>{
+    const d=new Date(g.created_at);
     const dateStr=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-    const auditClass=c.audit_status||'unknown';
-    const auditLabel=(c.audit_status||'unknown').replace('_',' ');
+    const dspKeys=Object.keys(g.dsps).sort();
+    const dspBadges=dspKeys.map(k=>`<span class="td-dsp ${k}">${dspLabel[k]||k}</span>`).join(' ');
+    const auditBadges=dspKeys.map(k=>{
+      const st=g.dsps[k].audit_status||'unknown';
+      return`<div class="dash-dsp-badge-row"><span class="td-dsp ${k}">${dspLabel[k]||k}</span><span class="dash-badge ${st}">${st.replace('_',' ')}</span></div>`;
+    }).join('');
+    const groupKey=encodeURIComponent(g.name+'||'+g.dimensions);
     return`<tr>
-      <td class="td-name" title="${esc(c.name)}">${esc(c.name)}</td>
-      <td><span class="td-dsp ${c.dsp}">${c.dsp==='dv360'?'DV360':c.dsp==='xandr'?'Xandr':c.dsp}</span></td>
-      <td class="td-type">${c.creative_type||'-'}</td>
-      <td class="td-dims">${c.dimensions||'-'}</td>
-      <td><span class="dash-badge ${auditClass}">${auditLabel}</span></td>
-      <td class="td-date">${esc(c.created_by_name||c.created_by_email||'-')}</td>
+      <td class="td-name" title="${esc(g.name)}">${esc(g.name)}</td>
+      <td class="td-type">${g.creative_type||'-'}</td>
+      <td class="td-dims">${g.dimensions||'-'}</td>
+      <td>${dspBadges}</td>
+      <td><div class="dash-dsp-badges">${auditBadges}</div></td>
+      <td class="td-date">${esc(g.created_by_name)}</td>
       <td class="td-date">${dateStr}</td>
-      <td><button class="dash-edit-btn" onclick="openEditModal('${c.id}')">Editar</button></td>
+      <td><button class="dash-edit-btn" onclick="openEditModal('${groupKey}')">Editar</button></td>
     </tr>`}).join('');
   document.getElementById('dashPagination').innerHTML=
     `<span>${filtered.length} criativo${filtered.length!==1?'s':''} · Página ${dashPage+1}/${totalPages}</span>`+
@@ -2452,56 +2474,67 @@ async function syncCreatives(){
   finally{btn.disabled=false;btn.textContent='🔄 Sync Audit Status'}
 }
 
-function openEditModal(id){
-  const c=dashCreatives.find(x=>x.id===id);if(!c)return;
-  dashEditId=id;
-  const isXandr=c.dsp==='xandr';
-  const dspConfig=typeof c.dsp_config==='string'?JSON.parse(c.dsp_config||'{}'):(c.dsp_config||{});
+function openEditModal(groupKey){
+  const key=decodeURIComponent(groupKey);
+  const g=dashGroups.find(x=>x.name+'||'+x.dimensions===key);
+  if(!g)return;
+  dashEditGroup=g;
+  const dspKeys=Object.keys(g.dsps).sort();
   let html='';
-  html+=`<div class="modal-field"><label>DSP</label><div class="modal-field-ro">${c.dsp==='dv360'?'DV360':'Xandr'} · ID: ${c.dsp_creative_id||'-'}</div></div>`;
-  html+=`<div class="modal-field"><label>Nome</label><input id="editName" value="${esc(c.name||'')}"></div>`;
-  if(isXandr){
-    html+=`<div class="modal-field"><label>Click URL</label><input id="editClickUrl" value="${esc(c.click_url||'')}"><div class="modal-field-hint">Campo click_url na Xandr</div></div>`;
-    html+=`<div class="modal-field"><label>Landing Page</label><input id="editLandingPage" value="${esc(c.landing_page||'')}"><div class="modal-field-hint">Campo landing_page_url na Xandr</div></div>`;
+  html+=`<div class="modal-field"><label>Criativo</label><div class="modal-field-ro">${esc(g.name)} · ${g.dimensions||'-'} · ${g.creative_type||'-'}</div></div>`;
+  html+=`<div class="modal-field"><label>Nome (aplica em todas as DSPs)</label><input id="editName" value="${esc(g.name||'')}"></div>`;
+  for(const dsp of dspKeys){
+    const d=g.dsps[dsp];
+    const label=dsp==='dv360'?'DV360':'Xandr';
+    html+=`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">`;
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span class="td-dsp ${dsp}" style="font-size:0.72rem">${label}</span><span class="dash-badge ${d.audit_status}" style="font-size:0.65rem">${(d.audit_status||'unknown').replace('_',' ')}</span><span style="font-size:0.7rem;color:var(--text-tri);font-family:var(--mono)">ID: ${d.dsp_creative_id||'-'}</span></div>`;
+    if(dsp==='xandr'){
+      html+=`<div class="modal-field"><label>Click URL (Xandr)</label><input id="editClickUrl_${dsp}" value="${esc(d.click_url||'')}"></div>`;
+      html+=`<div class="modal-field"><label>Landing Page (Xandr)</label><input id="editLandingPage_${dsp}" value="${esc(d.landing_page||'')}"></div>`;
+    }
+    if(d.sync_error)html+=`<div style="font-size:0.72rem;color:var(--error);margin-bottom:8px">⚠️ ${esc(d.sync_error)}</div>`;
+    html+=`</div>`;
   }
-  html+=`<div class="modal-field"><label>Tipo / Dimensões</label><div class="modal-field-ro">${c.creative_type||'-'} · ${c.dimensions||'-'}</div></div>`;
-  html+=`<div class="modal-field"><label>Audit Status</label><div class="modal-field-ro">${c.audit_status||'unknown'}${c.sync_error?' · ⚠️ '+esc(c.sync_error):''}</div></div>`;
-  if(c.js_tag)html+=`<div class="modal-field"><label>JS Tag</label><div class="modal-field-ro" style="max-height:60px">${esc(c.js_tag)}</div></div>`;
-  if(c.vast_tag)html+=`<div class="modal-field"><label>VAST Tag</label><div class="modal-field-ro" style="max-height:60px">${esc(c.vast_tag)}</div></div>`;
   document.getElementById('editModalBody').innerHTML=html;
   document.getElementById('editModal').classList.add('visible');
 }
-function closeEditModal(){document.getElementById('editModal').classList.remove('visible');dashEditId=null}
+function closeEditModal(){document.getElementById('editModal').classList.remove('visible');dashEditGroup=null}
 
 async function saveEdit(){
-  if(!dashEditId||!sbClient||!currentUser)return;
-  const c=dashCreatives.find(x=>x.id===dashEditId);if(!c)return;
-  const changes={};
-  const newName=document.getElementById('editName')?.value?.trim();
-  if(newName&&newName!==c.name)changes.name=newName;
-  if(c.dsp==='xandr'){
-    const newClick=document.getElementById('editClickUrl')?.value?.trim()||'';
-    const newLp=document.getElementById('editLandingPage')?.value?.trim()||'';
-    if(newClick!==(c.click_url||''))changes.click_url=newClick;
-    if(newLp!==(c.landing_page||''))changes.landing_page=newLp;
-  }
-  if(Object.keys(changes).length===0){toast('Nenhuma alteração detectada','error');return}
+  if(!dashEditGroup||!sbClient||!currentUser)return;
+  const g=dashEditGroup;
+  const dspKeys=Object.keys(g.dsps);
+  const newName=document.getElementById('editName')?.value?.trim()||'';
+  const nameChanged=newName&&newName!==g.name;
+  const token=(await sbClient.auth.getSession()).data.session?.access_token;
+  if(!token){toast('Sessão expirada','error');return}
   const btn=document.getElementById('editSaveBtn');
   btn.disabled=true;btn.textContent='Salvando...';
+  let successCount=0,errorCount=0;
   try{
-    const token=(await sbClient.auth.getSession()).data.session?.access_token;
-    if(!token)throw new Error('Sessão expirada');
-    const res=await fetch(SUPABASE_URL+'/functions/v1/creative-update',{
-      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({creativeId:dashEditId,changes})
+    const promises=dspKeys.map(async dsp=>{
+      const d=g.dsps[dsp];
+      const changes={};
+      if(nameChanged)changes.name=newName;
+      if(dsp==='xandr'){
+        const newClick=document.getElementById('editClickUrl_'+dsp)?.value?.trim()||'';
+        const newLp=document.getElementById('editLandingPage_'+dsp)?.value?.trim()||'';
+        if(newClick!==(d.click_url||''))changes.click_url=newClick;
+        if(newLp!==(d.landing_page||''))changes.landing_page=newLp;
+      }
+      if(Object.keys(changes).length===0)return;
+      const res=await fetch(SUPABASE_URL+'/functions/v1/creative-update',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({creativeId:d.id,changes})
+      });
+      const data=await res.json();
+      if(!res.ok||!data.success){errorCount++;return}
+      successCount++;
     });
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||'Update failed');
-    if(data.syncedToDsp){
-      toast(`Atualizado e sincronizado com ${c.dsp==='dv360'?'DV360':'Xandr'}`,'success');
-    }else{
-      toast(`Salvo localmente, mas falha no sync: ${data.syncError||'erro desconhecido'}`,'error');
-    }
+    await Promise.all(promises);
+    if(errorCount===0&&successCount===0){toast('Nenhuma alteração detectada','error')}
+    else if(errorCount===0){toast(`Atualizado em ${successCount} DSP${successCount>1?'s':''}`,'success')}
+    else{toast(`${successCount} OK, ${errorCount} com erro`,'error')}
     closeEditModal();await loadCreatives();
   }catch(err){toast('Erro ao salvar: '+err.message,'error')}
   finally{btn.disabled=false;btn.textContent='Salvar e Sincronizar'}

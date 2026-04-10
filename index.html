@@ -798,6 +798,8 @@ async function activateXandr(token){
         dimensions:p.dimensions,
         jsTag:p.jsTag,
         clickUrl:p.clickUrl||'',
+        type:p.type||'display',
+        vastTag:p.vastTag||'',
         trackers:mergeTrackers(p.trackers||[],'xandr')
       }))
     };

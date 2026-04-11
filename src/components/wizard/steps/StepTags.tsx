@@ -7,6 +7,7 @@ import { BulkBar } from '@/components/shared/BulkBar';
 import { StepNav } from '@/components/shared/StepNav';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { RenameModal, FindReplaceModal, BulkTrackerModal } from '@/components/shared/BulkModals';
+import { PreviewThumb, CreativePreviewModal } from '@/components/shared/CreativePreview';
 import { parseCM360 } from '@/parsers/cm360';
 import { parseGenericTags } from '@/parsers/generic';
 import { analyzeTracker } from '@/parsers/tracker';
@@ -220,6 +221,7 @@ export function StepTags() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [frOpen, setFrOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
+  const [previewTag, setPreviewTag] = useState<Placement | null>(null);
 
   // ── Bulk actions ──
   const selectedCount = selectedTagIds.size;
@@ -411,9 +413,12 @@ export function StepTags() {
                       {p.dimensions}
                     </td>
                     <td className={styles.tagCell}>
-                      <span className={styles.tagPreview} title={p.jsTag || p.vastTag}>
-                        {(p.jsTag || p.vastTag || '').substring(0, 60)}{(p.jsTag || p.vastTag || '').length > 60 ? '…' : ''}
-                      </span>
+                      <PreviewThumb
+                        type={p.type === 'video' ? 'video' : '3p-tag'}
+                        name={p.placementName}
+                        isVideo={p.type === 'video'}
+                        onClick={() => setPreviewTag(p)}
+                      />
                     </td>
                     <td>
                       <input
@@ -541,6 +546,17 @@ export function StepTags() {
           });
           toast(`Tracker aplicado em ${selectedTagIds.size} placement(s)`, 'success');
         }}
+      />
+
+      <CreativePreviewModal
+        data={previewTag ? {
+          name: previewTag.placementName,
+          dimensions: previewTag.dimensions,
+          type: previewTag.type === 'video' ? 'display' as const : '3p-tag' as const,
+          tagContent: previewTag.type !== 'video' ? previewTag.jsTag : undefined,
+          thumbUrl: undefined,
+        } : null}
+        onClose={() => setPreviewTag(null)}
       />
     </div>
   );

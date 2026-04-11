@@ -64,7 +64,7 @@ async function processCreative(token:string, advId:number, input:Input, brandUrl
       const ud = await ur.json();
       const ma = ud.response?.['media-asset']?.[0];
       if (!ma?.id) return {name:input.name,success:false,error:`Upload: ${JSON.stringify(ud.response||ud).substring(0,500)}`,step:'upload'};
-      const cr:Record<string,unknown> = {name:input.name,advertiser_id:advId,width:w,height:h,template:{id:8606},media_assets:[{media_asset_id:ma.id}],click_url:lp||'',landing_page_url:brandUrl||lp||'',allow_audit:true,allow_ssl_audit:true,is_self_audited:false,sla:sla||0};
+      const cr:Record<string,unknown> = {name:input.name,advertiser_id:advId,width:w,height:h,template:{id:8606},media_assets:[{media_asset_id:ma.id}],click_url:lp||'',landing_page_url:brandUrl||lp||'',brand_url:brandUrl||lp||'',allow_audit:true,allow_ssl_audit:true,is_self_audited:false,sla:sla||0};
       if(langId)cr.language={id:langId}; if(brandId)cr.brand_id=brandId;
       if(normalizedTrackers.length)cr.pixels=normalizedTrackers.slice(0,5).map(t=>({url:t.url,secure_url:t.url.replace(/^http:/,'https:'),format:t.format}));
       const res = await fetch(`${XANDR_API}/creative-html?member_id=${MEMBER_ID}&advertiser_id=${advId}`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:token},body:JSON.stringify({'creative-html':cr})});
@@ -129,7 +129,7 @@ async function processCreative(token:string, advId:number, input:Input, brandUrl
 
     } else {
       const b64 = base64Encode(bytes);
-      const cr:Record<string,unknown> = {name:input.name,advertiser_id:advId,width:w,height:h,template:{id:4},format:'image',content:b64,file_name:input.fileName,click_url:lp||'',landing_page_url:brandUrl||lp||'',mobile:brandUrl?{alternative_landing_page_url:brandUrl}:undefined,audit_status:'pending',allow_audit:true,allow_ssl_audit:true,is_self_audited:false,sla:sla||0};
+      const cr:Record<string,unknown> = {name:input.name,advertiser_id:advId,width:w,height:h,template:{id:4},format:'image',content:b64,file_name:input.fileName,click_url:lp||'',landing_page_url:brandUrl||lp||'',brand_url:brandUrl||lp||'',mobile:brandUrl?{alternative_landing_page_url:brandUrl}:undefined,audit_status:'pending',allow_audit:true,allow_ssl_audit:true,is_self_audited:false,sla:sla||0};
       if(langId)cr.language={id:langId}; if(brandId)cr.brand_id=brandId;
       if(normalizedTrackers.length)cr.pixels=normalizedTrackers.slice(0,5).map(t=>({url:t.url,secure_url:t.url.replace(/^http:/,'https:'),format:t.format}));
       const res = await fetch(`${XANDR_API}/creative?member_id=${MEMBER_ID}&advertiser_id=${advId}`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:token},body:JSON.stringify({creative:cr})});

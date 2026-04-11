@@ -445,14 +445,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 *:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg-base),0 0 0 4px var(--accent);transition:box-shadow var(--dur-f) var(--ease-out)}
 
 /* ── Assignment ── */
-.assignment-wrap{margin-top:16px;max-height:0;overflow:hidden;opacity:0;transition:all var(--dur) var(--ease-out);padding:0}
-.assignment-wrap.visible{max-height:800px;opacity:1;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;margin-top:16px}
-.assignment-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.assign-cb{width:16px;height:16px;border-radius:4px;vertical-align:middle}
-.assign-cb:checked::after{font-size:10px}
 .section-label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-tri);font-weight:600}
-.assign-col-header{text-align:center}
-.assign-col-cb{text-align:center}
 .placement-name{display:inline-flex;max-width:280px;overflow:hidden}
 .placement-name-start{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
 .placement-name-end{white-space:nowrap;flex-shrink:0;color:var(--text-tri)}
@@ -799,10 +792,6 @@ tr.expanded .td-expand-chevron{transform:rotate(90deg);color:var(--accent)}
           <div class="dsp-card" data-dsp="xandr" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-icon">XN</div><div class="dsp-card-info"><div class="dsp-card-name">Xandr</div><div class="dsp-card-sub">XLSX · Third-Party Creative</div></div></div>
           <div class="dsp-card" data-dsp="amazondsp" role="button" tabindex="0"><div class="dsp-card-check">✓</div><div class="dsp-card-icon">AZ</div><div class="dsp-card-info"><div class="dsp-card-name">Amazon DSP</div><div class="dsp-card-sub">XLSX · Third-Party Display</div></div></div>
         </div>
-        <div class="assignment-wrap" id="assignmentSection">
-          <div class="assignment-header"><span class="section-label">Atribuição por DSP</span><label class="checkbox-row" style="padding:0;font-size:0.78rem"><input type="checkbox" class="custom-cb" id="replicateAll" checked> Replicar todos</label></div>
-          <div class="table-wrap" id="assignmentTableWrap" style="display:none"><table class="placements-table"><thead id="assignmentHead"></thead><tbody id="assignmentBody"></tbody></table></div>
-        </div>
         </div>
       </div>
 
@@ -937,7 +926,7 @@ const STACKADAPT_EXCLUDED_SIZES=new Set(['336x280']);
 const SURVEY_SIZES=['300x600','300x250','320x480'];
 
 // ── State ──
-let parsedData=null,currentMode='tags',selectedDsps=new Set(),placementAssignment={},generatedFiles={},surveyEntries=[],surveyIdCounter=0,currentUser=null,sbClient=null,activeWizardStep=0,assetEntries=[],assetIdCounter=0;
+let parsedData=null,currentMode='tags',selectedDsps=new Set(),generatedFiles={},surveyEntries=[],surveyIdCounter=0,currentUser=null,sbClient=null,activeWizardStep=0,assetEntries=[],assetIdCounter=0;
 let toastTimer=null;
 let _activationDone=false,_activating=false;
 let _lastAutoW='',_lastAutoH='',_lastAutoClick='';
@@ -1006,7 +995,7 @@ const MODE_LABELS={tags:'Embeds & Tags',surveys:'Surveys',assets:'Standard Asset
 
 function resetWizardState(){
   // Reset all shared state
-  selectedDsps=new Set();generatedFiles={};placementAssignment={};_selectedTagIds.clear();_selectedAssetIds.clear();_activationDone=false;
+  selectedDsps=new Set();generatedFiles={};_selectedTagIds.clear();_selectedAssetIds.clear();_activationDone=false;
   // Reset mode-specific data
   parsedData=null;assetEntries=[];assetIdCounter=0;surveyEntries=[];surveyIdCounter=0;
   _tagsFilterType='all';_tagsFilterSize='all';_assetsFilterType='all';_assetsFilterSize='all';
@@ -1030,7 +1019,6 @@ function resetWizardState(){
   document.querySelectorAll('.dsp-card[data-dsp]').forEach(card=>{card.classList.remove('selected','dsp-unavailable')});
   document.querySelectorAll('.dsp-card-check').forEach(c=>{c.style.opacity='0';c.style.transform='scale(0.5)'});
   // Reset config sections
-  document.getElementById('assignmentSection').classList.remove('visible');
   ['xandrAuditDivider','xandrAuditSection','dv360ConfigDivider','dv360ConfigSection','amazonDspConfigDivider','amazonDspConfigSection','optPoliticalRow'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none'});
   // Reset results/activation
   document.getElementById('results').classList.remove('visible');
@@ -1522,7 +1510,7 @@ function renderActivationResults(results){
 }
 
 // ── DSP Selection ──
-function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateAssignment();updateVisibility();invalidateResults()}
+function toggleDsp(card){if(card.classList.contains('dsp-unavailable'))return;const d=card.dataset.dsp;card.classList.toggle('selected');selectedDsps.has(d)?selectedDsps.delete(d):selectedDsps.add(d);updateOptions();updateVisibility();invalidateResults()}
 function invalidateResults(){generatedFiles={};_activationDone=false;document.getElementById('results').classList.remove('visible');document.getElementById('activationResults').classList.remove('visible');document.getElementById('activationProgress').style.display='none';document.getElementById('activationCards').innerHTML='';document.getElementById('resultCards').innerHTML='';const ab=document.getElementById('btnActivate');if(ab){ab.textContent='Ativar Agora'}}
 function updateOptions(){
   const hasSA=selectedDsps.has('stackadapt'),hasXandr=selectedDsps.has('xandr'),hasDV360=selectedDsps.has('dv360');
@@ -1557,14 +1545,7 @@ function updateGenerateBtn(){const hasTags=currentMode!=='surveys'&&currentMode!
   if(dlCard)dlCard.style.display=isAssetMode?'none':'';
   if(actCard)actCard.style.gridColumn=isAssetMode?'1 / -1':''}
 // ── Assignment ──
-function updateAssignment(){const s=document.getElementById('assignmentSection'),dsps=[...selectedDsps];if(dsps.length<2||!parsedData||currentMode==='surveys'){s.classList.remove('visible');return}s.classList.add('visible');const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r)renderAssignmentTable(dsps)}
-function onReplicateChange(){const r=document.getElementById('replicateAll').checked;document.getElementById('assignmentTableWrap').style.display=r?'none':'block';if(!r&&parsedData){placementAssignment={};renderAssignmentTable([...selectedDsps])}}
-function renderAssignmentTable(dsps){
-  if(!parsedData)return;const labels={dv360:'DV360',stackadapt:'StackAdapt',xandr:'Xandr',amazondsp:'Amazon DSP'};
-  parsedData.placements.forEach((_,i)=>{dsps.forEach(d=>{const k=`${d}_${i}`;if(placementAssignment[k]===undefined)placementAssignment[k]=(d==='dv360')})});
-  document.getElementById('assignmentHead').innerHTML=`<tr><th>#</th><th>Placement</th><th>Size</th>${dsps.map(d=>`<th class="assign-col-header">${labels[d]}</th>`).join('')}</tr>`;
-  document.getElementById('assignmentBody').innerHTML=parsedData.placements.map((p,i)=>`<tr style="animation-delay:${i*40}ms"><td>${i+1}</td><td>${smartName(p.placementName)}</td><td><span class="dim-badge">${esc(p.dimensions)}</span></td>${dsps.map(d=>{const k=`${d}_${i}`;return`<td class="assign-col-cb"><input type="checkbox" class="custom-cb assign-cb" data-key="${k}" ${placementAssignment[k]?'checked':''}></td>`}).join('')}</tr>`).join('')}
-function getPlacementsForDsp(dsp){if(!parsedData)return[];const r=document.getElementById('replicateAll');if(selectedDsps.size<2||!r||r.checked)return parsedData.placements;return parsedData.placements.filter((_,i)=>placementAssignment[`${dsp}_${i}`]!==false)}
+function getPlacementsForDsp(dsp){return parsedData?parsedData.placements:[]}
 // ── File Upload ──
 const uploadZone=document.getElementById('uploadZone'),fileInput=document.getElementById('fileInput'),uploadClear=document.getElementById('uploadClear');
 uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('dragover')});
@@ -1659,7 +1640,7 @@ function addManualTag(){
   _lastAutoW='';_lastAutoH='';_lastAutoClick='';
   toast(name+' adicionado','success');
 }
-function clearUpload(){parsedData=null;placementAssignment={};_selectedTagIds.clear();fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('tagsTableSection').style.display='none';document.getElementById('results').classList.remove('visible');document.getElementById('assignmentSection').classList.remove('visible');updateVisibility()}
+function clearUpload(){parsedData=null;_selectedTagIds.clear();fileInput.value='';uploadZone.classList.remove('has-file','processing');uploadClear.style.display='none';document.getElementById('uploadFilename').textContent='';document.getElementById('uploadMeta').textContent='';document.getElementById('extractedInfo').classList.remove('visible');document.getElementById('tagsTableSection').style.display='none';document.getElementById('results').classList.remove('visible');updateVisibility()}
 
 function handleFile(file){
   if(!file.name.match(/\.(xlsx?|csv|xls)$/i)){toast(`"${file.name.split('.').pop()}" não é suportado. Use .xlsx, .xls ou .csv.`,'error');return}
@@ -1689,7 +1670,7 @@ function handleFile(file){
         document.getElementById('uploadFilename').textContent=file.name;
         document.getElementById('uploadMeta').textContent=`${generic.placements.length} placements total`;
         document.getElementById('inputBrand').value=generic.brandName;
-        renderExtractedInfo(generic);placementAssignment={};updateAssignment();updateVisibility();
+        renderExtractedInfo(generic);updateVisibility();
         return;
       }
       // Merge with ALL existing placements (manual + previous files)
@@ -1710,7 +1691,7 @@ function handleFile(file){
       document.getElementById('uploadFilename').textContent=file.name;
       document.getElementById('uploadMeta').textContent=`${result.placements.length} placements total`;
       document.getElementById('inputBrand').value=result.brandName;
-      renderExtractedInfo(result);placementAssignment={};updateAssignment();updateVisibility();
+      renderExtractedInfo(result);updateVisibility();
     }catch(err){console.error(err);toast('Erro: '+err.message,'error')}
   };reader.readAsArrayBuffer(file);
 }
@@ -2230,7 +2211,6 @@ function renderResults(cards){document.getElementById('resultCards').innerHTML=c
 // ── Event Listeners (DSP grid, surveys, downloads, misc) ──
 document.getElementById('dspGrid').addEventListener('click',e=>{const card=e.target.closest('.dsp-card[data-dsp]');if(card)toggleDsp(card)});
 document.getElementById('dspGrid').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const card=e.target.closest('.dsp-card[data-dsp]');if(card){e.preventDefault();toggleDsp(card)}}});
-document.getElementById('assignmentBody').addEventListener('change',e=>{if(e.target.classList.contains('assign-cb'))placementAssignment[e.target.dataset.key]=e.target.checked});
 document.getElementById('resultCards').addEventListener('click',e=>{const btn=e.target.closest('.btn-download[data-dsp]');if(btn){downloadFile(btn.dataset.dsp);btn.textContent='✓ Baixado';btn.classList.add('downloaded');setTimeout(()=>{btn.textContent='Download';btn.classList.remove('downloaded')},1500)}});
 document.getElementById('surveyTypes').addEventListener('click',e=>{const btn=e.target.closest('.survey-type-btn');if(!btn)return;const type=btn.dataset.type;if(btn.classList.contains('active')){surveyEntries=surveyEntries.filter(s=>s.type!==type);btn.classList.remove('active');renderSurveyEntries();updateVisibility()}else{btn.classList.add('active');addSurveyEntry(type)}});
 document.getElementById('surveyCustomType').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.value.trim()){addSurveyEntry(e.target.value.trim());e.target.value=''}});
@@ -2238,7 +2218,6 @@ document.getElementById('surveyEntries').addEventListener('keydown',e=>{if(e.key
 document.getElementById('surveyEntries').addEventListener('click',e=>{const pill=e.target.closest('.survey-size-pill');if(pill){const id=parseInt(pill.dataset.id),entry=surveyEntries.find(s=>s.id===id);if(entry){entry.size=pill.dataset.val;pill.parentElement.querySelectorAll('.survey-size-pill').forEach(p=>p.classList.toggle('active',p.dataset.val===entry.size))}return}const rmUrl=e.target.closest('[data-remove-url]');if(rmUrl){const[eid,idx]=rmUrl.dataset.removeUrl.split('_');removeSurveyUrl(parseInt(eid),parseInt(idx));return}const rmEntry=e.target.closest('[data-remove]');if(rmEntry)removeSurveyEntry(parseInt(rmEntry.dataset.remove))});
 document.getElementById('toastDismiss').addEventListener('click',()=>document.getElementById('toast').classList.remove('show'));
 document.getElementById('themeToggle').addEventListener('click',toggleTheme);
-document.getElementById('replicateAll').addEventListener('change',onReplicateChange);
 // ── Assets Mode ──
 // assetEntries/assetIdCounter declared in wizard init block
 const ASSET_DSP_LIMITS={xandr:{display:400*1024,video:Infinity,html5:2*1024*1024},dv360:{display:10*1024*1024,video:Infinity,html5:10*1024*1024},stackadapt:{display:2*1024*1024,video:Infinity,html5:2*1024*1024},amazondsp:{display:200*1024,video:Infinity,html5:200*1024}};

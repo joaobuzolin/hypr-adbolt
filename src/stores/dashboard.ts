@@ -164,12 +164,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   loadCreatives: async () => {
     set({ isLoading: true });
     try {
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('creatives')
-        .select('*')
+        .select('*', { count: 'exact' })
         .neq('status', 'deleted')
         .order('created_at', { ascending: false })
-        .limit(500);
+        .limit(2000);
 
       if (error) throw error;
 

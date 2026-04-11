@@ -83,17 +83,30 @@ function parseDimensions(dim: string): { w: number; h: number } {
 async function createCreative(
   token: string,
   advertiserId: string,
-  creative: { name: string; dimensions: string; jsTag: string; clickUrl: string },
+  creative: { name: string; dimensions: string; jsTag: string; clickUrl: string; trackers?: Array<{ url: string; format: string }> },
   trackingPixel?: string
 ): Promise<{ success: boolean; name: string; creativeId?: string; error?: string }> {
   const { w, h } = parseDimensions(creative.dimensions);
 
+  // Build thirdPartyUrls from per-creative trackers + legacy global trackingPixel
+  // Route .js trackers to thirdPartyUrls, image pixels to trackerUrls
   const thirdPartyUrls: any[] = [];
-  if (trackingPixel) {
-    thirdPartyUrls.push({
-      type: "THIRD_PARTY_URL_TYPE_IMPRESSION",
-      url: trackingPixel,
-    });
+  const trackerUrls: any[] = [];
+  const seen = new Set<string>();
+
+  if (trackingPixel && !seen.has(trackingPixel)) {
+    seen.add(trackingPixel);
+    thirdPartyUrls.push({ type: "THIRD_PARTY_URL_TYPE_IMPRESSION", url: trackingPixel });
+  }
+
+  for (const t of (creative.trackers || [])) {
+    if (!t.url || seen.has(t.url)) continue;
+    seen.add(t.url);
+    if (t.format === 'url-js' || t.url.toLowerCase().endsWith('.js') || t.url.toLowerCase().includes('.js?') || t.url.toLowerCase().includes('/js/')) {
+      thirdPartyUrls.push({ type: "THIRD_PARTY_URL_TYPE_IMPRESSION", url: t.url });
+    } else {
+      trackerUrls.push({ type: "THIRD_PARTY_URL_TYPE_IMPRESSION", url: t.url });
+    }
   }
 
   const body: any = {
@@ -108,6 +121,7 @@ async function createCreative(
     thirdPartyTag: creative.jsTag,
     exitEvents: [
       {
+        name: "Landing Page",
         type: "EXIT_EVENT_TYPE_DEFAULT",
         url: creative.clickUrl || "https://www.example.com",
       },
@@ -116,6 +130,9 @@ async function createCreative(
 
   if (thirdPartyUrls.length) {
     body.thirdPartyUrls = thirdPartyUrls;
+  }
+  if (trackerUrls.length) {
+    body.trackerUrls = trackerUrls;
   }
 
   const url = `https://displayvideo.googleapis.com/v4/advertisers/${advertiserId}/creatives`;

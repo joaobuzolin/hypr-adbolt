@@ -36,6 +36,8 @@
 
 .sizeOk { color: var(--success); margin-left: 4px; font-size: var(--fs-sm); }
 
+.weightHint { font-size: var(--fs-min); color: var(--text-tri); margin-left: 4px; opacity: 0.6; font-family: var(--mono); }
+
 /* Tracker chips */
 .trackerCell { min-width: 180px; }
 .trackerChips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }

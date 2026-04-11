@@ -130,8 +130,12 @@ export function StepAssets() {
 
   // ── Weight class ──
   const getWeightClass = (entry: AssetEntry): string => {
+    // When no DSPs selected, use most restrictive limit across all DSPs as preview
+    const dspList = selectedDsps.size > 0
+      ? [...selectedDsps]
+      : Object.keys(ASSET_DSP_LIMITS);
     const maxWeight = Math.min(
-      ...[...selectedDsps].map((d) => (ASSET_DSP_LIMITS[d] || {})[entry.type] || Infinity).filter((v) => v !== Infinity),
+      ...dspList.map((d) => (ASSET_DSP_LIMITS[d] || {})[entry.type] || Infinity).filter((v) => v !== Infinity),
       Infinity,
     );
     if (maxWeight === Infinity) return 'ok';
@@ -184,10 +188,17 @@ export function StepAssets() {
   // ── Bulk Compress ──
   const handleBulkCompress = async () => {
     const ids = [...selectedAssetIds];
-    const displayAssets = ids
-      .map((id) => assetEntries.find((a) => a.id === id))
-      .filter((a): a is AssetEntry => !!a && a.type === 'display');
-    if (!displayAssets.length) { toast('Selecione assets display pra comprimir (vídeo não é comprimível)', ''); return; }
+    const selected = ids.map((id) => assetEntries.find((a) => a.id === id)).filter(Boolean) as AssetEntry[];
+    const displayAssets = selected.filter((a) => a.type === 'display');
+    const skippedTypes = new Set(selected.filter((a) => a.type !== 'display').map((a) => a.type));
+
+    if (!displayAssets.length) {
+      const reasons: string[] = [];
+      if (skippedTypes.has('html5')) reasons.push('HTML5 não pode ser comprimido');
+      if (skippedTypes.has('video')) reasons.push('vídeo não é comprimível');
+      toast(reasons.length ? reasons.join('; ') : 'Selecione assets display pra comprimir', '');
+      return;
+    }
 
     const maxBytes = Math.min(
       ...[...selectedDsps].map((d) => (ASSET_DSP_LIMITS[d] || {}).display || Infinity).filter((v) => v !== Infinity),
@@ -390,7 +401,12 @@ export function StepAssets() {
                         )}
                         {a.resized && <span className={styles.sizeOk} title="Redimensionado">✓</span>}
                       </td>
-                      <td><span className={`${styles.weightBadge} ${styles[wc]}`}>{formatBytes(sz)}{a.compressed ? ' ⚡' : ''}</span></td>
+                      <td>
+                        <span className={`${styles.weightBadge} ${styles[wc]}`}>{formatBytes(sz)}{a.compressed ? ' ⚡' : ''}</span>
+                        {a.type === 'html5' && wc !== 'ok' && (
+                          <span className={styles.weightHint} title="HTML5 ZIPs não podem ser comprimidos pelo AdBolt">ZIP</span>
+                        )}
+                      </td>
                       <td>
                         <input
                           className={`${styles.cellInput} ${styles.mono}`}

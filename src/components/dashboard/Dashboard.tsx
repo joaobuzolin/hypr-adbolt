@@ -10,7 +10,7 @@ import { Modal } from '@/components/shared/Modal';
 import { syncCreatives as syncCreativesApi } from '@/services/sync';
 import { updateCreative } from '@/services/update';
 import { deleteCreatives } from '@/services/delete';
-import { normalizeUrl } from '@/lib/utils';
+import { normalizeUrl, getRenamedName } from '@/lib/utils';
 import { genDV360 } from '@/generators/dv360';
 import { genXandr } from '@/generators/xandr';
 import { genStackAdapt } from '@/generators/stackadapt';
@@ -159,16 +159,6 @@ export function Dashboard() {
     setRenameVisible(true);
   };
 
-  const getRenamedName = (original: string, prefix: string, suffix: string, pattern: string, index: number, dims: string, type: string): string => {
-    if (pattern) {
-      return pattern
-        .split('{name}').join(original)
-        .split('{size}').join(dims)
-        .split('{type}').join(type)
-        .split('{index}').join(String(index + 1));
-    }
-    return (prefix || '') + original + (suffix || '');
-  };
 
   const renamePreviewItems = (() => {
     if (!renamePrefix && !renameSuffix && !renamePattern) return [];
@@ -176,7 +166,7 @@ export function Dashboard() {
     return keys.slice(0, 6).map((k, i) => {
       const g = store.groups.find((g) => g._gid === k);
       if (!g) return null;
-      const newName = getRenamedName(g.name, renamePrefix, renameSuffix, renamePattern, i, g.dimensions, g.creative_type);
+      const newName = getRenamedName(g.name, renamePrefix, renameSuffix, renamePattern, i, { dimensions: g.dimensions, type: g.creative_type });
       return { old: g.name, new: newName };
     }).filter(Boolean) as Array<{ old: string; new: string }>;
   })();
@@ -191,7 +181,7 @@ export function Dashboard() {
     let ok = 0, fail = 0;
     const promises: Promise<void>[] = [];
     groups.forEach((g, gi) => {
-      const newName = getRenamedName(g.name, renamePrefix, renameSuffix, renamePattern, gi, g.dimensions, g.creative_type);
+      const newName = getRenamedName(g.name, renamePrefix, renameSuffix, renamePattern, gi, { dimensions: g.dimensions, type: g.creative_type });
       for (const [, d] of Object.entries(g.dsps)) {
         promises.push(
           updateCreative(token, d.id, { name: newName })

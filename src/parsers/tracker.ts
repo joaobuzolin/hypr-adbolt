@@ -1,5 +1,4 @@
 import type { Tracker, TrackerFormat, DspType } from '@/types';
-import { normalizeUrl } from '@/lib/utils';
 
 /**
  * Analyze a raw tracker input (URL or HTML tag) and extract the URL + detect format.
@@ -96,16 +95,4 @@ export function mergeTrackers(trackerList: (string | Tracker)[], dsp: DspType): 
  */
 export function mergeTrackerUrls(trackerList: (string | Tracker)[], dsp: DspType): string[] {
   return mergeTrackers(trackerList, dsp).map((t) => t.url);
-}
-
-/**
- * Extract a URL from an HTML tracker tag (used by commitSingleTracker).
- * Calls analyzeTracker and normalizes the URL.
- */
-export function extractTrackerUrl(raw: string): { url: string; format: TrackerFormat } {
-  const analyzed = analyzeTracker(raw);
-  return {
-    url: normalizeUrl(analyzed.url),
-    format: analyzed.format,
-  };
 }

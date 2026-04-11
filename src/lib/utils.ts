@@ -1,14 +1,4 @@
 /**
- * HTML-escape a string for safe insertion into DOM.
- * Ported from legacy: const esc = s => { ... }
- */
-export function esc(s: string): string {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-/**
  * Remove CM360 carriage return artifacts from tag strings.
  * Ported from legacy: function cleanCR(s)
  */
@@ -52,4 +42,26 @@ export function extractBrand(advertiser: string, campaign: string): string {
     if (p) b = p[1].trim();
   }
   return b || advertiser;
+}
+
+/**
+ * Apply rename pattern to a name.
+ * Supports prefix/suffix or full pattern with {name}, {size}, {type}, {index} placeholders.
+ */
+export function getRenamedName(
+  original: string,
+  prefix: string,
+  suffix: string,
+  pattern: string,
+  index: number,
+  meta: { dimensions?: string; type?: string },
+): string {
+  if (pattern) {
+    return pattern
+      .split('{name}').join(original)
+      .split('{size}').join(meta.dimensions || '')
+      .split('{type}').join(meta.type || '')
+      .split('{index}').join(String(index + 1));
+  }
+  return (prefix || '') + original + (suffix || '');
 }

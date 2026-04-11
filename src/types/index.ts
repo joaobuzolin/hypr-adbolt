@@ -48,20 +48,6 @@ export const VAST_EVENT_OPTIONS: { value: VastEventType; label: string; id: numb
   { value: 'error', label: 'Error', id: 4 },
 ];
 
-export const FORMAT_LABELS: Record<TrackerFormat, string> = {
-  'url-image': 'IMG',
-  'url-js': 'JS',
-  'url-html': 'HTML',
-  'raw-js': 'Raw JS',
-};
-
-export const FORMAT_COLORS: Record<TrackerFormat, string> = {
-  'url-image': 'var(--accent)',
-  'url-js': 'var(--warning)',
-  'url-html': 'var(--success)',
-  'raw-js': 'var(--error)',
-};
-
 // ── Placement (from CM360 / generic parser) ──
 
 export type ContentType = 'display' | 'video' | 'mixed';

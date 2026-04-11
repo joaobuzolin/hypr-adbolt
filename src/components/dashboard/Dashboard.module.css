@@ -147,7 +147,7 @@
 .trackerHint { font-weight: 400; color: var(--text-tri); font-size: 0.68rem; margin-left: 4px; }
 
 /* Bulk edit sections */
-.bulkDspSection { background: var(--bg-raised); border: 1px solid var(--border-subtle); border-radius: var(--r-sm); padding: 14px; margin-bottom: 12px; }
+
 .bulkScopeToggle { display: flex; gap: 4px; margin: 6px 0 10px; }
 .bulkScopeBtn { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-sec); border-radius: var(--r-xs); padding: 5px 12px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all var(--dur-f); }
 .bulkScopeBtn:hover { border-color: var(--accent); color: var(--accent); }

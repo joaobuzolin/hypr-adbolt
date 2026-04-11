@@ -79,12 +79,6 @@ body::before {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-@keyframes pulseRing {
-  0% { box-shadow: 0 0 0 0 var(--accent-ring); }
-  70% { box-shadow: 0 0 0 8px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-
 @keyframes fadeRow {
   from { opacity: 0; transform: translateX(-8px); }
   to { opacity: 1; transform: translateX(0); }
@@ -97,12 +91,6 @@ body::before {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-@keyframes cardSelect {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
 }
 
 @keyframes editFlash {

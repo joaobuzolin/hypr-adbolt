@@ -10,10 +10,9 @@ import { parseCM360 } from '@/parsers/cm360';
 import { parseGenericTags } from '@/parsers/generic';
 import { analyzeTracker } from '@/parsers/tracker';
 import { normalizeUrl } from '@/lib/utils';
-import type { Placement, Tracker, DspType } from '@/types';
+import type { Placement, Tracker } from '@/types';
+import { DSP_SHORT_LABELS } from '@/types';
 import styles from './StepTags.module.css';
-
-const DSP_SHORT: Record<string, string> = { xandr: 'XN', dv360: 'DV', stackadapt: 'SA', amazondsp: 'AZ' };
 
 export function StepTags() {
   const {
@@ -23,7 +22,7 @@ export function StepTags() {
     addPlacementTracker, removePlacementTracker,
     tagsFilterType, tagsFilterSize, tagsFilterText, setTagsFilter,
     currentStep, setStep, hasContent, hasDsp,
-    setConfig, selectedDsps,
+    setConfig,
   } = useWizardStore();
   const config = useWizardStore((s) => s.getStepConfig());
   const toast = useUIStore((s) => s.toast);
@@ -419,7 +418,7 @@ export function StepTags() {
                         {p.trackers.map((t: Tracker, ti: number) => (
                           <span key={ti} className={styles.trackerChip}>
                             <span className={styles.trackerScope}>
-                              {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT[d] || d).join(' ') : 'ALL')}
+                              {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT_LABELS[d] || d).join(' ') : 'ALL')}
                             </span>
                             <span className={styles.trackerUrl} title={t.url}>{t.url}</span>
                             <button className={styles.trackerRm} onClick={() => removePlacementTracker(i, ti)}>✕</button>

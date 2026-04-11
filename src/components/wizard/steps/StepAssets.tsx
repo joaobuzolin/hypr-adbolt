@@ -14,10 +14,8 @@ import { extractZipToFiles, processHTML5Zip } from '@/hooks/useHTML5Zip';
 import { analyzeTracker } from '@/parsers/tracker';
 import { normalizeUrl, formatBytes } from '@/lib/utils';
 import { ASSET_DSP_LIMITS, DSP_SHORT_LABELS } from '@/types';
-import type { AssetEntry, DspType } from '@/types';
+import type { AssetEntry } from '@/types';
 import styles from './StepAssets.module.css';
-
-const DSP_SHORT: Record<string, string> = { xandr: 'XN', dv360: 'DV', stackadapt: 'SA', amazondsp: 'AZ' };
 
 export function StepAssets() {
   const store = useWizardStore();
@@ -417,7 +415,7 @@ export function StepAssets() {
                           {a.trackers.map((t, ti) => (
                             <span key={ti} className={styles.trackerChip}>
                               <span className={styles.trackerScope}>
-                                {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT[d] || d).join(' ') : 'ALL')}
+                                {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT_LABELS[d] || d).join(' ') : 'ALL')}
                               </span>
                               {t.eventType && t.eventType !== 'impression' && (
                                 <span className={styles.trackerEvent}>{t.eventType}</span>

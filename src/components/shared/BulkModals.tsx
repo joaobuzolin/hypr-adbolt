@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import type { DspType, TrackerFormat, VastEventType } from '@/types';
 import { DSP_LABELS, VAST_EVENT_OPTIONS } from '@/types';
 import { analyzeTracker } from '@/parsers/tracker';
-import { normalizeUrl } from '@/lib/utils';
+import { normalizeUrl, getRenamedName } from '@/lib/utils';
 import styles from './BulkModals.module.css';
 
 /* ══════════════════════════════════════════════
@@ -22,24 +22,6 @@ interface RenameModalProps {
   onClose: () => void;
   items: RenameItem[];
   onApply: (getNewName: (item: RenameItem, index: number) => string) => void;
-}
-
-function getRenamedName(
-  name: string,
-  prefix: string,
-  suffix: string,
-  full: string,
-  index: number,
-  meta: { name: string; dimensions?: string; type?: string },
-): string {
-  if (full) {
-    return full
-      .replace(/\{name\}/gi, meta.name)
-      .replace(/\{size\}/gi, meta.dimensions || '')
-      .replace(/\{type\}/gi, meta.type || '')
-      .replace(/\{index\}/gi, String(index + 1));
-  }
-  return (prefix || '') + name + (suffix || '');
 }
 
 export function RenameModal({ visible, onClose, items, onApply }: RenameModalProps) {

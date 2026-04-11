@@ -3217,7 +3217,11 @@ function generateTemplateFromDash(){
     if(!jsTag&&!vastTag)continue;
     const clickUrl=dspData[0]?.click_url||dspData[0]?.landing_page||'';
     const isVideo=!!vastTag&&!jsTag;
-    placements.push({placementName:g.name,dimensions:g.dimensions,jsTag:jsTag||vastTag,vastTag:vastTag,clickUrl,type:isVideo?'video':'display',trackers:dspData[0]?.trackers||[]});
+    // Normalize trackers — can be array, object, string, or null from DB
+    let trackers=dspData[0]?.trackers||[];
+    if(typeof trackers==='string')try{trackers=JSON.parse(trackers)}catch(e){trackers=[]}
+    if(!Array.isArray(trackers))trackers=[];
+    placements.push({placementName:g.name,dimensions:g.dimensions,jsTag:jsTag||vastTag,vastTag:vastTag,clickUrl,type:isVideo?'video':'display',trackers});
   }
   if(!placements.length){toast('Nenhum criativo com tag encontrado','error');return}
   try{

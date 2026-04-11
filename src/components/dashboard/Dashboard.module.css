@@ -1,4 +1,4 @@
-.dashboard { padding: 0 40px 40px; max-width: 1320px; margin: 0 auto; animation: slideUp 0.4s var(--ease-out); }
+.dashboard { padding: 0 40px 40px; max-width: 1600px; margin: 0 auto; animation: slideUp 0.4s var(--ease-out); }
 
 /* Hero */
 .hero { padding: 32px 0 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
@@ -122,6 +122,14 @@
   .statHero { grid-column: 1 / -1; }
   .search { width: 100%; order: 10; }
   .expandInner { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1440px) {
+  .dashboard { padding: 0 56px 40px; }
+}
+
+@media (min-width: 1800px) {
+  .dashboard { padding: 0 80px 40px; }
 }
 
 

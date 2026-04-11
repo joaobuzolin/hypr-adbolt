@@ -41,18 +41,23 @@ export function StepAssets() {
     // Process ZIPs
     for (const zf of zipFiles) {
       toast(`Analisando ${zf.name}...`, '');
-      const html5Result = await processHTML5Zip(zf);
-      if (html5Result) {
-        const entry: AssetEntry = { ...html5Result, id: getNextAssetId() };
-        addAssetEntries([entry]);
-        const msg = html5Result.html5Warnings?.length
-          ? `HTML5 ${html5Result.w}x${html5Result.h} (${html5Result.html5Warnings.join(', ')})`
-          : `HTML5 ${html5Result.w}x${html5Result.h}`;
-        toast(msg, html5Result.html5Warnings?.length ? '' : 'success');
-      } else {
-        // Regular ZIP with images/videos
-        const extracted = await extractZipToFiles(zf);
-        regularFiles.push(...extracted);
+      try {
+        const html5Result = await processHTML5Zip(zf);
+        if (html5Result) {
+          const entry: AssetEntry = { ...html5Result, id: getNextAssetId() };
+          addAssetEntries([entry]);
+          const msg = html5Result.html5Warnings?.length
+            ? `HTML5 ${html5Result.w}x${html5Result.h} (${html5Result.html5Warnings.join(', ')})`
+            : `HTML5 ${html5Result.w}x${html5Result.h}`;
+          toast(msg, html5Result.html5Warnings?.length ? '' : 'success');
+        } else {
+          // Regular ZIP with images/videos
+          const extracted = await extractZipToFiles(zf);
+          regularFiles.push(...extracted);
+        }
+      } catch (err) {
+        console.error('ZIP processing error:', zf.name, err);
+        toast(`Erro ao processar ${zf.name}: ${(err as Error).message}`, 'error');
       }
     }
 
@@ -69,25 +74,30 @@ export function StepAssets() {
           toast(`"${file.name}" não é suportado. Use JPG, PNG, GIF ou MP4.`, 'error');
           continue;
         }
-        const dims = await readFileDimensions(file, type);
-        const thumb = await generateThumb(file, type);
-        newEntries.push({
-          id: getNextAssetId(),
-          type,
-          file,
-          originalFile: file,
-          name: file.name.replace(/\.\w+$/, ''),
-          dimensions: `${dims.w}x${dims.h}`,
-          w: dims.w,
-          h: dims.h,
-          duration: dims.duration || 0,
-          size: file.size,
-          thumb,
-          landingPage: '',
-          trackers: [],
-          compressed: false,
-          compressedFile: null,
-        });
+        try {
+          const dims = await readFileDimensions(file, type);
+          const thumb = await generateThumb(file, type);
+          newEntries.push({
+            id: getNextAssetId(),
+            type,
+            file,
+            originalFile: file,
+            name: file.name.replace(/\.\w+$/, ''),
+            dimensions: `${dims.w}x${dims.h}`,
+            w: dims.w,
+            h: dims.h,
+            duration: dims.duration || 0,
+            size: file.size,
+            thumb,
+            landingPage: '',
+            trackers: [],
+            compressed: false,
+            compressedFile: null,
+          });
+        } catch (err) {
+          console.error('File processing error:', file.name, err);
+          toast(`Erro ao processar ${file.name}`, 'error');
+        }
         if (total > 3 && i < total - 1) toast(`Processando ${i + 1}/${total} arquivos...`, '');
       }
 
@@ -143,19 +153,24 @@ export function StepAssets() {
   // ── Resize handler ──
   const handleResize = async (entry: AssetEntry, suggest: string) => {
     const [nw, nh] = suggest.split('x').map(Number);
-    const result = await resizeAssetImage(entry.originalFile, nw, nh);
-    if (result) {
-      updateAsset(entry.id, {
-        file: result.file,
-        compressedFile: result.file,
-        size: result.file.size,
-        w: nw,
-        h: nh,
-        dimensions: `${nw}x${nh}`,
-        thumb: result.thumb,
-        resized: true,
-      });
-      toast(`${entry.name} redimensionado pra ${suggest}`, 'success');
+    try {
+      const result = await resizeAssetImage(entry.originalFile, nw, nh);
+      if (result) {
+        updateAsset(entry.id, {
+          file: result.file,
+          compressedFile: result.file,
+          size: result.file.size,
+          w: nw,
+          h: nh,
+          dimensions: `${nw}x${nh}`,
+          thumb: result.thumb,
+          resized: true,
+        });
+        toast(`${entry.name} redimensionado pra ${suggest}`, 'success');
+      }
+    } catch (err) {
+      console.error('Resize error:', entry.name, err);
+      toast('Erro ao redimensionar', 'error');
     }
   };
 

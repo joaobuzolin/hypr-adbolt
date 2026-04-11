@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchSurveyList, detectVariant } from '@/services/typeform';
 import type { TypeformSurvey } from '@/services/typeform';
 import { SURVEY_SIZES } from '@/types';
@@ -19,7 +19,6 @@ export function SurveyPicker({ onAdd }: SurveyPickerProps) {
   const [size, setSize] = useState('300x600');
   const [openDD, setOpenDD] = useState<string | null>(null);
   const [customTypes, setCustomTypes] = useState<string[]>([]);
-  const wrapRef = useRef<HTMLDivElement>(null);
 
   // Editable overrides for type and variant (keyed by form id)
   const [typeOverrides, setTypeOverrides] = useState<Record<string, string>>({});
@@ -33,11 +32,9 @@ export function SurveyPicker({ onAdd }: SurveyPickerProps) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Close dropdown on outside click or Escape
+  // Close dropdown on any click outside (panels use stopPropagation) or Escape
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpenDD(null);
-    };
+    const handleClick = () => setOpenDD(null);
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenDD(null); };
     document.addEventListener('click', handleClick);
     document.addEventListener('keydown', handleKey);
@@ -128,7 +125,7 @@ export function SurveyPicker({ onAdd }: SurveyPickerProps) {
   if (!surveys.length) return null;
 
   return (
-    <div className={styles.pickerCard} ref={wrapRef}>
+    <div className={styles.pickerCard}>
       <div className={styles.pickerHeader}>
         <div>
           <div className={styles.pickerTitle}>Surveys disponíveis</div>
@@ -148,8 +145,8 @@ export function SurveyPicker({ onAdd }: SurveyPickerProps) {
           <thead>
             <tr>
               <th className={styles.pickerCb}><input type="checkbox" checked={filtered.length > 0 && filtered.every((s) => selected.has(s.id))} onChange={toggleAll} /></th>
-              <th>Survey</th>
-              <th>Brand</th>
+              <th className={styles.pickerColSurvey}>Survey</th>
+              <th className={styles.pickerColBrand}>Brand</th>
               <th className={styles.pickerColType}>Tipo</th>
               <th className={styles.pickerColVariant}>Variante</th>
               <th className={styles.pickerColDate}>Data</th>

@@ -1,0 +1,387 @@
+import { useCallback } from 'react';
+import { useWizardStore } from '@/stores/wizard';
+import { useUIStore } from '@/stores/ui';
+import { UploadZone } from '@/components/shared/UploadZone';
+import { FilterBar } from '@/components/shared/FilterBar';
+import { BulkBar } from '@/components/shared/BulkBar';
+import { StepNav } from '@/components/shared/StepNav';
+import {
+  getAssetType, readFileDimensions, generateThumb,
+  isIABSize, getSizeSuggestion, resizeAssetImage,
+} from '@/hooks/useAssetProcessing';
+import { extractZipToFiles, processHTML5Zip } from '@/hooks/useHTML5Zip';
+import { analyzeTracker } from '@/parsers/tracker';
+import { normalizeUrl, formatBytes } from '@/lib/utils';
+import { ASSET_DSP_LIMITS } from '@/types';
+import type { AssetEntry } from '@/types';
+import styles from './StepAssets.module.css';
+
+export function StepAssets() {
+  const store = useWizardStore();
+  const {
+    assetEntries, addAssetEntries, removeAsset, updateAsset, duplicateAsset,
+    selectedAssetIds, toggleAssetSelection, selectAllAssets, clearAssetSelection,
+    assetsFilterType, assetsFilterSize, assetsFilterText, setAssetsFilter,
+    addAssetTracker, removeAssetTracker, getNextAssetId,
+    selectedDsps, currentStep, setStep, hasContent, hasDsp,
+  } = store;
+  const config = store.getStepConfig();
+  const toast = useUIStore((s) => s.toast);
+
+  // ── File handling ──
+  const handleFiles = useCallback(async (files: File[]) => {
+    const zipFiles: File[] = [];
+    const regularFiles: File[] = [];
+
+    for (const f of files) {
+      if (f.name.toLowerCase().endsWith('.zip')) zipFiles.push(f);
+      else regularFiles.push(f);
+    }
+
+    // Process ZIPs
+    for (const zf of zipFiles) {
+      toast(`Analisando ${zf.name}...`, '');
+      const html5Result = await processHTML5Zip(zf);
+      if (html5Result) {
+        const entry: AssetEntry = { ...html5Result, id: getNextAssetId() };
+        addAssetEntries([entry]);
+        const msg = html5Result.html5Warnings?.length
+          ? `HTML5 ${html5Result.w}x${html5Result.h} (${html5Result.html5Warnings.join(', ')})`
+          : `HTML5 ${html5Result.w}x${html5Result.h}`;
+        toast(msg, html5Result.html5Warnings?.length ? '' : 'success');
+      } else {
+        // Regular ZIP with images/videos
+        const extracted = await extractZipToFiles(zf);
+        regularFiles.push(...extracted);
+      }
+    }
+
+    // Process regular files
+    if (regularFiles.length) {
+      const total = regularFiles.length;
+      if (total > 3) toast(`Processando 0/${total} arquivos...`, '');
+
+      const newEntries: AssetEntry[] = [];
+      for (let i = 0; i < regularFiles.length; i++) {
+        const file = regularFiles[i];
+        const type = getAssetType(file);
+        if (!type) {
+          toast(`"${file.name}" não é suportado. Use JPG, PNG, GIF ou MP4.`, 'error');
+          continue;
+        }
+        const dims = await readFileDimensions(file, type);
+        const thumb = await generateThumb(file, type);
+        newEntries.push({
+          id: getNextAssetId(),
+          type,
+          file,
+          originalFile: file,
+          name: file.name.replace(/\.\w+$/, ''),
+          dimensions: `${dims.w}x${dims.h}`,
+          w: dims.w,
+          h: dims.h,
+          duration: dims.duration || 0,
+          size: file.size,
+          thumb,
+          landingPage: '',
+          trackers: [],
+          compressed: false,
+          compressedFile: null,
+        });
+        if (total > 3 && i < total - 1) toast(`Processando ${i + 1}/${total} arquivos...`, '');
+      }
+
+      if (newEntries.length) {
+        addAssetEntries(newEntries);
+        toast(`${assetEntries.length + newEntries.length} asset(s) carregado(s)`, 'success');
+      }
+    }
+
+    if (!regularFiles.length && !zipFiles.length) {
+      toast('Nenhum arquivo válido encontrado', 'error');
+    }
+  }, [addAssetEntries, getNextAssetId, assetEntries.length, toast]);
+
+  // ── Filtering ──
+  const sizes = [...new Set(assetEntries.map((a) => a.dimensions))].sort((a, b) => {
+    const [aw] = a.split('x').map(Number);
+    const [bw] = b.split('x').map(Number);
+    return bw - aw;
+  });
+
+  let filtered = assetEntries;
+  if (assetsFilterText) filtered = filtered.filter((a) => a.name.toLowerCase().includes(assetsFilterText.toLowerCase()));
+  if (assetsFilterType !== 'all') filtered = filtered.filter((a) => a.type === assetsFilterType);
+  if (assetsFilterSize !== 'all') filtered = filtered.filter((a) => a.dimensions === assetsFilterSize);
+
+  const hasFilter = assetsFilterText || assetsFilterType !== 'all' || assetsFilterSize !== 'all';
+
+  // ── Weight class ──
+  const getWeightClass = (entry: AssetEntry): string => {
+    const maxWeight = Math.min(
+      ...[...selectedDsps].map((d) => (ASSET_DSP_LIMITS[d] || {})[entry.type] || Infinity).filter((v) => v !== Infinity),
+      Infinity,
+    );
+    if (maxWeight === Infinity) return 'ok';
+    const sz = entry.compressedFile ? entry.compressedFile.size : entry.size;
+    if (sz > maxWeight * 1.5) return 'over';
+    if (sz > maxWeight * 0.8) return 'warn';
+    return 'ok';
+  };
+
+  // ── Tracker commit on blur ──
+  const handleTrackerCommit = (assetId: number, raw: string) => {
+    if (!raw.trim()) return;
+    const analyzed = analyzeTracker(raw);
+    const url = normalizeUrl(analyzed.url);
+    const entry = assetEntries.find((a) => a.id === assetId);
+    if (entry && !entry.trackers.some((t) => t.url === url)) {
+      addAssetTracker(assetId, { url, format: analyzed.format, dsps: 'all' });
+    }
+  };
+
+  // ── Resize handler ──
+  const handleResize = async (entry: AssetEntry, suggest: string) => {
+    const [nw, nh] = suggest.split('x').map(Number);
+    const result = await resizeAssetImage(entry.originalFile, nw, nh);
+    if (result) {
+      updateAsset(entry.id, {
+        file: result.file,
+        compressedFile: result.file,
+        size: result.file.size,
+        w: nw,
+        h: nh,
+        dimensions: `${nw}x${nh}`,
+        thumb: result.thumb,
+        resized: true,
+      });
+      toast(`${entry.name} redimensionado pra ${suggest}`, 'success');
+    }
+  };
+
+  // ── Bulk actions ──
+  const selectedCount = selectedAssetIds.size;
+  const bulkActions = [
+    {
+      label: 'Landing Page', onClick: () => {
+        const val = prompt(`Landing Page pra ${selectedCount} asset(s):`);
+        if (val === null) return;
+        const normalized = normalizeUrl(val);
+        selectedAssetIds.forEach((id) => updateAsset(id, { landingPage: normalized }));
+        toast(`Landing page aplicada em ${selectedCount} asset(s)`, 'success');
+      },
+    },
+    {
+      label: 'Remover', onClick: () => {
+        if (!confirm(`Remover ${selectedCount} asset(s)?`)) return;
+        selectedAssetIds.forEach((id) => removeAsset(id));
+        clearAssetSelection();
+        toast(`${selectedCount} asset(s) removido(s)`, 'success');
+      }, danger: true,
+    },
+  ];
+
+  // ── Navigation ──
+  const prevLabel = currentStep > 0 ? config.labels[currentStep - 1] : null;
+  const nextLabel = currentStep < config.steps.length - 1 ? config.labels[currentStep + 1] : null;
+  const nextStep = config.steps[currentStep + 1];
+  const nextDisabled =
+    (nextStep === 'dsps' && !hasContent()) ||
+    (nextStep === 'config' && (!hasContent() || !hasDsp())) ||
+    (nextStep === 'activate' && (!hasContent() || !hasDsp()));
+
+  return (
+    <div>
+      <div className={styles.header}>
+        <h2>Standard Assets</h2>
+        <p>Upload de imagens, vídeos e HTML5 para ativação direta nas DSPs</p>
+      </div>
+
+      <UploadZone
+        accept=".jpg,.jpeg,.png,.gif,.mp4,.mov,.webm,.zip"
+        multiple
+        icon="🎨"
+        formatHint="JPG · PNG · GIF · MP4 · ZIP"
+        hasFiles={assetEntries.length > 0}
+        fileSummary={assetEntries.length > 0 ? (
+          <span>
+            <strong>{assetEntries.length}</strong> assets
+            ({[
+              assetEntries.filter((a) => a.type === 'display').length ? `${assetEntries.filter((a) => a.type === 'display').length} display` : null,
+              assetEntries.filter((a) => a.type === 'video').length ? `${assetEntries.filter((a) => a.type === 'video').length} video` : null,
+              assetEntries.filter((a) => a.type === 'html5').length ? `${assetEntries.filter((a) => a.type === 'html5').length} HTML5` : null,
+            ].filter(Boolean).join(' + ')})
+          </span>
+        ) : undefined}
+        onFiles={handleFiles}
+        onClear={() => {
+          assetEntries.forEach((a) => removeAsset(a.id));
+          clearAssetSelection();
+        }}
+      />
+
+      {/* Assets table */}
+      {assetEntries.length > 0 && (
+        <div className={styles.tableSection}>
+          <BulkBar count={selectedCount} actions={bulkActions} onCancel={clearAssetSelection} />
+
+          <FilterBar
+            searchValue={assetsFilterText}
+            onSearchChange={(v) => setAssetsFilter({ text: v })}
+            pills={{
+              options: [
+                { value: 'all', label: 'Todos' },
+                { value: 'display', label: 'Display' },
+                { value: 'video', label: 'Video' },
+              ],
+              active: assetsFilterType,
+              onChange: (v) => setAssetsFilter({ type: v as 'all' | 'display' | 'video' }),
+            }}
+            sizeOptions={sizes}
+            sizeValue={assetsFilterSize}
+            onSizeChange={(v) => setAssetsFilter({ size: v })}
+            countText={hasFilter ? `${filtered.length}/${assetEntries.length}` : ''}
+            onSelectFiltered={assetsFilterText ? () => {
+              selectAllAssets(filtered.map((a) => a.id));
+              toast(`${filtered.length} asset(s) selecionado(s)`, 'success');
+            } : undefined}
+            showClear={!!hasFilter}
+            onClear={() => setAssetsFilter({ type: 'all', size: 'all', text: '' })}
+          />
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.cbCol}>
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && filtered.every((a) => selectedAssetIds.has(a.id))}
+                      onChange={(e) => {
+                        if (e.target.checked) selectAllAssets(filtered.map((a) => a.id));
+                        else clearAssetSelection();
+                      }}
+                    />
+                  </th>
+                  <th></th>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Formato</th>
+                  <th>Size</th>
+                  <th>Peso</th>
+                  <th>Landing Page</th>
+                  <th>Tracker</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((a, i) => {
+                  const sz = a.compressedFile ? a.compressedFile.size : a.size;
+                  const wc = getWeightClass(a);
+                  const ext = (a.originalFile?.name || '').split('.').pop()?.toUpperCase() || '?';
+                  const suggestion = a.type === 'display' && !isIABSize(a.dimensions) ? getSizeSuggestion(a.w, a.h) : null;
+
+                  return (
+                    <tr key={a.id} style={{ animationDelay: `${i * 40}ms` }}>
+                      <td className={styles.cbCol}>
+                        <input
+                          type="checkbox"
+                          checked={selectedAssetIds.has(a.id)}
+                          onChange={() => toggleAssetSelection(a.id)}
+                        />
+                      </td>
+                      <td>
+                        {a.thumb ? (
+                          <img src={a.thumb} className={`${styles.thumb} ${a.type === 'video' ? styles.thumbVideo : ''}`} alt={a.name} width="48" height="36" loading="lazy" />
+                        ) : '-'}
+                      </td>
+                      <td>
+                        <input
+                          className={styles.cellInput}
+                          value={a.name}
+                          onChange={(e) => updateAsset(a.id, { name: e.target.value })}
+                        />
+                      </td>
+                      <td><span className={`${styles.typeBadge} ${styles[a.type]}`}>{a.type}</span></td>
+                      <td><span className={styles.formatBadge}>{a.type === 'html5' ? 'HTML5' : ext}</span></td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <input
+                          className={`${styles.cellInput} ${styles.mono}`}
+                          style={{ width: 75 }}
+                          value={a.dimensions}
+                          onChange={(e) => updateAsset(a.id, { dimensions: e.target.value })}
+                        />
+                        {suggestion && !a.resized && (
+                          <button
+                            className={styles.resizeBtn}
+                            onClick={() => handleResize(a, suggestion)}
+                            title={`Redimensionar pra ${suggestion}`}
+                          >
+                            {suggestion}
+                          </button>
+                        )}
+                        {a.resized && <span className={styles.sizeOk} title="Redimensionado">✓</span>}
+                      </td>
+                      <td><span className={`${styles.weightBadge} ${styles[wc]}`}>{formatBytes(sz)}{a.compressed ? ' ⚡' : ''}</span></td>
+                      <td>
+                        <input
+                          className={`${styles.cellInput} ${styles.mono}`}
+                          value={a.landingPage}
+                          onChange={(e) => updateAsset(a.id, { landingPage: e.target.value })}
+                          onBlur={(e) => {
+                            const n = normalizeUrl(e.target.value);
+                            if (n !== e.target.value) updateAsset(a.id, { landingPage: n });
+                          }}
+                          placeholder="https://..."
+                        />
+                      </td>
+                      <td className={styles.trackerCell}>
+                        <div className={styles.trackerChips}>
+                          {a.trackers.map((t, ti) => (
+                            <span key={ti} className={styles.trackerChip}>
+                              <span className={styles.trackerUrl} title={t.url}>{t.url}</span>
+                              <button
+                                className={styles.trackerRm}
+                                onClick={() => removeAssetTracker(a.id, ti)}
+                              >✕</button>
+                            </span>
+                          ))}
+                          <input
+                            className={styles.trackerInput}
+                            placeholder="+ pixel"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleTrackerCommit(a.id, (e.target as HTMLInputElement).value);
+                                (e.target as HTMLInputElement).value = '';
+                              }
+                            }}
+                            onBlur={(e) => {
+                              handleTrackerCommit(a.id, e.target.value);
+                              e.target.value = '';
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className={styles.actions}>
+                        <button className={styles.actionBtn} title="Duplicar" onClick={() => duplicateAsset(a.id)}>⧉</button>
+                        <button className={`${styles.actionBtn} ${styles.danger}`} title="Remover" onClick={() => removeAsset(a.id)}>✕</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <StepNav
+        prevLabel={prevLabel}
+        nextLabel={nextLabel}
+        nextDisabled={nextDisabled}
+        onPrev={currentStep > 0 ? () => setStep(currentStep - 1) : undefined}
+        onNext={currentStep < config.steps.length - 1 ? () => setStep(currentStep + 1) : undefined}
+      />
+    </div>
+  );
+}

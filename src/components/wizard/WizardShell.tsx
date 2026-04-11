@@ -3,6 +3,7 @@ import { useUIStore } from '@/stores/ui';
 import { WizardSidebar } from './WizardSidebar';
 import { StepTags } from './steps/StepTags';
 import { StepSurveys } from './steps/StepSurveys';
+import { StepAssets } from './steps/StepAssets';
 import { StepDsps } from './steps/StepDsps';
 import { StepConfig } from './steps/StepConfig';
 import { StepActivate } from './steps/StepActivate';
@@ -11,7 +12,7 @@ import styles from './WizardShell.module.css';
 const STEP_MAP: Record<string, React.ComponentType> = {
   tags: StepTags,
   surveys: StepSurveys,
-  assets: StepAssetsPlaceholder,
+  assets: StepAssets,
   dsps: StepDsps,
   config: StepConfig,
   activate: StepActivate,
@@ -52,17 +53,6 @@ export function WizardShell() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ── Temporary placeholder for Phase 5 ──
-
-function StepAssetsPlaceholder() {
-  return (
-    <div style={{ padding: '40px' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 6 }}>Standard Assets</h2>
-      <p style={{ color: 'var(--text-sec)' }}>Será implementado na Fase 5</p>
     </div>
   );
 }

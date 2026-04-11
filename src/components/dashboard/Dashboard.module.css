@@ -48,17 +48,17 @@
 .msClear:hover { color: var(--accent); }
 
 /* Table */
-.tableWrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-.table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.tableWrap { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r); overflow-x: auto; }
+.table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.78rem; table-layout: fixed; }
 .table th { text-align: left; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); font-weight: 600; background: var(--bg-surface); }
 .table td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-subtle); }
 .table tbody tr { cursor: pointer; transition: background var(--dur-f); opacity: 0; animation: fadeRow 0.25s var(--ease-out) both; }
 .table tbody tr:hover { background: var(--accent-glow); }
 .empty { text-align: center; padding: 60px 20px !important; color: var(--text-sec); }
 
-.nameWrap { min-width: 0; }
-.name { font-weight: 500; display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nameType { font-size: 0.68rem; color: var(--text-tri); margin-top: 2px; }
+.nameWrap { min-width: 0; overflow: hidden; }
+.name { font-weight: 500; display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.nameType { font-size: 0.68rem; color: var(--text-tri); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chevron { flex-shrink: 0; color: var(--text-tri); transition: transform 0.2s var(--ease-out); }
 .expanded .chevron { transform: rotate(90deg); color: var(--accent); }
 .dimCol { font-family: var(--mono); font-size: 0.75rem; white-space: nowrap; }

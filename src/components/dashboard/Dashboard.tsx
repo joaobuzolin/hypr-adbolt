@@ -256,13 +256,13 @@ export function Dashboard() {
           <thead>
             <tr>
               <th style={{ width: 32 }}><input type="checkbox" checked={pageItems.length > 0 && pageItems.every((g) => store.selectedKeys.has(g._gid))} onChange={(e) => { if (e.target.checked) store.selectAll(pageItems.map((g) => g._gid)); else store.clearSelection(); }} /></th>
-              <th style={{ width: '30%' }}>Nome</th>
-              <th>Size</th>
-              <th>Formato</th>
-              <th>Status</th>
-              <th>Criado por</th>
-              <th>Criado em</th>
-              <th></th>
+              <th style={{ width: '28%' }}>Nome</th>
+              <th style={{ width: 80 }}>Size</th>
+              <th style={{ width: 70 }}>Formato</th>
+              <th style={{ width: 180 }}>Status</th>
+              <th style={{ width: 120 }}>Criado por</th>
+              <th style={{ width: 110 }}>Criado em</th>
+              <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>

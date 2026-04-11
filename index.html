@@ -190,7 +190,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 /* Expand row */
 .dash-expand{display:none;animation:slideUp 0.25s var(--ease-out)}
 .dash-expand.visible{display:table-row}
-.dash-expand td{padding:0 16px 16px;border-bottom:1px solid var(--border-subtle)}
+.dash-expand td{padding:4px 16px 20px;border-bottom:1px solid var(--border-subtle)}
 .dash-expand-inner{background:var(--bg-raised);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:20px;display:flex;flex-direction:column;gap:16px}
 .dash-expand-dsp{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
 .dash-expand-dsp-header{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border-subtle);margin-bottom:2px}
@@ -3216,7 +3216,39 @@ function getFilteredGroups(){
   if(dashFilterSearch)list=list.filter(g=>g.name.toLowerCase().includes(dashFilterSearch));
   return list;
 }
-function toggleDashExpand(key){dashExpandedKey=dashExpandedKey===key?null:key;renderDashTable()}
+function toggleDashExpand(key){
+  const prev=dashExpandedKey;dashExpandedKey=dashExpandedKey===key?null:key;
+  // Remove previous expand row
+  const oldExp=document.querySelector('.dash-expand.visible');
+  if(oldExp){const oldParent=oldExp.previousElementSibling;if(oldParent)oldParent.classList.remove('expanded');oldExp.remove()}
+  // If collapsed same row, done
+  if(prev===key){dashExpandedKey=null;return}
+  // Find the parent row by iterating table rows
+  const rows=document.querySelectorAll('#dashBody tr:not(.dash-expand)');
+  let targetRow=null,targetGroup=null;
+  const filtered=getFilteredGroups();const start=dashPage*dashPageSize;const page=filtered.slice(start,start+dashPageSize);
+  for(let i=0;i<rows.length;i++){if(page[i]&&page[i]._gid===key){targetRow=rows[i];targetGroup=page[i];break}}
+  if(!targetRow||!targetGroup)return;
+  targetRow.classList.add('expanded');
+  const dn={xandr:'XANDR',dv360:'DV360',stackadapt:'StackAdapt',amazondsp:'Amazon DSP'};
+  const dk=Object.keys(targetGroup.dsps).sort();
+  let ef=dk.map(k=>{
+    const dd=targetGroup.dsps[k];const dspLabel=dn[k]||k;
+    let f='<div class="dash-expand-dsp">';
+    f+='<div class="dash-expand-dsp-header"><span class="dash-expand-dsp-tag '+k+'">'+dspLabel+'</span><span class="dash-expand-dsp-id">ID: '+(dd.dsp_creative_id||'-')+'</span></div>';
+    if(dd.landing_page)f+='<div class="dash-expand-field"><div class="dash-expand-label">URL destino</div><div class="dash-expand-val">'+esc(dd.landing_page)+'</div></div>';
+    if(dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">Click redirect</div><div class="dash-expand-val">'+esc(dd.click_url)+'</div></div>';
+    if(!dd.landing_page&&!dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">URLs</div><div class="dash-expand-val" style="color:var(--text-tri)">Nenhuma URL configurada</div></div>';
+    if(k==='dv360'){const cfg=typeof dd.dsp_config==='string'?JSON.parse(dd.dsp_config||'{}'):(dd.dsp_config||{});const exs=cfg.exchangeReviewStatuses||[];if(exs.length)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Exchange Review</div><div class="dash-expand-exchanges">'+exs.map(e=>'<span class="dash-expand-exchange"><span class="dsp-dot '+e.status+'" style="width:7px;height:7px"></span>'+esc(e.exchange)+'</span>').join('')+'</div></div>'}
+    if(dd.sync_error)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Sync Error</div><div class="dash-expand-val" style="color:var(--error)">'+esc(dd.sync_error)+'</div></div>';
+    const tg=dd.js_tag||dd.vast_tag||'';
+    if(tg)f+='<div class="dash-expand-tag-preview">'+(dd.vast_tag?'VAST: ':'Tag: ')+esc(tg.substring(0,250))+(tg.length>250?'…':'')+'</div>';
+    f+='</div>';return f;
+  }).join('');
+  const expRow=document.createElement('tr');expRow.className='dash-expand visible';
+  expRow.innerHTML='<td></td><td colspan="8"><div class="dash-expand-inner">'+ef+'</div></td>';
+  targetRow.after(expRow);
+}
 
 function getFormatLabel(g){
   if(g.asset_filename){const ext=g.asset_filename.split('.').pop().toUpperCase();if(ext==='ZIP')return'HTML5';return ext}
@@ -3242,9 +3274,8 @@ function renderDashTable(){
     const sc=dk.map(k=>{const d=g.dsps[k];const cfg=typeof d.dsp_config==='string'?JSON.parse(d.dsp_config||'{}'):(d.dsp_config||{});const exs=cfg.exchangeReviewStatuses||[];if(k==='dv360'&&exs.length){const gam=exs.find(e=>e.exchange==='Google Ad Manager');const gamStatus=gam?gam.status:(d.audit_status||'unknown');const otherCount=exs.length-(gam?1:0);const otherApproved=exs.filter(e=>e.exchange!=='Google Ad Manager'&&e.status==='approved').length;const otherPending=otherCount-otherApproved;const tooltip=exs.map(e=>e.exchange+': '+e.status).join('\n');return'<div class="dsp-chip" title="'+esc(tooltip)+'"><span class="dsp-dot '+gamStatus+'"></span><span class="dsp-chip-label">'+(dn[k]||k)+'</span><span class="dsp-chip-status">'+gamStatus+(otherPending>0?' ('+otherPending+' pending)':'')+'</span></div>'}return'<div class="dsp-chip"><span class="dsp-dot '+(d.audit_status||'unknown')+'"></span><span class="dsp-chip-label">'+(dn[k]||k)+'</span><span class="dsp-chip-status">'+(d.audit_status||'unknown')+'</span></div>'}).join('');
     const gk=g._gid;
     const ek=encodeURIComponent(gk);
-    const isExp=dashExpandedKey===gk;
     const isSel=dashSelectedKeys.has(gk);
-    html+='<tr style="animation:fadeRow 0.25s var(--ease-out) '+gi*25+'ms both" class="'+(isExp?'expanded':'')+'" onclick="toggleDashExpand(\''+gk.replace(/'/g,"\\'")+'\')">';
+    html+='<tr style="animation:fadeRow 0.25s var(--ease-out) '+gi*25+'ms both" onclick="toggleDashExpand(\''+gk.replace(/'/g,"\\'")+'\')">';
     html+='<td onclick="event.stopPropagation()"><input type="checkbox" '+(isSel?'checked':'')+' onchange="toggleDashSelect(\''+gk.replace(/'/g,"\\'")+"',this.checked)\"></td>";
     html+='<td><div class="td-name-wrap"><div class="td-name" title="'+esc(g.name)+'"><svg class="td-expand-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>'+esc(g.name)+'</div><div class="td-name-type">'+(g.creative_type||'display')+' · '+dk.length+' DSP'+(dk.length>1?'s':'')+'</div></div></td>';
     html+='<td class="td-dims">'+(g.dimensions||'-')+'</td>';
@@ -3254,26 +3285,10 @@ function renderDashTable(){
     html+='<td class="td-meta td-datetime">'+dt+'</td>';
     html+='<td class="td-meta td-datetime">'+(g.last_edited_by?esc(g.last_edited_by)+'<br>':'')+editDt+'</td>';
     html+='<td><button class="dash-edit-btn" onclick="event.stopPropagation();openEditModal(\''+ek+'\')">Editar</button></td></tr>';
-    if(isExp){
-      let ef=dk.map(k=>{
-        const dd=g.dsps[k];
-        const dspLabel=dn[k]||k;
-        let f='<div class="dash-expand-dsp">';
-        f+='<div class="dash-expand-dsp-header"><span class="dash-expand-dsp-tag '+k+'">'+dspLabel+'</span><span class="dash-expand-dsp-id">ID: '+(dd.dsp_creative_id||'-')+'</span></div>';
-        if(dd.landing_page)f+='<div class="dash-expand-field"><div class="dash-expand-label">URL destino</div><div class="dash-expand-val">'+esc(dd.landing_page)+'</div></div>';
-        if(dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">Click redirect</div><div class="dash-expand-val">'+esc(dd.click_url)+'</div></div>';
-        if(!dd.landing_page&&!dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">URLs</div><div class="dash-expand-val" style="color:var(--text-tri)">Nenhuma URL configurada</div></div>';
-        if(k==='dv360'){const cfg=typeof dd.dsp_config==='string'?JSON.parse(dd.dsp_config||'{}'):(dd.dsp_config||{});const exs=cfg.exchangeReviewStatuses||[];if(exs.length)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Exchange Review</div><div class="dash-expand-exchanges">'+exs.map(e=>'<span class="dash-expand-exchange"><span class="dsp-dot '+e.status+'" style="width:7px;height:7px"></span>'+esc(e.exchange)+'</span>').join('')+'</div></div>'}
-        if(dd.sync_error)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Sync Error</div><div class="dash-expand-val" style="color:var(--error)">'+esc(dd.sync_error)+'</div></div>';
-        const tg=dd.js_tag||dd.vast_tag||'';
-        if(tg)f+='<div class="dash-expand-tag-preview">'+(dd.vast_tag?'VAST: ':'Tag: ')+esc(tg.substring(0,250))+(tg.length>250?'…':'')+'</div>';
-        f+='</div>';
-        return f;
-      }).join('');
-      html+='<tr class="dash-expand visible"><td></td><td colspan="8"><div class="dash-expand-inner">'+ef+'</div></td></tr>';
-    }
   });
   body.innerHTML=html;
+  // Re-open expanded row if it was open before re-render
+  if(dashExpandedKey){const saved=dashExpandedKey;dashExpandedKey=null;toggleDashExpand(saved)}
   document.getElementById('dashPagination').innerHTML='<span>'+filtered.length+' criativo'+(filtered.length!==1?'s':'')+'</span><div style="display:flex;gap:4px;align-items:center"><button class="dash-pg-btn" onclick="dashPage--;dashExpandedKey=null;renderDashTable()" '+(dashPage===0?'disabled':'')+'>←</button><span style="padding:0 10px;font-variant-numeric:tabular-nums">'+((dashPage+1)+' / '+totalPages)+'</span><button class="dash-pg-btn" onclick="dashPage++;dashExpandedKey=null;renderDashTable()" '+(dashPage>=totalPages-1?'disabled':'')+'>→</button></div>';
 }
 

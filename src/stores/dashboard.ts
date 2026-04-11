@@ -71,6 +71,8 @@ function buildGroups(creatives: Creative[]): CreativeGroup[] {
         creative_type: c.creative_type,
         asset_filename: c.asset_filename || null,
         asset_mime_type: c.asset_mime_type || null,
+        thumbnail_url: c.thumbnail_url || null,
+        js_tag: c.js_tag || null,
         created_by_name: c.created_by_name || c.created_by_email || '-',
         created_at: c.created_at,
         last_edited_at: c.last_synced_at || c.updated_at || null,
@@ -104,6 +106,15 @@ function buildGroups(creatives: Creative[]): CreativeGroup[] {
 
     if (new Date(c.created_at) < new Date(g.created_at)) {
       g.created_at = c.created_at;
+    }
+
+    // Propagate thumbnail from any creative that has one
+    if (!g.thumbnail_url && c.thumbnail_url) {
+      g.thumbnail_url = c.thumbnail_url;
+    }
+    // Also propagate js_tag if not set
+    if (!g.js_tag && c.js_tag) {
+      g.js_tag = c.js_tag;
     }
 
     const editTs = c.last_synced_at || c.updated_at;

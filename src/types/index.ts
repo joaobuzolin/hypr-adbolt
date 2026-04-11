@@ -159,6 +159,7 @@ export interface Creative {
   audit_status: AuditStatus | null;
   last_synced_at: string | null;
   sync_error: string | null;
+  thumbnail_url: string | null;
 }
 
 // ── Dashboard Group ──
@@ -183,6 +184,8 @@ export interface CreativeGroup {
   creative_type: string;
   asset_filename: string | null;
   asset_mime_type: string | null;
+  thumbnail_url: string | null;
+  js_tag: string | null;
   created_by_name: string;
   created_at: string;
   last_edited_at: string | null;

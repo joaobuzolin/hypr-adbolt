@@ -57,7 +57,7 @@
 
 /* Table */
 .tableWrap { background: var(--bg-surface); border: var(--surface-border) solid var(--border); border-radius: var(--surface-radius); overflow-x: auto; }
-.table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: var(--fs-sm); table-layout: fixed; }
+.table { width: 100%; min-width: 960px; border-collapse: collapse; font-size: var(--fs-sm); table-layout: fixed; }
 .table th { text-align: left; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border); font-weight: 500; background: var(--bg-surface); }
 .table td { padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border-subtle); }
 .table tbody tr { cursor: pointer; transition: background var(--dur-f); opacity: 0; animation: fadeRow 0.25s var(--ease-out) both; }
@@ -93,6 +93,16 @@
 .expandRow td { padding: 0 var(--sp-4) var(--sp-4) !important; border-bottom: var(--surface-border) solid var(--border); background: var(--bg-base); }
 .expandRow { animation: fadeIn 0.2s var(--ease-out); }
 .expandInner { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; padding-top: var(--sp-3); }
+
+/* Thumbnail column */
+.thumbTd { width: 56px; padding-left: 8px !important; padding-right: 4px !important; }
+
+/* Expand preview panel */
+.expandPreview { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; padding: 12px; background: var(--bg-base); border: var(--surface-border) solid var(--border-subtle); border-radius: var(--surface-radius-sm); cursor: pointer; transition: all var(--dur-f); min-height: 80px; }
+.expandPreview:hover { border-color: var(--accent-ring); background: var(--accent-dim); }
+.expandPreviewImg { max-width: 200px; max-height: 120px; object-fit: contain; border-radius: var(--surface-radius-xs); }
+.expandPreviewTag { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--accent); font-weight: 500; }
+.expandPreviewTag:hover { color: var(--accent-hover); }
 .expandDsp { background: var(--bg-surface); border: var(--surface-border) solid var(--border-subtle); border-radius: var(--surface-radius-sm); padding: 16px; }
 .expandDspHeader { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .expandField { display: flex; gap: 8px; font-size: var(--fs-sm); margin-bottom: 6px; }

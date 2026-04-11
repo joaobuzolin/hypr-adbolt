@@ -7,6 +7,7 @@ import { BulkBar } from '@/components/shared/BulkBar';
 import { StepNav } from '@/components/shared/StepNav';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { RenameModal, FindReplaceModal, BulkTrackerModal } from '@/components/shared/BulkModals';
+import { PreviewThumb, CreativePreviewModal } from '@/components/shared/CreativePreview';
 import {
   getAssetType, readFileDimensions, generateThumb,
   isIABSize, getSizeSuggestion, resizeAssetImage, compressImage,
@@ -184,6 +185,28 @@ export function StepAssets() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [frOpen, setFrOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
+  const [previewAsset, setPreviewAsset] = useState<AssetEntry | null>(null);
+
+  // ── Preview handler ──
+  const openPreview = useCallback((asset: AssetEntry) => {
+    setPreviewAsset(asset);
+  }, []);
+
+  const getPreviewData = useCallback((a: AssetEntry) => {
+    if (!a) return null;
+    const base = { name: a.name, dimensions: a.dimensions };
+    if (a.type === 'display') {
+      return { ...base, type: 'display' as const, imageUrl: URL.createObjectURL(a.originalFile), mimeType: a.originalFile.type, thumbUrl: a.thumb };
+    }
+    if (a.type === 'video') {
+      return { ...base, type: 'video' as const, videoUrl: URL.createObjectURL(a.originalFile), thumbUrl: a.thumb };
+    }
+    if (a.type === 'html5' && a.file) {
+      // For HTML5 ZIPs, we read the index.html from the zip
+      return { ...base, type: 'html5' as const, html5Content: '', thumbUrl: a.thumb };
+    }
+    return { ...base, type: 'display' as const, thumbUrl: a.thumb };
+  }, []);
 
   // ── Bulk Compress ──
   const handleBulkCompress = async () => {
@@ -362,9 +385,13 @@ export function StepAssets() {
                         />
                       </td>
                       <td>
-                        {a.thumb ? (
-                          <img src={a.thumb} className={`${styles.thumb} ${a.type === 'video' ? styles.thumbVideo : ''}`} alt={a.name} width="48" height="36" loading="lazy" />
-                        ) : '-'}
+                        <PreviewThumb
+                          thumb={a.thumb}
+                          type={a.type}
+                          name={a.name}
+                          isVideo={a.type === 'video'}
+                          onClick={() => openPreview(a)}
+                        />
                       </td>
                       <td>
                         <input
@@ -533,6 +560,11 @@ export function StepAssets() {
           });
           toast(`Tracker aplicado em ${selectedAssetIds.size} asset(s)`, 'success');
         }}
+      />
+
+      <CreativePreviewModal
+        data={previewAsset ? getPreviewData(previewAsset) : null}
+        onClose={() => setPreviewAsset(null)}
       />
     </div>
   );

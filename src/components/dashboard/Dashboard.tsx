@@ -20,6 +20,7 @@ import { DSP_LABELS } from '@/types';
 import type { CreativeGroup, DspType } from '@/types';
 import type { Placement } from '@/types';
 import { DashboardRow } from './DashboardRow';
+import { CreativePreviewModal } from '@/components/shared/CreativePreview';
 import { MultiSelect } from './MultiSelect';
 import { formatTimeAgo } from './helpers';
 import styles from './Dashboard.module.css';
@@ -146,6 +147,39 @@ export function Dashboard() {
     { label: 'Gerar Template', onClick: () => openTemplateGen() },
     { label: 'Deletar', onClick: handleBulkDelete, danger: true },
   ];
+
+  // ── Preview state ──
+  const [previewGroup, setPreviewGroup] = useState<CreativeGroup | null>(null);
+
+  const getPreviewDataFromGroup = useCallback((g: CreativeGroup) => {
+    const formatLabel = (() => {
+      if (g.asset_filename) {
+        const ext = g.asset_filename.split('.').pop()?.toUpperCase() || '';
+        if (ext === 'ZIP') return 'HTML5';
+        return ext;
+      }
+      if (g.creative_type === 'video') return 'VAST';
+      return '3P Tag';
+    })();
+    const isTag = formatLabel === '3P Tag' || formatLabel === 'VAST';
+    const isHtml5 = formatLabel === 'HTML5';
+
+    const base = { name: g.name, dimensions: g.dimensions };
+
+    if (isTag && g.js_tag) {
+      return { ...base, type: '3p-tag' as const, tagContent: g.js_tag };
+    }
+    if (g.thumbnail_url) {
+      if (g.creative_type === 'video') {
+        return { ...base, type: 'display' as const, imageUrl: g.thumbnail_url, thumbUrl: g.thumbnail_url };
+      }
+      return { ...base, type: 'display' as const, imageUrl: g.thumbnail_url, mimeType: g.asset_mime_type || undefined };
+    }
+    if (isHtml5) {
+      return { ...base, type: 'html5' as const, html5Content: '' };
+    }
+    return { ...base, type: 'display' as const, thumbUrl: undefined };
+  }, []);
 
   // ── Edit modal state ──
   const [editVisible, setEditVisible] = useState(false);
@@ -481,7 +515,8 @@ export function Dashboard() {
           <thead>
             <tr>
               <th style={{ width: 32 }}><input type="checkbox" checked={pageItems.length > 0 && pageItems.every((g) => store.selectedKeys.has(g._gid))} onChange={(e) => { if (e.target.checked) store.selectAll(pageItems.map((g) => g._gid)); else store.clearSelection(); }} /></th>
-              <th style={{ width: '28%' }}>Nome</th>
+              <th style={{ width: 56 }}></th>
+              <th style={{ width: '26%' }}>Nome</th>
               <th style={{ width: 80 }}>Size</th>
               <th style={{ width: 70 }}>Formato</th>
               <th style={{ width: 180 }}>Status</th>
@@ -492,7 +527,7 @@ export function Dashboard() {
           </thead>
           <tbody>
             {pageItems.length === 0 && (
-              <tr><td colSpan={8} className={styles.empty}>
+              <tr><td colSpan={9} className={styles.empty}>
                 <div style={{ fontSize: '2rem', marginBottom: 8 }}>📋</div>
                 <div>Nenhum criativo encontrado</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-tri)', marginTop: 4 }}>Criativos ativados via Tags, Surveys ou Assets aparecem aqui</div>
@@ -512,6 +547,7 @@ export function Dashboard() {
                   onToggleExpand={() => store.toggleExpand(g._gid)}
                   onToggleSelect={() => store.toggleSelect(g._gid)}
                   onEdit={() => openSingleEdit(g)}
+                  onPreview={() => setPreviewGroup(g)}
                   delay={gi * 25}
                 />
               );
@@ -731,6 +767,11 @@ export function Dashboard() {
           </button>
         </div>
       </Modal>
+
+      <CreativePreviewModal
+        data={previewGroup ? getPreviewDataFromGroup(previewGroup) : null}
+        onClose={() => setPreviewGroup(null)}
+      />
     </section>
   );
 }

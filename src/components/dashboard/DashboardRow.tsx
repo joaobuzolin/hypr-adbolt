@@ -1,6 +1,7 @@
 import { getFormatLabel } from '@/stores/dashboard';
 import { DSP_LABELS, DSP_SHORT_LABELS } from '@/types';
 import type { CreativeGroup, DspType } from '@/types';
+import { PreviewThumb } from '@/components/shared/CreativePreview';
 import { formatDate } from './helpers';
 import styles from './Dashboard.module.css';
 
@@ -12,15 +13,30 @@ interface DashboardRowProps {
   onToggleExpand: () => void;
   onToggleSelect: () => void;
   onEdit: () => void;
+  onPreview: () => void;
   delay: number;
 }
 
-export function DashboardRow({ group: g, dspKeys, isExpanded, isSelected, onToggleExpand, onToggleSelect, onEdit, delay }: DashboardRowProps) {
+export function DashboardRow({ group: g, dspKeys, isExpanded, isSelected, onToggleExpand, onToggleSelect, onEdit, onPreview, delay }: DashboardRowProps) {
+  const formatLabel = getFormatLabel(g);
+  const isTag = formatLabel === '3P Tag' || formatLabel === 'VAST';
+  const isHtml5 = formatLabel === 'HTML5';
+  const previewType = isTag ? '3p-tag' : isHtml5 ? 'html5' : g.creative_type === 'video' ? 'video' : 'display';
+
   return (
     <>
       <tr style={{ animationDelay: `${delay}ms` }} className={isExpanded ? styles.expanded : ''} onClick={onToggleExpand}>
         <td onClick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect()} />
+        </td>
+        <td className={styles.thumbTd} onClick={(e) => e.stopPropagation()}>
+          <PreviewThumb
+            thumb={g.thumbnail_url || undefined}
+            type={previewType}
+            name={g.name}
+            isVideo={g.creative_type === 'video'}
+            onClick={onPreview}
+          />
         </td>
         <td className={styles.nameTd}>
           <div className={styles.nameWrap}>
@@ -34,7 +50,7 @@ export function DashboardRow({ group: g, dspKeys, isExpanded, isSelected, onTogg
           </div>
         </td>
         <td className={styles.dimCol}>{g.dimensions || '-'}</td>
-        <td><span className={styles.formatBadge}>{getFormatLabel(g)}</span></td>
+        <td><span className={styles.formatBadge}>{formatLabel}</span></td>
         <td>
           <div className={styles.dspChips}>
             {dspKeys.map((k) => {
@@ -56,8 +72,24 @@ export function DashboardRow({ group: g, dspKeys, isExpanded, isSelected, onTogg
       {isExpanded && (
         <tr className={styles.expandRow}>
           <td />
-          <td colSpan={7}>
+          <td colSpan={8}>
             <div className={styles.expandInner}>
+              {(g.thumbnail_url || g.js_tag) && (
+                <div className={styles.expandPreview} onClick={onPreview}>
+                  {g.thumbnail_url ? (
+                    <img src={g.thumbnail_url} alt={g.name} className={styles.expandPreviewImg} />
+                  ) : (
+                    <div className={styles.expandPreviewTag}>
+                      <span>Preview</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              )}
               {dspKeys.map((k) => {
                 const d = g.dsps[k];
                 return (

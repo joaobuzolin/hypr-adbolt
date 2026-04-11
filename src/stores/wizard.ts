@@ -155,6 +155,8 @@ export const useWizardStore = create<WizardState>((set, get) => ({
       generatedFiles: {},
       activationResults: [],
       mode,
+      // Legacy: surveys mode pre-fills xandrBrandUrl with hypr.mobi
+      xandrBrandUrl: mode === 'surveys' ? 'https://hypr.mobi' : '',
     });
   },
 

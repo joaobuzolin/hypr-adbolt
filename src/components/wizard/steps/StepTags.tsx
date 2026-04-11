@@ -13,6 +13,8 @@ import { normalizeUrl } from '@/lib/utils';
 import type { Placement, Tracker, DspType } from '@/types';
 import styles from './StepTags.module.css';
 
+const DSP_SHORT: Record<string, string> = { xandr: 'XN', dv360: 'DV', stackadapt: 'SA', amazondsp: 'AZ' };
+
 export function StepTags() {
   const {
     parsedData, setParsedData, mergeParsedData,
@@ -416,6 +418,9 @@ export function StepTags() {
                       <div className={styles.trackerChips}>
                         {p.trackers.map((t: Tracker, ti: number) => (
                           <span key={ti} className={styles.trackerChip}>
+                            <span className={styles.trackerScope}>
+                              {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT[d] || d).join(' ') : 'ALL')}
+                            </span>
                             <span className={styles.trackerUrl} title={t.url}>{t.url}</span>
                             <button className={styles.trackerRm} onClick={() => removePlacementTracker(i, ti)}>✕</button>
                           </span>

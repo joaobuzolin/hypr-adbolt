@@ -11,8 +11,14 @@ import { syncCreatives as syncCreativesApi } from '@/services/sync';
 import { updateCreative } from '@/services/update';
 import { deleteCreatives } from '@/services/delete';
 import { normalizeUrl } from '@/lib/utils';
+import { genDV360 } from '@/generators/dv360';
+import { genXandr } from '@/generators/xandr';
+import { genStackAdapt } from '@/generators/stackadapt';
+import { genAmazonDSP } from '@/generators/amazon';
+import { downloadCSV, downloadXLSX } from '@/generators/download';
 import { DSP_LABELS, DSP_SHORT_LABELS } from '@/types';
 import type { CreativeGroup, DspType } from '@/types';
+import type { Placement } from '@/types';
 import styles from './Dashboard.module.css';
 import { useState } from 'react';
 
@@ -114,6 +120,8 @@ export function Dashboard() {
 
   const bulkActions = [
     { label: 'Editar', onClick: () => openBulkEdit() },
+    { label: 'Renomear', onClick: () => openBulkRename() },
+    { label: 'Gerar Template', onClick: () => openTemplateGen() },
     { label: 'Deletar', onClick: handleBulkDelete, danger: true },
   ];
 
@@ -123,6 +131,123 @@ export function Dashboard() {
   const [editFields, setEditFields] = useState<Record<string, Record<string, string>>>({});
   const [editSaving, setEditSaving] = useState(false);
   const [editBulkKeys, setEditBulkKeys] = useState<string[] | null>(null);
+
+  // ── Rename modal state ──
+  const [renameVisible, setRenameVisible] = useState(false);
+  const [renamePrefix, setRenamePrefix] = useState('');
+  const [renameSuffix, setRenameSuffix] = useState('');
+  const [renamePattern, setRenamePattern] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
+
+  // ── Template generator modal state ──
+  const [tplVisible, setTplVisible] = useState(false);
+  const [tplDsp, setTplDsp] = useState<string>('');
+
+  const openBulkRename = () => {
+    if (!store.selectedKeys.size) return;
+    setRenamePrefix('');
+    setRenameSuffix('');
+    setRenamePattern('');
+    setRenameVisible(true);
+  };
+
+  const getRenamedName = (original: string, prefix: string, suffix: string, pattern: string, index: number, dims: string, type: string): string => {
+    if (pattern) {
+      return pattern
+        .split('{name}').join(original)
+        .split('{size}').join(dims)
+        .split('{type}').join(type)
+        .split('{index}').join(String(index + 1));
+    }
+    return (prefix || '') + original + (suffix || '');
+  };
+
+  const renamePreviewItems = (() => {
+    if (!renamePrefix && !renameSuffix && !renamePattern) return [];
+    const keys = [...store.selectedKeys];
+    return keys.slice(0, 6).map((k, i) => {
+      const g = store.groups.find((g) => g._gid === k);
+      if (!g) return null;
+      const newName = getRenamedName(g.name, renamePrefix, renameSuffix, renamePattern, i, g.dimensions, g.creative_type);
+      return { old: g.name, new: newName };
+    }).filter(Boolean) as Array<{ old: string; new: string }>;
+  })();
+
+  const handleBulkRenameApply = useCallback(async () => {
+    if (!session?.access_token) return;
+    if (!renamePrefix && !renameSuffix && !renamePattern) { toast('Preencha pelo menos um campo', 'error'); return; }
+    setRenameSaving(true);
+    const token = session.access_token;
+    const keys = [...store.selectedKeys];
+    const groups = keys.map((k) => store.groups.find((g) => g._gid === k)).filter(Boolean) as CreativeGroup[];
+    let ok = 0, fail = 0;
+    const promises: Promise<void>[] = [];
+    groups.forEach((g, gi) => {
+      const newName = getRenamedName(g.name, renamePrefix, renameSuffix, renamePattern, gi, g.dimensions, g.creative_type);
+      for (const [, d] of Object.entries(g.dsps)) {
+        promises.push(
+          updateCreative(token, d.id, { name: newName })
+            .then(() => { ok++; })
+            .catch(() => { fail++; })
+        );
+      }
+    });
+    await Promise.all(promises);
+    if (!fail) toast(`${ok} nome(s) sincronizado(s)`, 'success');
+    else toast(`${ok} OK, ${fail} erro(s)`, 'error');
+    setRenameVisible(false);
+    setRenameSaving(false);
+    store.clearSelection();
+    await store.loadCreatives();
+  }, [session?.access_token, renamePrefix, renameSuffix, renamePattern, store.selectedKeys, store.groups, toast]);
+
+  const openTemplateGen = () => {
+    if (!store.selectedKeys.size) return;
+    const keys = [...store.selectedKeys];
+    const groups = store.groups.filter((g) => keys.includes(g._gid));
+    const withTags = groups.filter((g) => Object.values(g.dsps).some((d) => d.js_tag || d.vast_tag));
+    if (!withTags.length) { toast('Nenhum criativo selecionado possui tags 3P', 'error'); return; }
+    setTplDsp('');
+    setTplVisible(true);
+  };
+
+  const handleTemplateGenerate = useCallback(() => {
+    if (!tplDsp) { toast('Selecione uma DSP', 'error'); return; }
+    const keys = [...store.selectedKeys];
+    const groups = store.groups.filter((g) => keys.includes(g._gid));
+    const placements: Placement[] = [];
+    for (const g of groups) {
+      const dspData = Object.values(g.dsps);
+      const jsTag = dspData.find((d) => d.js_tag)?.js_tag || '';
+      const vastTag = dspData.find((d) => d.vast_tag)?.vast_tag || '';
+      if (!jsTag && !vastTag) continue;
+      const clickUrl = dspData[0]?.click_url || dspData[0]?.landing_page || '';
+      const isVideo = !!vastTag && !jsTag;
+      let trackers = dspData[0]?.trackers || [];
+      if (typeof trackers === 'string') try { trackers = JSON.parse(trackers); } catch { trackers = []; }
+      if (!Array.isArray(trackers)) trackers = [];
+      placements.push({ placementId: g._gid, placementName: g.name, dimensions: g.dimensions, jsTag: jsTag || vastTag, vastTag, clickUrl, type: isVideo ? 'video' : 'display', trackers });
+    }
+    if (!placements.length) { toast('Nenhum criativo com tag encontrado', 'error'); return; }
+    try {
+      const slug = 'template_' + new Date().toISOString().slice(0, 10);
+      if (tplDsp === 'dv360') {
+        const f = genDV360(placements);
+        downloadCSV(f.headers, f.rows, `DV360_${slug}.csv`);
+      } else if (tplDsp === 'xandr') {
+        const f = genXandr(placements, '', false);
+        downloadXLSX(f.headers, f.rows, `Xandr_${slug}.xlsx`, { colWidths: f.colWidths });
+      } else if (tplDsp === 'stackadapt') {
+        const { file: f } = genStackAdapt(placements, '', '');
+        downloadXLSX(f.headers, f.rows, `StackAdapt_${slug}.xlsx`, { colWidths: f.colWidths });
+      } else if (tplDsp === 'amazondsp') {
+        const f = genAmazonDSP(placements, '', 'BR');
+        downloadXLSX(f.headers, f.rows, `AmazonDSP_${slug}.xlsx`, { colWidths: f.colWidths, sheetName: f.sheetName });
+      }
+      toast(`${placements.length} criativos exportados (${tplDsp.toUpperCase()})`, 'success');
+      setTplVisible(false);
+    } catch (err) { toast('Erro ao gerar: ' + (err as Error).message, 'error'); }
+  }, [tplDsp, store.selectedKeys, store.groups, toast]);
 
   const openSingleEdit = (group: CreativeGroup) => {
     setEditBulkKeys(null);
@@ -334,6 +459,76 @@ export function Dashboard() {
           <button className={styles.btn} onClick={() => setEditVisible(false)}>Cancelar</button>
           <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleSaveEdit} disabled={editSaving}>
             {editSaving ? 'Salvando...' : 'Salvar e Sincronizar'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Rename Modal */}
+      <Modal visible={renameVisible} onClose={() => setRenameVisible(false)} title={`Renomear ${store.selectedKeys.size} criativos`}>
+        <div className={styles.editField}>
+          <label>Prefixo <span style={{ fontWeight: 400, color: 'var(--text-tri)' }}>(adicionado antes do nome)</span></label>
+          <input value={renamePrefix} onChange={(e) => setRenamePrefix(e.target.value)} placeholder="Ex: BR_" />
+        </div>
+        <div className={styles.editField}>
+          <label>Sufixo <span style={{ fontWeight: 400, color: 'var(--text-tri)' }}>(adicionado depois do nome)</span></label>
+          <input value={renameSuffix} onChange={(e) => setRenameSuffix(e.target.value)} placeholder="Ex: _v2" />
+        </div>
+        <div className={styles.editField}>
+          <label>Padrão completo <span style={{ fontWeight: 400, color: 'var(--text-tri)' }}>({'{name}'} {'{size}'} {'{type}'} {'{index}'})</span></label>
+          <input value={renamePattern} onChange={(e) => setRenamePattern(e.target.value)} placeholder="Ex: HYPR_{name}_{size}" style={{ fontFamily: 'var(--mono)', fontSize: '0.8rem' }} />
+        </div>
+        {renamePreviewItems.length > 0 && (
+          <div style={{ marginTop: 16, padding: 12, background: 'var(--bg-base)', borderRadius: 'var(--r-xs)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-tri)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Preview</div>
+            {renamePreviewItems.map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.75rem', padding: '3px 0', fontFamily: 'var(--mono)' }}>
+                <span style={{ color: 'var(--text-tri)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.old}</span>
+                <span style={{ color: 'var(--text-tri)', flexShrink: 0 }}>→</span>
+                <span style={{ color: 'var(--accent)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.new}</span>
+              </div>
+            ))}
+            {store.selectedKeys.size > 6 && <div style={{ fontSize: '0.68rem', color: 'var(--text-tri)', marginTop: 4 }}>...e mais {store.selectedKeys.size - 6}</div>}
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+          <button className={styles.btn} onClick={() => setRenameVisible(false)}>Cancelar</button>
+          <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleBulkRenameApply} disabled={renameSaving || (!renamePrefix && !renameSuffix && !renamePattern)}>
+            {renameSaving ? 'Renomeando...' : 'Aplicar e Sincronizar'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Template Generator Modal */}
+      <Modal visible={tplVisible} onClose={() => setTplVisible(false)} title="Gerar Template">
+        <div style={{ fontSize: '0.82rem', color: 'var(--text-sec)', marginBottom: 16 }}>
+          {store.selectedKeys.size} criativo(s) selecionado(s) com tags. Selecione a DSP de destino:
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          {[
+            { id: 'xandr', icon: 'XN', name: 'Xandr', desc: 'Bulk XLSX' },
+            { id: 'dv360', icon: 'DV', name: 'DV360', desc: 'Bulk CSV' },
+            { id: 'stackadapt', icon: 'SA', name: 'StackAdapt', desc: 'Bulk XLSX' },
+            { id: 'amazondsp', icon: 'AZ', name: 'Amazon DSP', desc: 'XLSX' },
+          ].map((d) => (
+            <div
+              key={d.id}
+              onClick={() => setTplDsp(d.id)}
+              style={{
+                padding: '14px 16px', borderRadius: 'var(--r-sm)', cursor: 'pointer',
+                border: `1.5px solid ${tplDsp === d.id ? 'var(--accent)' : 'var(--border)'}`,
+                background: tplDsp === d.id ? 'var(--accent-dim)' : 'var(--bg-surface)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{d.icon} {d.name}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-tri)', marginTop: 2 }}>{d.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+          <button className={styles.btn} onClick={() => setTplVisible(false)}>Cancelar</button>
+          <button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleTemplateGenerate} disabled={!tplDsp}>
+            Gerar e Baixar
           </button>
         </div>
       </Modal>

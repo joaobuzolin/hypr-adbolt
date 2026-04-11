@@ -27,11 +27,26 @@ export type TrackerFormat = 'url-image' | 'url-js' | 'url-html' | 'raw-js';
 
 export type TrackerScope = 'all' | DspType[];
 
+export type VastEventType = 'impression' | 'start' | 'first_quartile' | 'midpoint' | 'third_quartile' | 'completion' | 'click' | 'skip' | 'error';
+
 export interface Tracker {
   url: string;
   format: TrackerFormat;
   dsps: TrackerScope;
+  eventType?: VastEventType; // Only relevant for video creatives on Xandr
 }
+
+export const VAST_EVENT_OPTIONS: { value: VastEventType; label: string; id: number }[] = [
+  { value: 'impression', label: 'Impression', id: 9 },
+  { value: 'start', label: 'Start', id: 2 },
+  { value: 'first_quartile', label: '25% Complete', id: 5 },
+  { value: 'midpoint', label: '50% Complete', id: 6 },
+  { value: 'third_quartile', label: '75% Complete', id: 7 },
+  { value: 'completion', label: '100% Complete', id: 8 },
+  { value: 'click', label: 'Click', id: 10 },
+  { value: 'skip', label: 'Skip', id: 3 },
+  { value: 'error', label: 'Error', id: 4 },
+];
 
 export const FORMAT_LABELS: Record<TrackerFormat, string> = {
   'url-image': 'IMG',

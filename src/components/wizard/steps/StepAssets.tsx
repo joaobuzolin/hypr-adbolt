@@ -419,6 +419,9 @@ export function StepAssets() {
                               <span className={styles.trackerScope}>
                                 {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT[d] || d).join(' ') : 'ALL')}
                               </span>
+                              {t.eventType && t.eventType !== 'impression' && (
+                                <span className={styles.trackerEvent}>{t.eventType}</span>
+                              )}
                               <span className={styles.trackerUrl} title={t.url}>{t.url}</span>
                               <button
                                 className={styles.trackerRm}
@@ -509,9 +512,10 @@ export function StepAssets() {
         onClose={() => setTrackerOpen(false)}
         count={selectedAssetIds.size}
         availableDsps={['xandr', 'dv360', 'stackadapt', 'amazondsp']}
-        onApply={(url, format, scope) => {
+        hasVideo={[...selectedAssetIds].some((id) => assetEntries.find((a) => a.id === id)?.type === 'video')}
+        onApply={(url, format, scope, eventType) => {
           selectedAssetIds.forEach((id) => {
-            addAssetTracker(id, { url, format, dsps: scope });
+            addAssetTracker(id, { url, format, dsps: scope, eventType });
           });
           toast(`Tracker aplicado em ${selectedAssetIds.size} asset(s)`, 'success');
         }}

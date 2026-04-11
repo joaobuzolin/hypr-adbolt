@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from './Modal';
-import type { DspType, TrackerFormat } from '@/types';
-import { DSP_LABELS } from '@/types';
+import type { DspType, TrackerFormat, VastEventType } from '@/types';
+import { DSP_LABELS, VAST_EVENT_OPTIONS } from '@/types';
 import { analyzeTracker } from '@/parsers/tracker';
 import { normalizeUrl } from '@/lib/utils';
 import styles from './BulkModals.module.css';
@@ -224,7 +224,7 @@ export function FindReplaceModal({ visible, onClose, count, onApply }: FindRepla
 }
 
 /* ══════════════════════════════════════════════
-   3. Bulk Tracker Modal (with DSP scope)
+   3. Bulk Tracker Modal (with DSP scope + VAST event type)
    ══════════════════════════════════════════════ */
 
 type TrackerScope = 'all' | DspType[];
@@ -234,14 +234,16 @@ interface BulkTrackerModalProps {
   onClose: () => void;
   count: number;
   availableDsps?: DspType[];
-  onApply: (url: string, format: TrackerFormat, scope: TrackerScope) => void;
+  hasVideo?: boolean; // true if any selected item is video
+  onApply: (url: string, format: TrackerFormat, scope: TrackerScope, eventType?: VastEventType) => void;
 }
 
 const ALL_DSPS: DspType[] = ['xandr', 'dv360', 'stackadapt', 'amazondsp'];
 
-export function BulkTrackerModal({ visible, onClose, count, availableDsps, onApply }: BulkTrackerModalProps) {
+export function BulkTrackerModal({ visible, onClose, count, availableDsps, hasVideo, onApply }: BulkTrackerModalProps) {
   const [raw, setRaw] = useState('');
   const [scope, setScope] = useState<'all' | DspType[]>('all');
+  const [eventType, setEventType] = useState<VastEventType>('impression');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const dsps = availableDsps || ALL_DSPS;
@@ -250,6 +252,7 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, onApp
     if (visible) {
       setRaw('');
       setScope('all');
+      setEventType('impression');
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [visible]);
@@ -260,10 +263,7 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, onApp
       return;
     }
     setScope((prev) => {
-      if (prev === 'all') {
-        // Switch from "all" to individual — select just this one
-        return [dsp];
-      }
+      if (prev === 'all') return [dsp];
       const arr = [...prev];
       const idx = arr.indexOf(dsp);
       if (idx >= 0) {
@@ -271,7 +271,6 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, onApp
         return arr.length === 0 ? 'all' : arr;
       }
       arr.push(dsp);
-      // If all individual DSPs are selected, switch back to "all"
       if (arr.length === dsps.length) return 'all';
       return arr;
     });
@@ -281,7 +280,7 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, onApp
     if (!raw.trim()) return;
     const analyzed = analyzeTracker(raw);
     const url = normalizeUrl(analyzed.url);
-    onApply(url, analyzed.format, scope);
+    onApply(url, analyzed.format, scope, hasVideo ? eventType : undefined);
     onClose();
   };
 
@@ -336,6 +335,25 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, onApp
           ))}
         </div>
       </div>
+
+      {hasVideo && (
+        <div className={styles.field}>
+          <label className={styles.label}>
+            Tipo de evento<span className={styles.hint}>(contabilização para vídeo na Xandr)</span>
+          </label>
+          <div className={styles.eventGrid}>
+            {VAST_EVENT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`${styles.eventBtn} ${eventType === opt.value ? styles.eventBtnActive : ''}`}
+                onClick={() => setEventType(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

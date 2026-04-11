@@ -20,10 +20,10 @@ async function getXandrToken(): Promise<string> {
 
 function pixelFormat(url:string):string { const l=url.toLowerCase(); if(l.startsWith('<script')&&!l.includes('src='))return'raw-js'; if(l.endsWith('.js')||l.includes('.js?')||l.includes('/js/'))return'url-js'; if(l.includes('.html'))return'url-html'; return'url-image'; }
 
-function normalizeTrackerInput(t: unknown): {url: string; format: string} {
+function normalizeTrackerInput(t: unknown): {url: string; format: string; eventType?: string} {
   if (typeof t === 'string') return {url: t, format: pixelFormat(t)};
-  const obj = t as {url?: string; format?: string};
-  return {url: obj.url || '', format: obj.format || pixelFormat(obj.url || '')};
+  const obj = t as {url?: string; format?: string; eventType?: string};
+  return {url: obj.url || '', format: obj.format || pixelFormat(obj.url || ''), eventType: obj.eventType};
 }
 
 interface Input { name:string; type:'display'|'video'|'html5'; dimensions:string; fileName:string; mimeType:string; storagePath?:string; fileBase64?:string; fileSize?:number; landingPage:string; trackers:unknown[]; tracker?:string; duration?:number; }
@@ -45,7 +45,6 @@ async function processCreative(token:string, advId:number, input:Input, brandUrl
     const bytes = await getFileBytes(sb, input);
     const rawTrackers = [...(input.trackers||[]), ...(input.tracker?[input.tracker]:[])].filter(Boolean);
     const normalizedTrackers = rawTrackers.map(t => normalizeTrackerInput(t)).filter(n => n.url);
-    const allTrackerUrls = normalizedTrackers.map(t => t.url);
     let assetType = input.type;
     if (input.mimeType?.startsWith('video/') && assetType !== 'video') assetType = 'video';
     console.log(`[xandr] Processing: ${input.name}, type=${assetType}, size=${bytes.length}, brandUrl=${brandUrl}, landingPage=${input.landingPage}`);
@@ -88,8 +87,20 @@ async function processCreative(token:string, advId:number, input:Input, brandUrl
       if (!ma?.id) return {name:input.name,success:false,error:`Upload failed: ${JSON.stringify(ud.response||ud).substring(0,300)}`,step:'upload'};
       const durationMs = (input.duration || 30) * 1000;
       const inlineObj: Record<string, unknown> = { ad_title: input.name };
-      if (allTrackerUrls.length > 0) {
-        inlineObj.linear = { trackers: allTrackerUrls.slice(0, 5).map((u, i) => ({ name: `tracker_${i}`, vast_event_type: 'impression', url: u, secure_url: u.replace(/^http:/, 'https:') })) };
+      if (normalizedTrackers.length > 0) {
+        const VAST_EVENT_MAP: Record<string, string> = {
+          impression: 'impression', start: 'start', skip: 'skip', error: 'error',
+          first_quartile: 'first_quartile', midpoint: 'midpoint', third_quartile: 'third_quartile',
+          completion: 'completion', click: 'click',
+        };
+        inlineObj.linear = {
+          trackers: normalizedTrackers.slice(0, 5).map((t, i) => ({
+            name: `tracker_${i}`,
+            vast_event_type: VAST_EVENT_MAP[t.eventType || 'impression'] || 'impression',
+            url: t.url,
+            secure_url: t.url.replace(/^http:/, 'https:'),
+          })),
+        };
       }
       const assetLp = input.landingPage || brandUrl || '';
       const auditUrl = brandUrl || input.landingPage || '';

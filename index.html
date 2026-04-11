@@ -3049,7 +3049,7 @@ async function silentSync(){
   }catch(e){console.warn('silent sync error:',e)}
   finally{_silentSyncing=false;if(btn){btn.textContent='Sync Status';btn.classList.remove('loading')}}
 }
-function startAutoSync(){stopAutoSync();silentSync();_autoSyncTimer=setInterval(silentSync,60000)}
+function startAutoSync(){stopAutoSync();silentSync();_autoSyncTimer=setInterval(silentSync,300000)}
 function stopAutoSync(){if(_autoSyncTimer){clearInterval(_autoSyncTimer);_autoSyncTimer=null}}
 
 function toggleDashHome(){if(dashIsOpen)closeDashboard();else openDashboard()}

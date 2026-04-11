@@ -1,0 +1,77 @@
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 24px;
+  margin-bottom: 20px;
+  animation: slideUp 0.3s var(--ease-out);
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.dsp {
+  margin-bottom: 16px;
+}
+
+.dsp:last-child {
+  margin-bottom: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.count {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-sec);
+}
+
+.barBg {
+  height: 6px;
+  background: var(--bg-base);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s var(--ease-out);
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+.done {
+  background: var(--success);
+  animation: none;
+}
+
+.error {
+  background: var(--error);
+  animation: none;
+}
+
+.current {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-tri);
+  margin-top: 5px;
+  min-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

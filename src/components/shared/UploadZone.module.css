@@ -1,0 +1,89 @@
+.zone {
+  border: 1.5px dashed var(--border);
+  border-radius: var(--r);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+  background: var(--bg-surface);
+  position: relative;
+}
+
+.zone:hover,
+.dragover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.hasFiles {
+  border-color: var(--success);
+  background: var(--success-dim);
+  border-style: solid;
+  padding: 16px 24px;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  /* Hidden but still accessible for click-through */
+  pointer-events: none;
+}
+
+.icon {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.text {
+  font-size: 0.88rem;
+  color: var(--text-sec);
+}
+
+.text strong {
+  color: var(--accent);
+}
+
+.format {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text-tri);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 3px 10px;
+  margin-top: 10px;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.clear {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  color: var(--text-tri);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--dur-f);
+  flex-shrink: 0;
+}
+
+.clear:hover {
+  border-color: var(--error);
+  color: var(--error);
+  background: var(--error-dim);
+}

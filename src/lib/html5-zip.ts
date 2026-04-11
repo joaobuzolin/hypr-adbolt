@@ -146,6 +146,39 @@ ${scClose}`;
     thumb = canvas.toDataURL('image/jpeg', 0.8);
   } catch { /* thumb generation is optional */ }
 
+  // Inline ZIP resources as data URLs for preview rendering
+  let previewHtml = indexHtml;
+  try {
+    const mimeMap: Record<string, string> = {
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+      svg: 'image/svg+xml', webp: 'image/webp',
+      ttf: 'font/ttf', woff: 'font/woff', woff2: 'font/woff2', otf: 'font/otf',
+      css: 'text/css', js: 'application/javascript',
+      mp3: 'audio/mpeg', ogg: 'audio/ogg', wav: 'audio/wav',
+      mp4: 'video/mp4', webm: 'video/webm',
+    };
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (entry.dir || path === 'index.html' || path.includes('__MACOSX')) continue;
+      const fileName = path.split('/').pop() || '';
+      const ext = fileName.split('.').pop()?.toLowerCase() || '';
+      const mime = mimeMap[ext];
+      if (!mime) continue;
+      // Only inline if the filename appears in the HTML
+      if (!previewHtml.includes(fileName)) continue;
+      const ab = await entry.async('arraybuffer');
+      const bytes = new Uint8Array(ab);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary);
+      const dataUrl = `data:${mime};base64,${b64}`;
+      // Replace all occurrences of this filename with the data URL
+      previewHtml = previewHtml.split(fileName).join(dataUrl);
+    }
+  } catch (err) {
+    console.warn('HTML5 resource inlining failed:', err);
+    // Fallback: previewHtml stays as the raw indexHtml
+  }
+
   return {
     type: 'html5',
     file: finalFile,
@@ -164,6 +197,6 @@ ${scClose}`;
     html5: true,
     hasClickTag: hasClickTag || modified,
     html5Warnings: warnings,
-    html5Content: indexHtml,
+    html5Content: previewHtml,
   };
 }

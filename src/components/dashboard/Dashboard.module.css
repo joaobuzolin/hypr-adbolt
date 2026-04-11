@@ -24,7 +24,7 @@
 .statTop { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .statDot { width: 8px; height: 8px; border-radius: 50%; }
 .cSuccess { background: var(--success); }
-.cAccent { background: var(--accent); }
+.cAccent { background: #4285f4; }
 .cWarning { background: var(--warning); }
 .cError { background: var(--error); }
 .statVal { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
@@ -81,7 +81,7 @@
 .auditDot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .approved { background: var(--success); }
 .pending { background: var(--warning); }
-.partial { background: var(--accent); }
+.partial { background: #4285f4; }
 .rejected { background: var(--error); }
 .unknown { background: var(--text-tri); }
 

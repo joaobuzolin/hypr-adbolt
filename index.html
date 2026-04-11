@@ -191,11 +191,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
 .dash-expand{display:none;animation:slideUp 0.25s var(--ease-out)}
 .dash-expand.visible{display:table-row}
 .dash-expand td{padding:0 16px 16px;border-bottom:1px solid var(--border-subtle)}
-.dash-expand-inner{background:var(--bg-raised);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.dash-expand-field{font-size:0.72rem}
-.dash-expand-label{color:var(--text-tri);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;font-size:0.64rem;margin-bottom:3px}
-.dash-expand-val{color:var(--text-sec);font-family:var(--mono);font-size:0.7rem;word-break:break-all;max-height:48px;overflow-y:auto}
-.dash-expand-val.full{grid-column:1/-1}
+.dash-expand-inner{background:var(--bg-raised);border:1px solid var(--border-subtle);border-radius:var(--r-sm);padding:20px;display:flex;flex-direction:column;gap:16px}
+.dash-expand-dsp{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
+.dash-expand-dsp-header{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border-subtle);margin-bottom:2px}
+.dash-expand-dsp-tag{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 10px;border-radius:var(--r-xs)}
+.dash-expand-dsp-tag.xandr{background:rgba(44,197,189,0.1);color:var(--success)}
+.dash-expand-dsp-tag.dv360{background:rgba(68,150,178,0.1);color:var(--accent)}
+.dash-expand-dsp-id{font-family:var(--mono);font-size:0.72rem;color:var(--text-tri);margin-left:auto}
+.dash-expand-field{font-size:0.75rem}
+.dash-expand-label{color:var(--text-tri);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;font-size:0.65rem;margin-bottom:4px}
+.dash-expand-val{color:var(--text-sec);font-family:var(--mono);font-size:0.73rem;word-break:break-all;max-height:56px;overflow-y:auto;line-height:1.5}
+.dash-expand-exchanges{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--font);font-size:0.75rem}
+.dash-expand-exchange{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-base);border-radius:var(--r-xs);border:1px solid var(--border-subtle)}
+.dash-expand-tag-preview{grid-column:1/-1;background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:var(--r-xs);padding:10px 14px;font-family:var(--mono);font-size:0.68rem;color:var(--text-tri);max-height:64px;overflow-y:auto;line-height:1.5;word-break:break-all}
 /* Actions */
 .dash-edit-btn{padding:5px 12px;border-radius:var(--r-xs);font-size:0.72rem;font-weight:500;border:1px solid transparent;background:transparent;color:var(--text-tri);cursor:pointer;transition:all var(--dur-f);font-family:var(--font)}
 .dash-edit-btn:hover{border-color:var(--border);color:var(--accent);background:var(--accent-dim)}
@@ -604,6 +612,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background:va
   .dash-stat.hero{grid-column:1/-1}
   .dash-search{width:100%;order:10}
   .dash-expand-inner{grid-template-columns:1fr}
+  .dash-expand-dsp{grid-template-columns:1fr}
 }
 @media(max-width:640px){
   .action-cards{grid-template-columns:1fr}
@@ -3265,9 +3274,21 @@ function renderDashTable(){
     html+='<td class="td-meta td-datetime">'+(g.last_edited_by?esc(g.last_edited_by)+'<br>':'')+editDt+'</td>';
     html+='<td><button class="dash-edit-btn" onclick="event.stopPropagation();openEditModal(\''+ek+'\')">Editar</button></td></tr>';
     if(isExp){
-      let ef=dk.map(k=>{const dd=g.dsps[k];let f='<div class="dash-expand-field"><div class="dash-expand-label">'+(dn[k]||k)+' ID</div><div class="dash-expand-val">'+(dd.dsp_creative_id||'-')+'</div></div>';if(dd.landing_page)f+='<div class="dash-expand-field"><div class="dash-expand-label">'+(dn[k]||k)+' URL destino</div><div class="dash-expand-val">'+esc(dd.landing_page)+'</div></div>';if(dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">'+(dn[k]||k)+' Click redirect</div><div class="dash-expand-val">'+esc(dd.click_url)+'</div></div>';if(k==='dv360'){const cfg=typeof dd.dsp_config==='string'?JSON.parse(dd.dsp_config||'{}'):(dd.dsp_config||{});const exs=cfg.exchangeReviewStatuses||[];if(exs.length)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Exchange Review</div><div class="dash-expand-val" style="font-family:var(--font);display:flex;flex-wrap:wrap;gap:6px 14px">'+exs.map(e=>'<span style="display:inline-flex;align-items:center;gap:5px"><span class="dsp-dot '+e.status+'" style="width:6px;height:6px"></span>'+esc(e.exchange)+'</span>').join('')+'</div></div>'}if(dd.sync_error)f+='<div class="dash-expand-field"><div class="dash-expand-label">Sync Error</div><div class="dash-expand-val" style="color:var(--error)">'+esc(dd.sync_error)+'</div></div>';return f}).join('');
-      const fd=g.dsps[dk[0]];const tg=fd.js_tag||fd.vast_tag||'';
-      if(tg)ef+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">'+(fd.vast_tag?'VAST':'JS')+' Tag</div><div class="dash-expand-val">'+esc(tg.substring(0,300))+(tg.length>300?'...':'')+'</div></div>';
+      let ef=dk.map(k=>{
+        const dd=g.dsps[k];
+        const dspLabel=dn[k]||k;
+        let f='<div class="dash-expand-dsp">';
+        f+='<div class="dash-expand-dsp-header"><span class="dash-expand-dsp-tag '+k+'">'+dspLabel+'</span><span class="dash-expand-dsp-id">ID: '+(dd.dsp_creative_id||'-')+'</span></div>';
+        if(dd.landing_page)f+='<div class="dash-expand-field"><div class="dash-expand-label">URL destino</div><div class="dash-expand-val">'+esc(dd.landing_page)+'</div></div>';
+        if(dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">Click redirect</div><div class="dash-expand-val">'+esc(dd.click_url)+'</div></div>';
+        if(!dd.landing_page&&!dd.click_url)f+='<div class="dash-expand-field"><div class="dash-expand-label">URLs</div><div class="dash-expand-val" style="color:var(--text-tri)">Nenhuma URL configurada</div></div>';
+        if(k==='dv360'){const cfg=typeof dd.dsp_config==='string'?JSON.parse(dd.dsp_config||'{}'):(dd.dsp_config||{});const exs=cfg.exchangeReviewStatuses||[];if(exs.length)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Exchange Review</div><div class="dash-expand-exchanges">'+exs.map(e=>'<span class="dash-expand-exchange"><span class="dsp-dot '+e.status+'" style="width:7px;height:7px"></span>'+esc(e.exchange)+'</span>').join('')+'</div></div>'}
+        if(dd.sync_error)f+='<div class="dash-expand-field" style="grid-column:1/-1"><div class="dash-expand-label">Sync Error</div><div class="dash-expand-val" style="color:var(--error)">'+esc(dd.sync_error)+'</div></div>';
+        const tg=dd.js_tag||dd.vast_tag||'';
+        if(tg)f+='<div class="dash-expand-tag-preview">'+(dd.vast_tag?'VAST: ':'Tag: ')+esc(tg.substring(0,250))+(tg.length>250?'…':'')+'</div>';
+        f+='</div>';
+        return f;
+      }).join('');
       html+='<tr class="dash-expand visible"><td></td><td colspan="8"><div class="dash-expand-inner">'+ef+'</div></td></tr>';
     }
   });

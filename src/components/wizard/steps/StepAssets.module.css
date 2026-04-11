@@ -7,8 +7,8 @@
 .tableWrap { overflow-x: auto; border-radius: var(--surface-radius-sm); border: var(--surface-border) solid var(--border); }
 
 .table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.table th { text-align: left; font-size: var(--fs-min); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border); font-weight: 600; background: var(--bg-surface); position: sticky; top: 0; z-index: 1; }
-.table td { padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--border-subtle); color: var(--text-sec); }
+.table th { text-align: left; font-size: var(--fs-min); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border); font-weight: 600; background: var(--bg-surface); position: sticky; top: 0; z-index: 1; }
+.table td { padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border-subtle); color: var(--text-sec); }
 .table tr:last-child td { border-bottom: none; }
 .table tbody tr { transition: background var(--dur-f); opacity: 0; animation: fadeRow 0.3s var(--ease-out) forwards; }
 .table tbody tr:hover { background: var(--accent-glow); }
@@ -20,7 +20,7 @@
 .cellInput:focus { outline: none; border-color: var(--accent-ring); background: var(--bg-input); }
 .mono { font-family: var(--mono); font-size: 0.73rem; }
 
-.thumb { width: 48px; height: 36px; object-fit: cover; border-radius: var(--surface-radius-xs); border: 1px solid var(--border-subtle); }
+.thumb { width: 48px; height: 36px; object-fit: cover; border-radius: var(--surface-radius-xs); border: var(--surface-border) solid var(--border-subtle); }
 .thumbVideo { border-color: var(--warning); }
 
 .typeBadge { font-size: var(--fs-min); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 8px; border-radius: var(--surface-radius-xs); }
@@ -35,7 +35,7 @@
 .warn { color: var(--warning); background: var(--warning-dim); }
 .over { color: var(--error); background: var(--error-dim); }
 
-.resizeBtn { font-size: var(--fs-min); font-weight: 600; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-ring); border-radius: var(--surface-radius-xs); padding: 1px 6px; margin-left: 4px; cursor: pointer; transition: all var(--dur-f); font-family: var(--mono); }
+.resizeBtn { font-size: var(--fs-min); font-weight: 600; color: var(--accent); background: var(--accent-dim); border: var(--surface-border) solid var(--accent-ring); border-radius: var(--surface-radius-xs); padding: 1px 6px; margin-left: 4px; cursor: pointer; transition: all var(--dur-f); font-family: var(--mono); }
 .resizeBtn:hover { background: var(--accent); color: var(--text-on-accent); }
 
 .sizeOk { color: var(--success); margin-left: 4px; font-size: var(--fs-sm); }

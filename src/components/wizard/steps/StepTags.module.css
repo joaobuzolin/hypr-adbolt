@@ -1,18 +1,19 @@
 .header {
-  margin-bottom: var(--sp-8);
+  margin-bottom: var(--section-gap-lg);
 }
 
 .header h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  margin-bottom: 6px;
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  margin-bottom: var(--header-gap);
 }
 
 .header p {
-  font-size: 0.88rem;
+  font-size: var(--fs-base);
   color: var(--text-sec);
-  line-height: 1.6;
+  line-height: 1.7;
+  opacity: 0.7;
 }
 
 /* Extracted info */
@@ -56,7 +57,7 @@
   background: var(--bg-base);
   border-radius: var(--surface-radius-xs);
   padding: 12px 14px;
-  border: 1px solid var(--border-subtle);
+  border: var(--surface-border) solid var(--border-subtle);
 }
 
 .infoLabel {
@@ -101,8 +102,8 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tri);
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--border);
+  padding: 14px var(--sp-4);
+  border-bottom: var(--surface-border) solid var(--border);
   font-weight: 600;
   background: var(--bg-surface);
   position: sticky;
@@ -111,8 +112,8 @@
 }
 
 .table td {
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px var(--sp-4);
+  border-bottom: var(--surface-border) solid var(--border-subtle);
   color: var(--text-sec);
 }
 

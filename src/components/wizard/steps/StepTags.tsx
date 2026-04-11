@@ -25,6 +25,9 @@ export function StepTags() {
   const config = useWizardStore((s) => s.getStepConfig());
   const toast = useUIStore((s) => s.toast);
 
+  // Track whether a file was uploaded (separate from manual tags)
+  const [fileUploaded, setFileUploaded] = useState(false);
+
   // ── Manual tag form state ──
   const [mtName, setMtName] = useState('');
   const [mtWidth, setMtWidth] = useState('');
@@ -153,6 +156,7 @@ export function StepTags() {
         // Merge with existing data
         if (parsedData?.placements?.length) {
           const { added, skipped } = mergeParsedData(result);
+          setFileUploaded(true);
           toast(
             `${added} novo${added !== 1 ? 's' : ''} adicionado${added !== 1 ? 's' : ''}` +
             (skipped > 0 ? `, ${skipped} já existente${skipped !== 1 ? 's' : ''}` : '') +
@@ -161,6 +165,7 @@ export function StepTags() {
           );
         } else {
           setParsedData(result);
+          setFileUploaded(true);
           // Auto-fill brand from parsed data (legacy: inputBrand.value = result.brandName)
           if (result.brandName) {
             setConfig({ brand: result.brandName });
@@ -247,12 +252,12 @@ export function StepTags() {
         accept=".xlsx,.xls,.csv"
         icon="📄"
         formatHint=".xlsx .csv"
-        hasFiles={!!parsedData}
-        fileSummary={parsedData ? (
+        hasFiles={fileUploaded}
+        fileSummary={fileUploaded && parsedData ? (
           <span><strong>{allPlacements.length}</strong> placements · {parsedData.campaignName || parsedData.advertiserName}</span>
         ) : undefined}
         onFiles={handleFiles}
-        onClear={() => setParsedData(null)}
+        onClear={() => { setParsedData(null); setFileUploaded(false); }}
       />
 
       {/* Manual tag input */}
@@ -296,8 +301,8 @@ export function StepTags() {
         <button className={styles.manualAddBtn} onClick={handleAddManualTag}>Adicionar Tag</button>
       </div>
 
-      {/* Extracted info */}
-      {parsedData && (
+      {/* Extracted info — only for file uploads */}
+      {fileUploaded && parsedData && (
         <div className={styles.extractedInfo}>
           <h3 className={styles.extractedTitle}>Dados extraídos</h3>
           <div className={styles.infoGrid}>

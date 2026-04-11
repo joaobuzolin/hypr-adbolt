@@ -1,4 +1,5 @@
 import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
+import { DSP_DEFAULTS } from '@/lib/dsp-config';
 import type { Placement, ActivationResult } from '@/types';
 import { mergeTrackers } from '@/parsers/tracker';
 
@@ -17,7 +18,7 @@ export async function activateDV360Tags(
     }
 
     const body = {
-      advertiserId: config.advertiserId || '1426474713',
+      advertiserId: config.advertiserId || DSP_DEFAULTS.dv360.advertiserId,
       campaignName: config.campaignName,
       advertiserName: config.advertiserName,
       creatives: placements.map((p) => ({

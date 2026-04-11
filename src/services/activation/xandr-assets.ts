@@ -1,4 +1,5 @@
 import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
+import { DSP_DEFAULTS } from '@/lib/dsp-config';
 import type { AssetEntry, ActivationResult } from '@/types';
 import { uploadAssetToStorage, buildCreativePayload } from '@/services/storage';
 
@@ -40,7 +41,7 @@ export async function activateXandrAssets(
         }
 
         const body = {
-          advertiserId: 7392214,
+          advertiserId: DSP_DEFAULTS.xandr.advertiserId,
           brandUrl: config.brandUrl || null,
           languageId: config.languageId,
           brandId: config.brandId ? parseInt(config.brandId) : null,

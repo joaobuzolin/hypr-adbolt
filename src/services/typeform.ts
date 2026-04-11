@@ -1,5 +1,7 @@
+import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
+
 const TYPEFORM_PROXY = import.meta.env.VITE_TYPEFORM_PROXY ||
-  'https://adfnabuwzmojxbhcpdpe.supabase.co/functions/v1/typeform-proxy';
+  `${SUPABASE_FUNCTIONS_URL}/typeform-proxy`;
 
 /**
  * Extract a Typeform form ID from a URL or raw ID.

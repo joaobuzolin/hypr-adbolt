@@ -55,9 +55,8 @@ export function downloadXLSX(
     instructionRows?: string[][];
   },
 ): void {
-  // SheetJS is loaded as a CDN script — access via window
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const XLSX = (window as any).XLSX;
+  // SheetJS loaded via CDN — typed in vite-env.d.ts
+  const XLSX = window.XLSX;
   if (!XLSX) {
     throw new Error('SheetJS (XLSX) not loaded');
   }

@@ -1,4 +1,5 @@
 import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
+import { DSP_DEFAULTS } from '@/lib/dsp-config';
 import type { Placement, ActivationResult } from '@/types';
 import { mergeTrackers } from '@/parsers/tracker';
 
@@ -28,7 +29,7 @@ export async function activateXandrTags(
     }
 
     const body = {
-      advertiserId: config.advertiserId || 7392214,
+      advertiserId: config.advertiserId || DSP_DEFAULTS.xandr.advertiserId,
       campaignName: config.campaignName,
       advertiserName: config.advertiserName,
       trackingPixel: '',

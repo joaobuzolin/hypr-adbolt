@@ -4,6 +4,7 @@ import type {
   Placement, Tracker, ActivationResult,
 } from '@/types';
 import { WIZARD_CONFIGS } from '@/types';
+import { DSP_DEFAULTS } from '@/lib/dsp-config';
 
 interface WizardState {
   // ── Mode & Navigation ──
@@ -132,9 +133,9 @@ const INITIAL_STATE = {
   xandrBrandId: '',
   xandrBrandUrl: '',
   xandrSla: 0,
-  dv360AdvId: '1426474713',
-  amazonAdvId: '4968167560201',
-  amazonMarketplace: 'BR',
+  dv360AdvId: DSP_DEFAULTS.dv360.advertiserId,
+  amazonAdvId: DSP_DEFAULTS.amazondsp.advertiserId,
+  amazonMarketplace: DSP_DEFAULTS.amazondsp.defaultMarketplace,
   generatedFiles: {} as Record<string, unknown>,
   activationDone: false,
   activating: false,

@@ -1,7 +1,6 @@
 import type { AssetEntry, DspType, Tracker } from '@/types';
 import { mergeTrackers } from '@/parsers/tracker';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://adfnabuwzmojxbhcpdpe.supabase.co';
+import { SUPABASE_URL } from '@/services/supabase';
 
 /**
  * Upload a file to Supabase Storage (asset-uploads bucket).

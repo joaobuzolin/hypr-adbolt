@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useWizardStore } from '@/stores/wizard';
 import { useUIStore } from '@/stores/ui';
 import { UploadZone } from '@/components/shared/UploadZone';
@@ -7,6 +7,9 @@ import { BulkBar } from '@/components/shared/BulkBar';
 import { StepNav } from '@/components/shared/StepNav';
 import { parseCM360 } from '@/parsers/cm360';
 import { parseGenericTags } from '@/parsers/generic';
+import { analyzeTracker } from '@/parsers/tracker';
+import { normalizeUrl } from '@/lib/utils';
+import type { Placement, Tracker } from '@/types';
 import styles from './StepTags.module.css';
 
 export function StepTags() {
@@ -14,12 +17,108 @@ export function StepTags() {
     parsedData, setParsedData, mergeParsedData,
     selectedTagIds, toggleTagSelection, selectAllTags, clearTagSelection,
     removeTagPlacements, updatePlacement,
+    addPlacementTracker, removePlacementTracker,
     tagsFilterType, tagsFilterSize, tagsFilterText, setTagsFilter,
     currentStep, setStep, hasContent, hasDsp,
     setConfig,
   } = useWizardStore();
   const config = useWizardStore((s) => s.getStepConfig());
   const toast = useUIStore((s) => s.toast);
+
+  // ── Manual tag form state ──
+  const [mtName, setMtName] = useState('');
+  const [mtWidth, setMtWidth] = useState('');
+  const [mtHeight, setMtHeight] = useState('');
+  const [mtType, setMtType] = useState<'display' | 'video'>('display');
+  const [mtCode, setMtCode] = useState('');
+  const [mtClick, setMtClick] = useState('');
+  const mtCodeRef = useRef<HTMLTextAreaElement>(null);
+
+  // ── Auto-detect dimensions + click URL from tag content ──
+  const autoDetectFromTag = useCallback((tag: string) => {
+    if (!tag) return;
+    // Auto-detect dimensions
+    let w = 0, h = 0;
+    const dw = tag.match(/data-width\s*=\s*"(\d+)"/i);
+    const dh = tag.match(/data-height\s*=\s*"(\d+)"/i);
+    if (dw && dh) { w = parseInt(dw[1]); h = parseInt(dh[1]); }
+    if (!w || !h) { const wm = tag.match(/width\s*[:=]\s*"?(\d+)/i); const hm = tag.match(/height\s*[:=]\s*"?(\d+)/i); if (wm && hm) { w = parseInt(wm[1]); h = parseInt(hm[1]); } }
+    if (!w || !h) { const dm = tag.match(/(\d{2,4})x(\d{2,4})/i); if (dm) { w = parseInt(dm[1]); h = parseInt(dm[2]); } }
+    if (w && !mtWidth) setMtWidth(String(w));
+    if (h && !mtHeight) setMtHeight(String(h));
+    // Auto-detect click URL
+    if (!mtClick) {
+      const ctaMatch = tag.match(/data-cta-url\s*=\s*"([^"]+)"/i);
+      if (ctaMatch) setMtClick(ctaMatch[1]);
+      else { const hrefMatch = tag.match(/(?:href|url|landing)\s*=\s*"(https?:\/\/[^"]+)"/i); if (hrefMatch) setMtClick(hrefMatch[1]); }
+    }
+  }, [mtWidth, mtHeight, mtClick]);
+
+  // ── Add manual tag ──
+  const handleAddManualTag = useCallback(() => {
+    const tag = mtCode.trim();
+    if (!tag) { toast('Cole a tag HTML/JS/VAST no campo', 'error'); mtCodeRef.current?.focus(); return; }
+    let w = parseInt(mtWidth) || 0;
+    let h = parseInt(mtHeight) || 0;
+    if (!w || !h) {
+      // Try one more auto-detect
+      const dw = tag.match(/data-width\s*=\s*"(\d+)"/i); const dh = tag.match(/data-height\s*=\s*"(\d+)"/i);
+      if (dw && dh) { w = parseInt(dw[1]); h = parseInt(dh[1]); }
+      if (!w || !h) { const wm = tag.match(/width\s*[:=]\s*"?(\d+)/i); const hm = tag.match(/height\s*[:=]\s*"?(\d+)/i); if (wm && hm) { w = parseInt(wm[1]); h = parseInt(hm[1]); } }
+      if (!w || !h) { const dm = tag.match(/(\d{2,4})x(\d{2,4})/i); if (dm) { w = parseInt(dm[1]); h = parseInt(dm[2]); } }
+      if (w) setMtWidth(String(w));
+      if (h) setMtHeight(String(h));
+    }
+    if (!w || !h) { toast('Informe a largura e altura do criativo', 'error'); return; }
+    const dims = w + 'x' + h;
+    let clickUrl = mtClick.trim();
+    if (!clickUrl) {
+      const ctaMatch = tag.match(/data-cta-url\s*=\s*"([^"]+)"/i);
+      if (ctaMatch) clickUrl = ctaMatch[1];
+      else { const hrefMatch = tag.match(/(?:href|url|landing)\s*=\s*"(https?:\/\/[^"]+)"/i); if (hrefMatch) clickUrl = hrefMatch[1]; }
+    }
+    let name = mtName.trim();
+    if (!name) {
+      const srcMatch = tag.match(/data-iframe-src\s*=\s*"([^"]+)"/i) || tag.match(/src\s*=\s*"([^"]+)"/i);
+      if (srcMatch) { try { const u = new URL(srcMatch[1]); name = u.pathname.split('/').filter(Boolean).pop() || 'manual_tag'; } catch { name = 'manual_tag'; } }
+      else name = 'manual_tag';
+      name = name + '_' + dims;
+    }
+    const isVideo = mtType === 'video';
+    const placement: Placement = {
+      placementId: 'manual_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      placementName: name,
+      dimensions: dims,
+      jsTag: isVideo ? '' : tag,
+      clickUrl: clickUrl,
+      type: mtType,
+      vastTag: isVideo ? tag : '',
+      trackers: [],
+    };
+    // Initialize parsedData if needed, then merge
+    if (!parsedData || !parsedData.placements.length) {
+      setParsedData({ campaignName: 'Manual Tags', advertiserName: '', brandName: '', placements: [placement], contentType: isVideo ? 'video' : 'display' });
+    } else {
+      const updated = { ...parsedData, placements: [...parsedData.placements, placement] };
+      const hasV = updated.placements.some(p => p.type === 'video');
+      const hasD = updated.placements.some(p => p.type === 'display');
+      updated.contentType = hasV && hasD ? 'mixed' : hasV ? 'video' : 'display';
+      setParsedData(updated);
+    }
+    toast(`${name} adicionado`, 'success');
+    setMtCode(''); setMtName(''); setMtClick(''); setMtWidth(''); setMtHeight('');
+  }, [mtCode, mtName, mtWidth, mtHeight, mtType, mtClick, parsedData, setParsedData, toast]);
+
+  // ── Per-tag tracker commit ──
+  const handleTrackerCommit = useCallback((idx: number, raw: string) => {
+    if (!raw.trim()) return;
+    const analyzed = analyzeTracker(raw);
+    const url = normalizeUrl(analyzed.url);
+    const placement = parsedData?.placements[idx];
+    if (placement && !placement.trackers.some((t: Tracker) => t.url === url)) {
+      addPlacementTracker(idx, { url, format: analyzed.format, dsps: 'all' });
+    }
+  }, [parsedData, addPlacementTracker]);
 
   // ── File handling ──
   const handleFiles = useCallback((files: File[]) => {
@@ -103,6 +202,31 @@ export function StepTags() {
   // ── Bulk actions ──
   const selectedCount = selectedTagIds.size;
   const bulkActions = [
+    { label: '+ Tracker', onClick: () => {
+      const ids = [...selectedTagIds];
+      const raw = prompt(`Pixel/tracker URL pra aplicar em ${ids.length} placement(s):`);
+      if (!raw) return;
+      const analyzed = analyzeTracker(raw);
+      const url = normalizeUrl(analyzed.url);
+      ids.forEach((idx) => addPlacementTracker(idx, { url, format: analyzed.format, dsps: 'all' }));
+      toast(`Tracker aplicado em ${ids.length} placement(s)`, 'success');
+    }},
+    { label: 'Find & Replace', onClick: () => {
+      const ids = [...selectedTagIds];
+      const find = prompt(`Buscar no nome de ${ids.length} placement(s):`);
+      if (!find) return;
+      const replace = prompt(`Substituir "${find}" por:`);
+      if (replace === null) return;
+      let count = 0;
+      ids.forEach((idx) => {
+        const p = parsedData?.placements[idx];
+        if (p && p.placementName.includes(find)) {
+          updatePlacement(idx, 'placementName', p.placementName.split(find).join(replace));
+          count++;
+        }
+      });
+      toast(`${count} nome(s) atualizado(s)`, count ? 'success' : '');
+    }},
     { label: 'Remover', onClick: () => {
       const ids = [...selectedTagIds];
       if (confirm(`Remover ${ids.length} placement(s)?`)) {
@@ -130,6 +254,47 @@ export function StepTags() {
         onFiles={handleFiles}
         onClear={() => setParsedData(null)}
       />
+
+      {/* Manual tag input */}
+      <div className={styles.manualDivider}><span>ou adicione tags manualmente</span></div>
+      <div className={styles.manualSection}>
+        <div className={styles.manualFields}>
+          <div className={styles.manualField} style={{ flex: 1 }}>
+            <label>Nome do placement</label>
+            <input value={mtName} onChange={(e) => setMtName(e.target.value)} placeholder="Ex: LeroyMerlin_GIF_300x250" />
+          </div>
+          <div className={styles.manualField} style={{ width: 90 }}>
+            <label>Largura</label>
+            <input type="number" value={mtWidth} onChange={(e) => setMtWidth(e.target.value)} placeholder="300" />
+          </div>
+          <div className={styles.manualField} style={{ width: 90 }}>
+            <label>Altura</label>
+            <input type="number" value={mtHeight} onChange={(e) => setMtHeight(e.target.value)} placeholder="250" />
+          </div>
+          <div className={styles.manualField} style={{ width: 110 }}>
+            <label>Tipo</label>
+            <select value={mtType} onChange={(e) => setMtType(e.target.value as 'display' | 'video')}>
+              <option value="display">Display</option>
+              <option value="video">Video</option>
+            </select>
+          </div>
+        </div>
+        <div className={styles.manualField} style={{ width: '100%', marginBottom: 12 }}>
+          <label>Tag HTML / JS / VAST URL</label>
+          <textarea
+            ref={mtCodeRef}
+            value={mtCode}
+            onChange={(e) => { setMtCode(e.target.value); autoDetectFromTag(e.target.value); }}
+            rows={3}
+            placeholder="Cole a tag completa aqui (HTML, JS tag, ou VAST URL)"
+          />
+        </div>
+        <div className={styles.manualField} style={{ width: '100%', marginBottom: 12 }}>
+          <label>Click URL <span style={{ fontWeight: 400, color: 'var(--text-tri)' }}>(opcional)</span></label>
+          <input value={mtClick} onChange={(e) => setMtClick(e.target.value)} placeholder="https://..." />
+        </div>
+        <button className={styles.manualAddBtn} onClick={handleAddManualTag}>Adicionar Tag</button>
+      </div>
 
       {/* Extracted info */}
       {parsedData && (
@@ -209,6 +374,7 @@ export function StepTags() {
                   <th>Size</th>
                   <th>Tag</th>
                   <th>Click URL</th>
+                  <th>Tracker</th>
                   <th></th>
                 </tr>
               </thead>
@@ -248,6 +414,30 @@ export function StepTags() {
                         onChange={(e) => updatePlacement(i, 'clickUrl', e.target.value)}
                         placeholder="https://..."
                       />
+                    </td>
+                    <td className={styles.trackerCell}>
+                      <div className={styles.trackerChips}>
+                        {p.trackers.map((t: Tracker, ti: number) => (
+                          <span key={ti} className={styles.trackerChip}>
+                            <span className={styles.trackerUrl} title={t.url}>{t.url}</span>
+                            <button className={styles.trackerRm} onClick={() => removePlacementTracker(i, ti)}>✕</button>
+                          </span>
+                        ))}
+                        <input
+                          className={styles.trackerInput}
+                          placeholder="+ pixel"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleTrackerCommit(i, (e.target as HTMLInputElement).value);
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }}
+                          onBlur={(e) => {
+                            handleTrackerCommit(i, e.target.value);
+                            e.target.value = '';
+                          }}
+                        />
+                      </div>
                     </td>
                     <td>
                       <button

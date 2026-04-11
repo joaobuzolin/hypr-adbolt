@@ -217,6 +217,180 @@
   }
 }
 
+/* Manual Tag Section */
+.manualDivider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0 20px;
+  color: var(--text-tri);
+  font-size: 0.78rem;
+}
+
+.manualDivider::before,
+.manualDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.manualSection {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  transition: border-color var(--dur-f);
+}
+
+.manualSection:focus-within {
+  border-color: var(--border-active);
+}
+
+.manualFields {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.manualField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.manualField label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-sec);
+  letter-spacing: 0.2px;
+}
+
+.manualField input,
+.manualField textarea,
+.manualField select {
+  padding: var(--input-py) var(--input-px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: var(--font);
+  transition: border-color var(--dur-f);
+}
+
+.manualField textarea {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.manualField input:focus,
+.manualField textarea:focus,
+.manualField select:focus {
+  outline: none;
+  border-color: var(--accent-ring);
+}
+
+.manualField select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238585a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.manualAddBtn {
+  align-self: flex-start;
+  padding: 10px 24px;
+  border-radius: var(--r-xs);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: none;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all var(--dur-f);
+}
+
+.manualAddBtn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-ring);
+}
+
+/* Tracker column in tags table */
+.trackerCell {
+  max-width: 220px;
+}
+
+.trackerChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.trackerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+  background: var(--accent-dim);
+  font-size: 0.65rem;
+  font-family: var(--mono);
+  max-width: 160px;
+}
+
+.trackerUrl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+.trackerRm {
+  background: none;
+  border: none;
+  color: var(--text-tri);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.trackerRm:hover {
+  color: var(--error);
+}
+
+.trackerInput {
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  width: 70px;
+  transition: border-color var(--dur-f);
+}
+
+.trackerInput:hover {
+  border-color: var(--border);
+}
+
+.trackerInput:focus {
+  outline: none;
+  border-color: var(--accent-ring);
+  background: var(--bg-input);
+  width: 140px;
+}
+
 
 /* Keyframes (local to CSS module to avoid scoping issues) */
 @keyframes fadeRow { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }

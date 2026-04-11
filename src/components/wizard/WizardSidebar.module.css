@@ -120,7 +120,7 @@
   width: 1.5px;
   height: 12px;
   background: var(--border);
-  margin-left: 37px;
+  margin-left: 28px;
   transition: background var(--dur);
 }
 

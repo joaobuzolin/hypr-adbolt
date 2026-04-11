@@ -129,7 +129,7 @@ export const SURVEY_SIZES = ['300x600', '300x250', '320x480'];
 // ── Creative (from Supabase DB) ──
 
 export type CreativeStatus = 'active' | 'paused' | 'archived' | 'error' | 'deleted';
-export type AuditStatus = 'approved' | 'pending' | 'rejected' | 'unknown' | 'archived' | 'deleted';
+export type AuditStatus = 'approved' | 'pending' | 'partial' | 'rejected' | 'unknown' | 'archived' | 'deleted';
 
 export interface Creative {
   id: string;

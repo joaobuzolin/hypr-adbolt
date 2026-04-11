@@ -1,0 +1,93 @@
+import { describe, it, expect } from 'vitest';
+import { parseGenericTags } from '@/parsers/generic';
+
+describe('parseGenericTags', () => {
+  it('parses a basic creative name + tag spreadsheet', () => {
+    const rows: string[][] = [
+      ['Creative name', 'Third-party tag', 'Dimensions (width x height)'],
+      ['Banner_300x250', '<script src="https://ad.example.com/banner.js"></script>', '300 x 250'],
+      ['Banner_728x90', '<script src="https://ad.example.com/leaderboard.js"></script>', '728 x 90'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result).not.toBeNull();
+    expect(result!.placements).toHaveLength(2);
+    expect(result!.placements[0].dimensions).toBe('300x250');
+    expect(result!.placements[1].dimensions).toBe('728x90');
+  });
+
+  it('detects AdCanvas source format', () => {
+    const rows: string[][] = [
+      ['Name', 'Tag'],
+      ['Test', '<script src="https://cdn.adcanvas.com/serve/tag.js"></script>'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result!.sourceFormat).toBe('AdCanvas');
+  });
+
+  it('detects Nexd source format', () => {
+    const rows: string[][] = [
+      ['Name', 'Tag'],
+      ['Test', '<script src="https://cdn.nexd.com/serve/creative.js"></script>'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result!.sourceFormat).toBe('Nexd');
+  });
+
+  it('extracts dimensions from tag data attributes', () => {
+    const rows: string[][] = [
+      ['Creative name', 'Tag'],
+      ['NoDims', '<div data-width="320" data-height="480"><script src="https://test.com/ad.js"></script></div>'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result!.placements[0].dimensions).toBe('320x480');
+  });
+
+  it('extracts dimensions from creative name as fallback', () => {
+    const rows: string[][] = [
+      ['Creative name', 'Tag'],
+      ['MyAd_970x250_v2', '<script src="https://test.com/ad.js"></script>'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result!.placements[0].dimensions).toBe('970x250');
+  });
+
+  it('extracts click URL from column', () => {
+    const rows: string[][] = [
+      ['Name', 'Tag', 'Landing Page URL'],
+      ['Ad1', '<script src="https://test.com"></script>', 'https://brand.com/landing'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result!.placements[0].clickUrl).toBe('https://brand.com/landing');
+  });
+
+  it('extracts metadata from rows above header', () => {
+    const rows: string[][] = [
+      ['Campaign Name', 'Q3 Branding'],
+      ['Advertiser', 'MyCorp'],
+      ['Creative name', 'Tag'],
+      ['Ad1', '<script></script>'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result!.campaignName).toBe('Q3 Branding');
+    expect(result!.advertiserName).toBe('MyCorp');
+  });
+
+  it('returns null for no matching headers', () => {
+    expect(parseGenericTags([['foo', 'bar'], ['a', 'b']])).toBeNull();
+  });
+
+  it('returns null for header-only (no data rows)', () => {
+    expect(parseGenericTags([['Creative name', 'Tag']])).toBeNull();
+  });
+
+  it('uses flexible header aliases', () => {
+    // "Ad name" + "embed" should also work
+    const rows: string[][] = [
+      ['Ad name', 'Embed'],
+      ['MyAd', '<div>ad content</div>'],
+    ];
+    const result = parseGenericTags(rows);
+    expect(result).not.toBeNull();
+    expect(result!.placements[0].placementName).toBe('MyAd');
+  });
+});

@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { create, getNumericDate } from "https://deno.land/x/djwt@v2.9.1/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,7 +167,28 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
+    // Auth: validate user JWT
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Auth token missing" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "User not authenticated" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Parse service account key
     const saKeyRaw = Deno.env.get("DV360_SERVICE_ACCOUNT_KEY");
     if (!saKeyRaw) throw new Error("DV360_SERVICE_ACCOUNT_KEY not configured");
@@ -179,8 +201,10 @@ serve(async (req: Request) => {
     const {
       creatives,
       trackingPixel,
-      campaignName,
-      advertiserName,
+      campaignName = "",
+      advertiserName = "",
+      brandName = "",
+      sourceType = "tags",
     } = await req.json();
 
     if (!creatives?.length) {
@@ -189,6 +213,20 @@ serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Create batch record
+    const { data: batchData, error: batchError } = await supabase.from("creative_batches").insert({
+      user_email: user.email,
+      user_name: user.user_metadata?.full_name || user.email,
+      source_type: sourceType === "surveys" ? "surveys" : "tags",
+      campaign_name: campaignName || null,
+      advertiser_name: advertiserName || null,
+      brand_name: brandName || null,
+      total_creatives: 0,
+      dsps_activated: ["dv360"],
+    }).select("id").single();
+    const batchId = batchData?.id || null;
+    if (batchError) console.error("Failed to create batch:", batchError.message);
 
     // Get OAuth2 access token
     const token = await getAccessToken(saKey);
@@ -214,17 +252,77 @@ serve(async (req: Request) => {
       }
     }
 
+    // Insert successful creatives into DB
+    const successResults = results.filter((r: any) => r.success);
+    if (successResults.length > 0 && batchId) {
+      const creativeRows = successResults.map((r: any, idx: number) => {
+        const c = creatives[results.indexOf(r)] || creatives[idx] || {};
+        const [w, h] = (c.dimensions || "0x0").split("x").map(Number);
+        const allTrackers: Array<{url: string; format: string}> = [];
+        if (trackingPixel) allTrackers.push({ url: trackingPixel, format: "url-image" });
+        if (c.trackers) c.trackers.forEach((t: any) => {
+          const url = typeof t === "string" ? t : t.url;
+          const format = typeof t === "string" ? "url-image" : (t.format || "url-image");
+          if (url) allTrackers.push({ url, format });
+        });
+        return {
+          batch_id: batchId,
+          created_by_email: user.email!,
+          created_by_name: user.user_metadata?.full_name || user.email,
+          dsp: "dv360" as const,
+          dsp_creative_id: String(r.creativeId),
+          name: r.name,
+          creative_type: (c.type === "video" ? "video" : "display") as "display" | "video",
+          dimensions: c.dimensions || `${w}x${h}`,
+          js_tag: c.type === "video" ? null : (c.jsTag || null),
+          vast_tag: c.type === "video" ? (c.vastTag || c.jsTag || null) : null,
+          click_url: c.clickUrl || null,
+          landing_page: c.clickUrl || null,
+          trackers: JSON.stringify(allTrackers),
+          dsp_config: JSON.stringify({ advertiser_id: advertiserId }),
+          status: "active",
+          audit_status: "pending",
+          last_synced_at: new Date().toISOString(),
+        };
+      });
+      const { error: insertError } = await supabase.from("creatives").insert(creativeRows);
+      if (insertError) console.error("Failed to insert creatives:", insertError.message);
+      await supabase.from("creative_batches").update({ total_creatives: successResults.length }).eq("id", batchId);
+    }
+
     const status = successCount === creatives.length
       ? "success"
       : successCount > 0
       ? "partial"
       : "error";
 
+    // Log activation
+    await supabase.from("activation_log").insert({
+      user_email: user.email,
+      user_name: user.user_metadata?.full_name || user.email,
+      dsp: "dv360",
+      campaign_name: campaignName,
+      advertiser_name: advertiserName,
+      creatives_count: creatives.length,
+      status,
+      request_payload: { advertiserId, creativesCount: creatives.length, batchId },
+      response_summary: {
+        total: results.length,
+        success: successCount,
+        failed: results.length - successCount,
+        batchId,
+        creativeIds: results.filter((r: any) => r.success).map((r: any) => r.creativeId),
+      },
+      error_message: status === "error" ? results[0]?.error : null,
+    });
+
     return new Response(
       JSON.stringify({
         status,
         total: creatives.length,
         success: successCount,
+        failed: results.length - successCount,
+        batchId,
         results,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -7,4 +7,4 @@ export { activateDV360Assets } from './activation/dv360-assets';
 export { syncCreatives } from './sync';
 export { updateCreative } from './update';
 export { deleteCreatives } from './delete';
-export { extractFormId, fetchTypeformTitle, detectVariant, buildSurveyIframe } from './typeform';
+export { extractFormId, fetchTypeformTitle, detectVariant, buildSurveyIframe, fetchSurveyList, parseSurveyTitle } from './typeform';

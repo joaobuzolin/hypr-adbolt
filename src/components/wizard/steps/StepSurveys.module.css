@@ -240,6 +240,198 @@
 }
 
 
+/* ═══ Survey Picker ═══ */
+
+.pickerDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 32px 0 20px;
+  color: var(--text-tri);
+  font-size: 0.78rem;
+}
+.pickerDivider::before,
+.pickerDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.pickerCard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  animation: slideUp 0.4s var(--ease-out);
+}
+
+.pickerHeader {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 12px;
+}
+.pickerTitle { font-size: 0.88rem; font-weight: 600; }
+.pickerSub { font-size: 0.72rem; color: var(--text-tri); margin-top: 2px; }
+.pickerFilter {
+  width: 160px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-family: var(--font);
+  transition: border-color var(--dur-f);
+}
+.pickerFilter:focus { outline: none; border-color: var(--accent-ring); }
+
+.pickerLoading, .pickerError {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-tri);
+}
+.pickerError { color: var(--error); }
+
+.pickerTableWrap {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.pickerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.pickerTable thead tr {
+  position: sticky;
+  top: 0;
+  background: var(--bg-raised);
+  z-index: 2;
+}
+.pickerTable th {
+  padding: 8px 8px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-tri);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pickerTable td {
+  padding: 10px 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.pickerCb { width: 32px; padding-left: 12px !important; padding-right: 4px !important; }
+.pickerColType { width: 130px; }
+.pickerColVariant { width: 110px; }
+.pickerColDate { width: 70px; }
+
+.pickerRowSel { background: var(--accent-glow); }
+.pickerName {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+.pickerBrand { font-size: 0.75rem; color: var(--text-sec); }
+.pickerDate { text-align: right; font-size: 0.72rem; color: var(--text-tri); }
+
+/* Inline dropdown */
+.ddWrap { position: relative; display: inline-block; }
+.ddTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: border-color var(--dur-f);
+  white-space: nowrap;
+  font-family: var(--font);
+  background: none;
+}
+.ddTrigger:hover { border-color: var(--border-active); }
+.ddTrigger svg { opacity: 0.4; flex-shrink: 0; }
+
+.ddTriggerType { background: var(--accent-dim); color: var(--accent); }
+.ddTriggerNeutral { background: var(--bg-raised); color: var(--text-sec); border-color: var(--border); }
+.ddTriggerControle { background: var(--warning-dim); color: var(--warning); }
+.ddTriggerExposto { background: var(--success-dim); color: var(--success); }
+
+.ddPanel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: var(--z-dropdown);
+  min-width: 160px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px;
+  box-shadow: var(--shadow-md);
+  animation: fadeIn 0.15s var(--ease-out);
+}
+.ddInput {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--bg-input);
+  color: var(--text);
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  font-family: var(--font);
+}
+.ddInput:focus { outline: none; border-color: var(--accent-ring); }
+.ddItem {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  color: var(--text);
+}
+.ddItem:hover { background: var(--bg-raised); }
+.ddItemActive { background: var(--accent-dim); color: var(--accent); }
+
+/* Footer */
+.pickerFooter {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pickerCount { font-size: 0.75rem; color: var(--text-tri); }
+.pickerActions { display: flex; gap: 8px; align-items: center; }
+.pickerSizePills { display: flex; gap: 4px; align-items: center; }
+.pickerSizeLabel { font-size: 0.68rem; color: var(--text-sec); margin-right: 2px; }
+.pickerAddBtn {
+  padding: 6px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--r-xs);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  cursor: pointer;
+  transition: all var(--dur-f);
+  font-family: var(--font);
+}
+.pickerAddBtn:hover:not(:disabled) { background: var(--accent-hover); }
+.pickerAddBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
 /* Keyframes (local to CSS module to avoid scoping issues) */
 @keyframes fadeRow { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

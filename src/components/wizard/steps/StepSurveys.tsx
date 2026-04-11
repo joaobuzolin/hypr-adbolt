@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useWizardStore } from '@/stores/wizard';
 import { useUIStore } from '@/stores/ui';
 import { StepNav } from '@/components/shared/StepNav';
+import { SurveyPicker } from './SurveyPicker';
 import { extractFormId, fetchTypeformTitle, detectVariant } from '@/services/typeform';
 import { SURVEY_SIZES } from '@/types';
 import styles from './StepSurveys.module.css';
@@ -213,6 +214,48 @@ export function StepSurveys() {
           ))}
         </div>
       </div>
+
+      <div className={styles.pickerDivider}><span>ou selecione do Typeform</span></div>
+
+      <SurveyPicker
+        onAdd={(items) => {
+          let addedCount = 0;
+          for (const item of items) {
+            // Find or create the survey entry for this type
+            let entry = surveyEntries.find((e) => e.type === item.type);
+            if (!entry) {
+              addSurveyEntry(item.type);
+              // Re-read from store after add
+              const state = useWizardStore.getState();
+              entry = state.surveyEntries[state.surveyEntries.length - 1];
+            }
+            if (!entry) continue;
+
+            // Check if already added
+            if (entry.urls.some((u) => u.formId === item.formId)) continue;
+
+            // Check global duplicates
+            const globalDupe = surveyEntries.find((e) => e.id !== entry!.id && e.urls.some((u) => u.formId === item.formId));
+            if (globalDupe) continue;
+
+            addSurveyUrl(entry.id, {
+              url: `https://form.typeform.com/to/${item.formId}`,
+              formId: item.formId,
+              title: item.title,
+              variant: item.variant,
+            });
+
+            // Update size if specified
+            if (item.size) updateSurveySize(entry.id, item.size);
+
+            // Auto-fill brand
+            autoFillBrand(item.title);
+            addedCount++;
+          }
+          if (addedCount) toast(`${addedCount} survey(s) adicionada(s)`, 'success');
+          else toast('Surveys já adicionadas ou duplicadas', '');
+        }}
+      />
 
       <StepNav
         prevLabel={prevLabel}

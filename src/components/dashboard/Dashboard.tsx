@@ -109,21 +109,31 @@ export function Dashboard() {
 
   // ── Bulk actions ──
   const selectedCount = store.selectedKeys.size;
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState('');
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!selectedCount || !session?.access_token) return;
+  const handleBulkDelete = useCallback(() => {
+    if (!selectedCount) return;
+    setDeleteConfirmVisible(true);
+  }, [selectedCount]);
+
+  const executeDelete = useCallback(async () => {
+    if (!session?.access_token) return;
+    setDeleteConfirmVisible(false);
+    setIsDeleting(true);
+
     const keys = [...store.selectedKeys];
     const groups = keys.map((k) => store.groups.find((g) => g._gid === k)).filter(Boolean) as CreativeGroup[];
     const allIds: string[] = [];
     groups.forEach((g) => Object.values(g.dsps).forEach((d) => allIds.push(d.id)));
-
-    if (!confirm(`Deletar ${groups.length} criativo(s)?\n\nXandr: deletados permanentemente\nDV360: arquivados\n\nEssa ação não pode ser desfeita.`)) return;
 
     try {
       const CHUNK = 20;
       let totalDeleted = 0, totalArchived = 0, totalFailed = 0;
       for (let i = 0; i < allIds.length; i += CHUNK) {
         const chunk = allIds.slice(i, i + CHUNK);
+        setDeleteProgress(`Processando ${Math.min(i + CHUNK, allIds.length)}/${allIds.length}...`);
         try {
           const r = await deleteCreatives(session.access_token, chunk);
           totalDeleted += r.deleted;
@@ -139,7 +149,8 @@ export function Dashboard() {
       store.clearSelection();
       await store.loadCreatives();
     } catch (err) { toast('Erro: ' + (err as Error).message, 'error'); }
-  }, [selectedCount, session?.access_token, store.selectedKeys, store.groups, toast]);
+    finally { setIsDeleting(false); setDeleteProgress(''); }
+  }, [session?.access_token, store.selectedKeys, store.groups, toast]);
 
   const bulkActions = [
     { label: 'Editar', onClick: () => openBulkEdit() },
@@ -784,6 +795,49 @@ export function Dashboard() {
         data={previewGroup ? getPreviewDataFromGroup(previewGroup) : null}
         onClose={() => setPreviewGroup(null)}
       />
+
+      {/* Delete confirmation modal */}
+      <Modal visible={deleteConfirmVisible} onClose={() => setDeleteConfirmVisible(false)} title="Confirmar exclusão" maxWidth="420px">
+        <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-sec)', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 12px' }}><strong>{selectedCount}</strong> criativo(s) serão removidos:</p>
+          <p style={{ margin: '0 0 4px', fontSize: 'var(--fs-xs)', color: 'var(--text-tri)' }}>Xandr — deletados permanentemente</p>
+          <p style={{ margin: '0 0 16px', fontSize: 'var(--fs-xs)', color: 'var(--text-tri)' }}>DV360 — arquivados</p>
+          <p style={{ margin: 0, fontSize: 'var(--fs-xs)', color: 'var(--error)' }}>Essa ação não pode ser desfeita.</p>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+          <button className={styles.btn} onClick={() => setDeleteConfirmVisible(false)}>Cancelar</button>
+          <button
+            className={styles.btn}
+            style={{ background: 'var(--error)', color: '#fff', borderColor: 'var(--error)' }}
+            onClick={executeDelete}
+          >
+            Deletar
+          </button>
+        </div>
+      </Modal>
+
+      {/* Delete loading overlay */}
+      {isDeleting && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 150,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.2s var(--ease-out)',
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', border: 'var(--surface-border) solid var(--border)',
+            borderRadius: 'var(--surface-radius)', padding: '32px 40px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+            boxShadow: 'var(--shadow-lg)', minWidth: 260,
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--error)" strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin 0.8s linear infinite' }}>
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
+            </svg>
+            <div style={{ fontSize: 'var(--fs-base)', fontWeight: 500, color: 'var(--text)' }}>Deletando criativos...</div>
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tri)', fontFamily: 'var(--mono)' }}>{deleteProgress}</div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

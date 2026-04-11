@@ -49,14 +49,15 @@ export const useUIStore = create<UIState>((set, get) => ({
     // Replace existing toasts (only 1 visible at a time, like original)
     set({ toasts: [toast], _toastCounter: id });
 
-    // Auto-dismiss non-error toasts after 3.2s (matching original)
+    // Auto-dismiss non-error toasts (5s if undo, 3.2s otherwise)
     if (type !== 'error') {
+      const delay = undoAction ? 5000 : 3200;
       setTimeout(() => {
         const { toasts } = get();
         if (toasts.some((t) => t.id === id)) {
           set({ toasts: toasts.filter((t) => t.id !== id) });
         }
-      }, 3200);
+      }, delay);
     }
   },
 

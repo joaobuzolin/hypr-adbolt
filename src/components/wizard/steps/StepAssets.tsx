@@ -361,6 +361,14 @@ export function StepAssets() {
                           className={styles.cellInput}
                           value={a.name}
                           onChange={(e) => updateAsset(a.id, { name: e.target.value })}
+                          onFocus={(e) => (e.target as HTMLInputElement).dataset.prev = a.name}
+                          onBlur={(e) => {
+                            if (e.target.dataset.prev && e.target.dataset.prev !== a.name) {
+                              e.target.classList.remove(styles.flash);
+                              void e.target.offsetWidth;
+                              e.target.classList.add(styles.flash);
+                            }
+                          }}
                         />
                       </td>
                       <td><span className={`${styles.typeBadge} ${styles[a.type]}`}>{a.type}</span></td>
@@ -389,9 +397,15 @@ export function StepAssets() {
                           className={`${styles.cellInput} ${styles.mono}`}
                           value={a.landingPage}
                           onChange={(e) => updateAsset(a.id, { landingPage: e.target.value })}
+                          onFocus={(e) => (e.target as HTMLInputElement).dataset.prev = a.landingPage}
                           onBlur={(e) => {
                             const n = normalizeUrl(e.target.value);
                             if (n !== e.target.value) updateAsset(a.id, { landingPage: n });
+                            if (e.target.dataset.prev && e.target.dataset.prev !== (n || e.target.value)) {
+                              e.target.classList.remove(styles.flash);
+                              void e.target.offsetWidth;
+                              e.target.classList.add(styles.flash);
+                            }
                           }}
                           placeholder="https://..."
                         />
@@ -425,7 +439,13 @@ export function StepAssets() {
                       </td>
                       <td className={styles.actions}>
                         <button className={styles.actionBtn} title="Duplicar" onClick={() => duplicateAsset(a.id)}>⧉</button>
-                        <button className={`${styles.actionBtn} ${styles.danger}`} title="Remover" onClick={() => removeAsset(a.id)}>✕</button>
+                        <button className={`${styles.actionBtn} ${styles.danger}`} title="Remover" onClick={() => {
+                          const snapshot = { ...a };
+                          removeAsset(a.id);
+                          toast(`Removido: ${a.name}`, '', () => {
+                            addAssetEntries([snapshot]);
+                          });
+                        }}>✕</button>
                       </td>
                     </tr>
                   );

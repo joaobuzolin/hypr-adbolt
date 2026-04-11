@@ -383,6 +383,14 @@ export function StepTags() {
                         value={p.placementName}
                         onChange={(e) => updatePlacement(i, 'placementName', e.target.value)}
                         title={p.placementName}
+                        onFocus={(e) => (e.target as HTMLInputElement).dataset.prev = p.placementName}
+                        onBlur={(e) => {
+                          if (e.target.dataset.prev && e.target.dataset.prev !== p.placementName) {
+                            e.target.classList.remove(styles.flash);
+                            void e.target.offsetWidth;
+                            e.target.classList.add(styles.flash);
+                          }
+                        }}
                       />
                     </td>
                     <td>
@@ -432,8 +440,19 @@ export function StepTags() {
                       <button
                         className={styles.removeBtn}
                         onClick={() => {
+                          const snapshot = { ...p, trackers: [...p.trackers] };
+                          const placementName = p.placementName;
                           removeTagPlacements([i]);
-                          toast(`Removido: ${p.placementName}`, 'success');
+                          toast(`Removido: ${placementName}`, '', () => {
+                            // Re-add placement via mergeParsedData
+                            if (parsedData) {
+                              const restored = {
+                                ...parsedData,
+                                placements: [...parsedData.placements, snapshot],
+                              };
+                              setParsedData(restored);
+                            }
+                          });
                         }}
                         title="Remover"
                       >

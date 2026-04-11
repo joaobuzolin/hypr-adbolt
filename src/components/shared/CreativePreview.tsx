@@ -133,7 +133,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
     // 3P Tag (iframe sandbox)
     if (data.type === '3p-tag' && data.tagContent) {
       const srcdoc = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>*{margin:0;padding:0;box-sizing:border-box}body{overflow:hidden;background:#fff}</style></head>
+<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}body{overflow:hidden;background:#fff}</style></head>
 <body>${data.tagContent}</body></html>`;
       return (
         <div className={styles.previewFrame}>
@@ -146,7 +146,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
           )}
           <iframe
             srcDoc={srcdoc}
-            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
             width={renderW}
             height={renderH}
             style={{ opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
@@ -170,7 +170,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
           )}
           <iframe
             srcDoc={data.html5Content}
-            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
             width={renderW}
             height={renderH}
             style={{ opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}

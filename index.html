@@ -3038,14 +3038,15 @@ async function silentSync(){
   _silentSyncing=true;
   const btn=document.getElementById('dashSyncBtn');
   if(btn){btn.textContent='Syncing...';btn.classList.add('loading')}
+  const t0=Date.now();
   try{
     const tk=(await sbClient.auth.getSession()).data.session?.access_token;if(!tk)return;
     const r=await fetch(SUPABASE_URL+'/functions/v1/creative-sync',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},body:JSON.stringify({})});
-    if(r.ok)await loadCreatives();
+    if(r.ok){const d=await r.json();console.log('[sync]',Math.round((Date.now()-t0)/1000)+'s',d);await loadCreatives()}
   }catch(e){console.warn('silent sync error:',e)}
   finally{_silentSyncing=false;if(btn){btn.textContent='Sync Status';btn.classList.remove('loading')}}
 }
-function startAutoSync(){stopAutoSync();silentSync();_autoSyncTimer=setInterval(silentSync,30000)}
+function startAutoSync(){stopAutoSync();silentSync();_autoSyncTimer=setInterval(silentSync,60000)}
 function stopAutoSync(){if(_autoSyncTimer){clearInterval(_autoSyncTimer);_autoSyncTimer=null}}
 
 function toggleDashHome(){if(dashIsOpen)closeDashboard();else openDashboard()}
@@ -3190,11 +3191,12 @@ async function loadCreatives(){
   if(!sbClient||!currentUser)return;
   document.getElementById('dashBody').innerHTML='<tr><td colspan="8" class="dash-empty"><div class="dash-empty-text">Carregando...</div></td></tr>';
   try{
-    const{data,error}=await sbClient.from('creatives').select('*').neq('status','deleted').order('created_at',{ascending:false}).limit(1000);
+    const{data,error}=await sbClient.from('creatives').select('*').neq('status','deleted').order('created_at',{ascending:false}).limit(500);
     if(error)throw error;
     dashCreatives=data||[];
+    if(dashCreatives.length>=500)console.warn('[loadCreatives] limit reached (500), some records may be hidden');
     buildGroups();renderDashStats();renderDashTable();updateDashBadge();
-    document.getElementById('dashSubtitle').innerHTML=dashGroups.length+' criativos em '+dashCreatives.length+' registros <span class="dash-sync-ts" id="dashSyncTs"></span>';
+    document.getElementById('dashSubtitle').innerHTML=dashGroups.length+' criativos em '+dashCreatives.length+' registros'+(dashCreatives.length>=500?' <span style="color:var(--warning)">(mostrando últimos 500)</span>':'')+' <span class="dash-sync-ts" id="dashSyncTs"></span>';
   }catch(err){toast('Erro ao carregar criativos: '+err.message,'error')}
 }
 

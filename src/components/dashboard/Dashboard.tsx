@@ -43,7 +43,7 @@ export function Dashboard() {
     if (!hasPending && store.creatives.length > 0) return;
     store.setSyncing(true);
     try {
-      await syncCreativesApi(session.access_token);
+      await syncCreativesApi(session.access_token, 'pending');
       await store.loadCreatives();
     } catch (e) { console.warn('silent sync error:', e); }
     finally { store.setSyncing(false); }
@@ -52,10 +52,10 @@ export function Dashboard() {
   const handleSync = useCallback(async () => {
     if (!session?.access_token) return;
     store.setSyncing(true);
-    toast('Sincronizando status nas DSPs...', '');
+    toast('Sincronizando todos os criativos nas DSPs...', '');
     const t0 = Date.now();
     try {
-      const result = await syncCreativesApi(session.access_token);
+      const result = await syncCreativesApi(session.access_token, 'full');
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
       const parts: string[] = [];
       if (result.updated) parts.push(`${result.updated} atualizado${result.updated > 1 ? 's' : ''}`);

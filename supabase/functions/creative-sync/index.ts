@@ -138,6 +138,84 @@ async function fetchDV360AuditBatch(token: string, ids: string[], advId: string)
   return m;
 }
 
+// ── Paginated DB fetch ──
+
+type CreativeRow = { id: string; dsp: string; dsp_creative_id: string; dsp_config: any; audit_status: string; creative_type: string; status: string };
+
+async function fetchCreativesPaginated(sb: any, opts: { statuses: string[]; auditStatuses?: string[]; dsp?: string; batchId?: string; specificIds?: string[] }): Promise<CreativeRow[]> {
+  const PAGE = 1000;
+  const all: CreativeRow[] = [];
+  let offset = 0;
+  while (true) {
+    let q = sb.from("creatives").select("id, dsp, dsp_creative_id, dsp_config, audit_status, creative_type, status").in("status", opts.statuses);
+    if (opts.auditStatuses?.length) q = q.in("audit_status", opts.auditStatuses);
+    if (opts.specificIds?.length) q = q.in("id", opts.specificIds);
+    else if (opts.batchId) q = q.eq("batch_id", opts.batchId);
+    if (opts.dsp) q = q.eq("dsp", opts.dsp);
+    q = q.range(offset, offset + PAGE - 1);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+    offset += PAGE;
+  }
+  return all;
+}
+
+// ── Sync processor ──
+
+async function processSyncBatch(sb: any, creatives: CreativeRow[]) {
+  let updated = 0, deleted = 0;
+  const errors: Array<{ id: string; error: string }> = [];
+  const now = () => new Date().toISOString();
+  const xc = creatives.filter(c => c.dsp === "xandr");
+  const dc = creatives.filter(c => c.dsp === "dv360");
+
+  if (xc.length > 0) {
+    try {
+      const token = await getXandrToken();
+      const byAdv = new Map<number, CreativeRow[]>();
+      for (const c of xc) { const cfg = typeof c.dsp_config === "string" ? JSON.parse(c.dsp_config) : (c.dsp_config || {}); const a = cfg.advertiser_id || 7392214; if (!byAdv.has(a)) byAdv.set(a, []); byAdv.get(a)!.push(c); }
+      for (const [advId, acs] of byAdv) {
+        const sm = await fetchXandrAudit(token, acs.map(c => c.dsp_creative_id), advId);
+        for (const c of acs) {
+          const remote = sm.get(c.dsp_creative_id);
+          if (remote) {
+            if (remote !== c.audit_status) { await sb.from("creatives").update({ audit_status: remote, last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); updated++; }
+            else { await sb.from("creatives").update({ last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); }
+          } else { await sb.from("creatives").update({ status: "deleted", audit_status: "deleted", sync_error: "Deleted from Xandr", last_synced_at: now() }).eq("id", c.id).eq("status", "active"); deleted++; }
+        }
+      }
+    } catch (err) { const m = err instanceof Error ? err.message : String(err); for (const c of xc) errors.push({ id: c.id, error: m }); }
+  }
+
+  if (dc.length > 0) {
+    try {
+      const token = await getDV360Token();
+      const byAdv = new Map<string, CreativeRow[]>();
+      for (const c of dc) { const cfg = typeof c.dsp_config === "string" ? JSON.parse(c.dsp_config) : (c.dsp_config || {}); const a = String(cfg.advertiser_id || Deno.env.get("DV360_ADVERTISER_ID") || "1426474713"); if (!byAdv.has(a)) byAdv.set(a, []); byAdv.get(a)!.push(c); }
+      for (const [advId, acs] of byAdv) {
+        const sm = await fetchDV360AuditBatch(token, acs.map(c => c.dsp_creative_id), advId);
+        for (const c of acs) {
+          const info = sm.get(c.dsp_creative_id);
+          if (info) {
+            const existingConfig = typeof c.dsp_config === "string" ? JSON.parse(c.dsp_config) : (c.dsp_config || {});
+            const updatedConfig = { ...existingConfig, exchangeReviewStatuses: info.exchangeStatuses };
+            if (info.entityStatus === "ENTITY_STATUS_ARCHIVED") { await sb.from("creatives").update({ status: "deleted", audit_status: "archived", dsp_config: updatedConfig, sync_error: null, last_synced_at: now() }).eq("id", c.id).eq("status", "active"); deleted++; }
+            else if (info.status !== c.audit_status) { await sb.from("creatives").update({ audit_status: info.status, dsp_config: updatedConfig, last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); updated++; }
+            else { await sb.from("creatives").update({ dsp_config: updatedConfig, last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); }
+          } else { await sb.from("creatives").update({ sync_error: "Not found in DV360", last_synced_at: now() }).eq("id", c.id).eq("status", "active"); errors.push({ id: c.id, error: "Not found in DV360" }); }
+        }
+      }
+    } catch (err) { const m = err instanceof Error ? err.message : String(err); for (const c of dc) errors.push({ id: c.id, error: m }); }
+  }
+
+  return { updated, deleted, errors };
+}
+
+// ── Main handler ──
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
   if (req.method !== "POST") return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
@@ -149,62 +227,30 @@ Deno.serve(async (req) => {
     if (ae || !user) return new Response(JSON.stringify({ error: "User not authenticated" }), { status: 401, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
 
     const body = await req.json().catch(() => ({}));
-    const { batchId, dsp, creativeIds: specificIds } = body as { batchId?: string; dsp?: string; creativeIds?: string[] };
-    let q = sb.from("creatives").select("id, dsp, dsp_creative_id, dsp_config, audit_status, creative_type, status").in("status", ["active", "error"]);
-    if (specificIds?.length) q = q.in("id", specificIds);
-    else if (batchId) q = q.eq("batch_id", batchId);
-    if (dsp) q = q.eq("dsp", dsp);
+    const { mode = "pending", batchId, dsp, creativeIds: specificIds } = body as { mode?: "pending" | "full"; batchId?: string; dsp?: string; creativeIds?: string[] };
 
-    const { data: creatives, error: qe } = await q.limit(500);
-    if (qe) return new Response(JSON.stringify({ error: qe.message }), { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
-    if (!creatives?.length) return new Response(JSON.stringify({ message: "No creatives to sync", synced: 0 }), { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+    console.log(`[creative-sync] mode=${mode}, batchId=${batchId || "-"}, dsp=${dsp || "all"}, specificIds=${specificIds?.length || 0}`);
 
-    const xc = creatives.filter(c => c.dsp === "xandr");
-    const dc = creatives.filter(c => c.dsp === "dv360");
-    let updated = 0, deleted = 0;
-    const errors: Array<{ id: string; error: string }> = [];
-    const now = () => new Date().toISOString();
-
-    if (xc.length > 0) {
-      try {
-        const token = await getXandrToken();
-        const byAdv = new Map<number, typeof xc>();
-        for (const c of xc) { const cfg = typeof c.dsp_config === "string" ? JSON.parse(c.dsp_config) : (c.dsp_config || {}); const a = cfg.advertiser_id || 7392214; if (!byAdv.has(a)) byAdv.set(a, []); byAdv.get(a)!.push(c); }
-        for (const [advId, acs] of byAdv) {
-          const sm = await fetchXandrAudit(token, acs.map(c => c.dsp_creative_id), advId);
-          for (const c of acs) {
-            const remote = sm.get(c.dsp_creative_id);
-            if (remote) {
-              if (remote !== c.audit_status) { await sb.from("creatives").update({ audit_status: remote, last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); updated++; }
-              else { await sb.from("creatives").update({ last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); }
-            } else { await sb.from("creatives").update({ status: "deleted", audit_status: "deleted", sync_error: "Deleted from Xandr", last_synced_at: now() }).eq("id", c.id).eq("status", "active"); deleted++; }
-          }
-        }
-      } catch (err) { const m = err instanceof Error ? err.message : String(err); for (const c of xc) errors.push({ id: c.id, error: m }); }
+    let creatives: CreativeRow[];
+    if (specificIds?.length) {
+      creatives = await fetchCreativesPaginated(sb, { statuses: ["active", "error"], specificIds });
+    } else if (batchId) {
+      creatives = await fetchCreativesPaginated(sb, { statuses: ["active", "error"], batchId, dsp });
+    } else if (mode === "pending") {
+      creatives = await fetchCreativesPaginated(sb, { statuses: ["active", "error"], auditStatuses: ["pending", "partial", "error", "unknown"], dsp });
+    } else {
+      creatives = await fetchCreativesPaginated(sb, { statuses: ["active", "error"], dsp });
     }
 
-    if (dc.length > 0) {
-      try {
-        const token = await getDV360Token();
-        const byAdv = new Map<string, typeof dc>();
-        for (const c of dc) { const cfg = typeof c.dsp_config === "string" ? JSON.parse(c.dsp_config) : (c.dsp_config || {}); const a = String(cfg.advertiser_id || Deno.env.get("DV360_ADVERTISER_ID") || "1426474713"); if (!byAdv.has(a)) byAdv.set(a, []); byAdv.get(a)!.push(c); }
-        for (const [advId, acs] of byAdv) {
-          const sm = await fetchDV360AuditBatch(token, acs.map(c => c.dsp_creative_id), advId);
-          for (const c of acs) {
-            const info = sm.get(c.dsp_creative_id);
-            if (info) {
-              const existingConfig = typeof c.dsp_config === "string" ? JSON.parse(c.dsp_config) : (c.dsp_config || {});
-              const updatedConfig = { ...existingConfig, exchangeReviewStatuses: info.exchangeStatuses };
-              if (info.entityStatus === "ENTITY_STATUS_ARCHIVED") { await sb.from("creatives").update({ status: "deleted", audit_status: "archived", dsp_config: updatedConfig, sync_error: null, last_synced_at: now() }).eq("id", c.id).eq("status", "active"); deleted++; }
-              else if (info.status !== c.audit_status) { await sb.from("creatives").update({ audit_status: info.status, dsp_config: updatedConfig, last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); updated++; }
-              else { await sb.from("creatives").update({ dsp_config: updatedConfig, last_synced_at: now(), sync_error: null }).eq("id", c.id).eq("status", "active"); }
-            } else { await sb.from("creatives").update({ sync_error: "Not found in DV360", last_synced_at: now() }).eq("id", c.id).eq("status", "active"); errors.push({ id: c.id, error: "Not found in DV360" }); }
-          }
-        }
-      } catch (err) { const m = err instanceof Error ? err.message : String(err); for (const c of dc) errors.push({ id: c.id, error: m }); }
-    }
+    if (!creatives.length) return new Response(JSON.stringify({ message: "No creatives to sync", synced: 0, mode }), { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
 
-    return new Response(JSON.stringify({ synced: creatives.length, updated, deleted, xandr: xc.length, dv360: dc.length, errors: errors.length ? errors : undefined }), { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+    const xc = creatives.filter(c => c.dsp === "xandr").length;
+    const dc = creatives.filter(c => c.dsp === "dv360").length;
+    console.log(`[creative-sync] Found ${creatives.length} creatives (xandr=${xc}, dv360=${dc})`);
+
+    const result = await processSyncBatch(sb, creatives);
+
+    return new Response(JSON.stringify({ synced: creatives.length, updated: result.updated, deleted: result.deleted, xandr: xc, dv360: dc, mode, errors: result.errors.length ? result.errors : undefined }), { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
   } catch (err) {
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
   }

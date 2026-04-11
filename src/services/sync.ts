@@ -6,18 +6,21 @@ export interface SyncResult {
   deleted: number;
   xandr: number;
   dv360: number;
+  mode?: 'pending' | 'full';
   errors?: Array<{ id: string; error: string }>;
 }
 
 /**
  * Trigger a creative sync via the creative-sync edge function.
- * Ported from legacy: syncCreatives() + silentSync()
+ *
+ * @param mode - 'pending' syncs only pending/partial/error (fast, for auto-sync)
+ *               'full' syncs all active creatives (slow, for manual sync)
  */
-export async function syncCreatives(token: string): Promise<SyncResult> {
+export async function syncCreatives(token: string, mode: 'pending' | 'full' = 'pending'): Promise<SyncResult> {
   const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/creative-sync`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ mode }),
   });
 
   if (!res.ok) {

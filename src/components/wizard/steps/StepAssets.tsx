@@ -5,6 +5,7 @@ import { UploadZone } from '@/components/shared/UploadZone';
 import { FilterBar } from '@/components/shared/FilterBar';
 import { BulkBar } from '@/components/shared/BulkBar';
 import { StepNav } from '@/components/shared/StepNav';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { RenameModal, FindReplaceModal, BulkTrackerModal } from '@/components/shared/BulkModals';
 import {
   getAssetType, readFileDimensions, generateThumb,
@@ -254,10 +255,7 @@ export function StepAssets() {
 
   return (
     <div>
-      <div className={styles.header}>
-        <h2>Standard Assets</h2>
-        <p>Upload de imagens, vídeos e HTML5 para ativação direta nas DSPs</p>
-      </div>
+      <SectionHeader title="Standard Assets" description="Upload de imagens, vídeos e HTML5 para ativação direta nas DSPs" />
 
       <UploadZone
         accept=".jpg,.jpeg,.png,.gif,.mp4,.mov,.webm,.zip"

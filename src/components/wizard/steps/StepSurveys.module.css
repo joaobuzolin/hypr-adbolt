@@ -1,14 +1,3 @@
-.header { margin-bottom: var(--section-gap-lg); }
-.header h2 { font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -0.6px; margin-bottom: var(--header-gap); }
-.header p { font-size: var(--fs-base); color: var(--text-sec); line-height: 1.7; opacity: 0.7; }
-
-.card {
-  background: var(--bg-surface);
-  border: var(--surface-border) solid var(--border);
-  border-radius: var(--surface-radius);
-  padding: var(--card-padding);
-}
-
 /* Type buttons */
 .types {
   display: grid;

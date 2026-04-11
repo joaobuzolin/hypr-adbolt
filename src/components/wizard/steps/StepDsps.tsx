@@ -1,8 +1,9 @@
 import { useWizardStore } from '@/stores/wizard';
 import { DspGrid } from '@/components/shared/DspGrid';
 import { StepNav } from '@/components/shared/StepNav';
+import { SectionHeader } from '@/components/shared/SectionHeader';
+import { ContentCard } from '@/components/shared/ContentCard';
 import type { DspType } from '@/types';
-import styles from './StepDsps.module.css';
 
 const TAG_SUBTITLES: Record<string, string> = {
   dv360: 'CSV · Third-Party Tags',
@@ -44,14 +45,11 @@ export function StepDsps() {
 
   return (
     <div>
-      <div className={styles.header}>
-        <h2>DSPs de destino</h2>
-        <p>Selecione onde os criativos serão enviados</p>
-      </div>
+      <SectionHeader title="DSPs de destino" description="Selecione onde os criativos serão enviados" />
 
-      <div className={styles.card}>
+      <ContentCard>
         <DspGrid cards={cards} selected={selectedDsps} onToggle={toggleDsp} />
-      </div>
+      </ContentCard>
 
       <StepNav
         prevLabel={prevLabel}

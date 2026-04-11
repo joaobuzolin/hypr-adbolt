@@ -2,6 +2,8 @@ import { useCallback, useState, useEffect } from 'react';
 import { useWizardStore } from '@/stores/wizard';
 import { useUIStore } from '@/stores/ui';
 import { StepNav } from '@/components/shared/StepNav';
+import { SectionHeader } from '@/components/shared/SectionHeader';
+import { ContentCard } from '@/components/shared/ContentCard';
 import { SurveyPicker } from './SurveyPicker';
 import { extractFormId, fetchTypeformTitle, detectVariant } from '@/services/typeform';
 import { SURVEY_SIZES } from '@/types';
@@ -124,12 +126,9 @@ export function StepSurveys() {
 
   return (
     <div>
-      <div className={styles.header}>
-        <h2>Surveys</h2>
-        <p>Selecione o tipo de pesquisa e cole as URLs do Typeform</p>
-      </div>
+      <SectionHeader title="Surveys" description="Selecione o tipo de pesquisa e cole as URLs do Typeform" />
 
-      <div className={styles.card}>
+      <ContentCard>
         {/* Survey type buttons */}
         <div className={styles.types}>
           {SURVEY_TYPES.map((type) => (
@@ -252,7 +251,7 @@ export function StepSurveys() {
             </div>
           ))}
         </div>
-      </div>
+      </ContentCard>
 
       <div className={styles.pickerDivider}><span>ou selecione do Typeform</span></div>
 

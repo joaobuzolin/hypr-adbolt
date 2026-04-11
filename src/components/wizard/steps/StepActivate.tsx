@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useUIStore } from '@/stores/ui';
 import { ActivationProgress } from '@/components/shared/ProgressBar';
 import { StepNav } from '@/components/shared/StepNav';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { genDV360 } from '@/generators/dv360';
 import { genXandr } from '@/generators/xandr';
 import { genStackAdapt } from '@/generators/stackadapt';
@@ -247,10 +248,7 @@ export function StepActivate() {
 
   return (
     <div>
-      <div className={styles.header}>
-        <h2>Tudo pronto!</h2>
-        <p>Escolha como deseja prosseguir com os criativos configurados.</p>
-      </div>
+      <SectionHeader title="Tudo pronto!" description="Escolha como deseja prosseguir com os criativos configurados." />
 
       <div className={`${styles.actionCards} ${isAssetMode ? styles.singleColumn : ''}`}>
         {!isAssetMode && (

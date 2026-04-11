@@ -1,5 +1,7 @@
 import { useWizardStore } from '@/stores/wizard';
 import { StepNav } from '@/components/shared/StepNav';
+import { SectionHeader } from '@/components/shared/SectionHeader';
+import { ContentCard } from '@/components/shared/ContentCard';
 import { useUIStore } from '@/stores/ui';
 import styles from './StepConfig.module.css';
 
@@ -27,12 +29,9 @@ export function StepConfig() {
 
   return (
     <div>
-      <div className={styles.header}>
-        <h2>Configurações</h2>
-        <p>Marca e declarações da campanha</p>
-      </div>
+      <SectionHeader title="Configurações" description="Marca e declarações da campanha" />
 
-      <div className={styles.card}>
+      <ContentCard>
         {/* Brand (Sponsored By) - visible when StackAdapt selected */}
         {hasSA && (
           <div className={styles.row}>
@@ -166,7 +165,7 @@ export function StepConfig() {
             </div>
           </>
         )}
-      </div>
+      </ContentCard>
 
       <StepNav
         prevLabel={prevLabel}

@@ -5,6 +5,7 @@ import { UploadZone } from '@/components/shared/UploadZone';
 import { FilterBar } from '@/components/shared/FilterBar';
 import { BulkBar } from '@/components/shared/BulkBar';
 import { StepNav } from '@/components/shared/StepNav';
+import { SectionHeader } from '@/components/shared/SectionHeader';
 import { RenameModal, FindReplaceModal, BulkTrackerModal } from '@/components/shared/BulkModals';
 import { parseCM360 } from '@/parsers/cm360';
 import { parseGenericTags } from '@/parsers/generic';
@@ -237,10 +238,7 @@ export function StepTags() {
 
   return (
     <div>
-      <div className={styles.header}>
-        <h2>Embeds & Adserver Tags</h2>
-        <p>Arraste o arquivo de tags exportado do Campaign Manager (.xlsx ou .csv)</p>
-      </div>
+      <SectionHeader title="Embeds & Adserver Tags" description="Arraste o arquivo de tags exportado do Campaign Manager (.xlsx ou .csv)" />
 
       <UploadZone
         accept=".xlsx,.xls,.csv"

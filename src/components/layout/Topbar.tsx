@@ -5,7 +5,7 @@ import styles from './Topbar.module.css';
 export function Topbar() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const { currentView, setView, toggleTheme, theme } = useUIStore();
+  const { currentView, setView, toggleTheme } = useUIStore();
 
   const name = getUserDisplayName(user);
   const avatarUrl = getUserAvatarUrl(user);

@@ -297,6 +297,19 @@ export function Dashboard() {
     const token = session.access_token;
     let ok = 0, fail = 0;
 
+    // Snapshot editTrackers and auto-include any pending input text
+    const trackerSnapshot: Record<string, string[]> = { ...editTrackers };
+    if (!editBulkKeys && store.editGroup) {
+      for (const dsp of Object.keys(store.editGroup.dsps)) {
+        const inp = document.getElementById(`editTrackerNew_${dsp}`) as HTMLInputElement;
+        if (inp?.value.trim()) {
+          const url = normalizeUrl(inp.value.trim());
+          if (!trackerSnapshot[dsp]) trackerSnapshot[dsp] = [];
+          if (!trackerSnapshot[dsp].includes(url)) trackerSnapshot[dsp] = [...trackerSnapshot[dsp], url];
+        }
+      }
+    }
+
     const groups = editBulkKeys
       ? editBulkKeys.map((k) => store.groups.find((g) => g._gid === k)).filter(Boolean) as CreativeGroup[]
       : store.editGroup ? [store.editGroup] : [];
@@ -341,8 +354,8 @@ export function Dashboard() {
           if (dsp === 'dv360' && dspFields?.vast_tag !== undefined && dspFields.vast_tag !== (d.vast_tag || '')) {
             changes.vast_tag = dspFields.vast_tag;
           }
-          // Trackers (compare with original)
-          const newTrackerUrls = editTrackers[dsp] || [];
+          // Trackers (compare with original, using snapshot that includes pending input)
+          const newTrackerUrls = trackerSnapshot[dsp] || [];
           let origTrackers = d.trackers || [];
           if (typeof origTrackers === 'string') try { origTrackers = JSON.parse(origTrackers); } catch { origTrackers = []; }
           if (!Array.isArray(origTrackers)) origTrackers = [];
@@ -594,6 +607,16 @@ export function Dashboard() {
                       }));
                       (e.target as HTMLInputElement).value = '';
                     }
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (!val) return;
+                    const url = normalizeUrl(val);
+                    setEditTrackers((prev) => ({
+                      ...prev,
+                      [dsp]: [...(prev[dsp] || []).filter((u) => u !== url), url],
+                    }));
+                    e.target.value = '';
                   }}
                 />
                 <button

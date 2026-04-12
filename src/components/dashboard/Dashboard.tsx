@@ -212,7 +212,7 @@ export function Dashboard() {
     name: string; dimensions: string;
     type: 'display' | 'video' | 'html5' | '3p-tag' | 'survey';
     imageUrl?: string; videoUrl?: string; tagContent?: string;
-    html5Content?: string; html5Url?: string; mimeType?: string; thumbUrl?: string;
+    html5Content?: string; html5Url?: string; mimeType?: string; thumbUrl?: string; vastTagUrl?: string;
   } | null>(null);
 
   const openPreview = useCallback(async (g: CreativeGroup) => {
@@ -240,10 +240,9 @@ export function Dashboard() {
     // VAST tag placeholder
     const dspWithVast = Object.values(g.dsps).find(d => d.vast_tag);
     if (isVideo && dspWithVast?.vast_tag) {
-      const snippet = (dspWithVast.vast_tag || '').substring(0, 120);
       setPreviewData({
-        ...base, type: '3p-tag',
-        tagContent: `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;font-family:system-ui,sans-serif;color:#888;gap:8px;padding:20px;text-align:center"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg><div style="font-size:13px;font-weight:600">VAST Tag</div><div style="font-size:11px;opacity:0.6;word-break:break-all;max-width:90%">${snippet}...</div></div>`,
+        ...base, type: 'video',
+        vastTagUrl: dspWithVast.vast_tag,
       });
       return;
     }

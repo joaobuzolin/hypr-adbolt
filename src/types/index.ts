@@ -101,6 +101,8 @@ export interface AssetEntry {
   resized?: boolean;
   _storagePath?: string;
   _uploadedFile?: File;
+  _thumbnailUrl?: string;
+  _html5PreviewUrl?: string;
 }
 
 export const ASSET_DSP_LIMITS: Record<string, Record<string, number>> = {

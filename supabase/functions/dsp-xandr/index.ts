@@ -112,7 +112,7 @@ async function createXandrVastCreative(token: string, advertiserId: number, inpu
   if (trackers.length > 0) linearElement.trackers = trackers;
   const creativeVast: Record<string, unknown> = {
     name: input.name, advertiser_id: advertiserId, width: input.width || 1, height: input.height || 1,
-    template: { id: 6439 }, click_url: input.brandUrl || "", landing_page_url: input.brandUrl || "",
+    template: { id: 6439 }, click_url: input.brandUrl || "",
     audit_status: "pending",
     allow_audit: true, allow_ssl_audit: true, is_self_audited: false, sla: input.sla || 0,
     video_attribute: { is_skippable: false, duration_ms: 30000,
@@ -126,7 +126,17 @@ async function createXandrVastCreative(token: string, advertiserId: number, inpu
       { method: "POST", headers: { "Content-Type": "application/json", Authorization: token }, body: JSON.stringify({ "creative-vast": creativeVast }) });
     const data = await res.json();
     if (data.response?.status === "OK" && data.response?.["creative-vast"]) {
-      return { name: input.name, success: true, creativeId: data.response["creative-vast"].id, auditStatus: data.response["creative-vast"].audit_status, creativeType: 'video', _input: input };
+      const vastId = data.response["creative-vast"].id;
+      // VAST endpoint ignores landing_page_url — set it via /creative endpoint
+      if (input.brandUrl) {
+        try {
+          await fetch(`${XANDR_API}/creative?id=${vastId}&member_id=${MEMBER_ID}&advertiser_id=${advertiserId}`, {
+            method: "PUT", headers: { "Content-Type": "application/json", Authorization: token },
+            body: JSON.stringify({ creative: { landing_page_url: input.brandUrl } }),
+          });
+        } catch (e) { console.log(`[xandr] landing_page_url PUT failed for VAST ${vastId}:`, e); }
+      }
+      return { name: input.name, success: true, creativeId: vastId, auditStatus: data.response["creative-vast"].audit_status, creativeType: 'video', _input: input };
     }
     return { name: input.name, success: false, creativeType: 'video', error: data.response?.error_message || data.response?.error || JSON.stringify(data.response || data).substring(0, 500) };
   } catch (err) { return { name: input.name, success: false, creativeType: 'video', error: err instanceof Error ? err.message : String(err) }; }

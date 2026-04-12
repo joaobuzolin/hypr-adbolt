@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { useWizardStore } from '@/stores/wizard';
 import { useUIStore } from '@/stores/ui';
 import { UploadZone } from '@/components/shared/UploadZone';
@@ -24,12 +24,16 @@ export function StepAssets() {
   const {
     assetEntries, addAssetEntries, removeAsset, updateAsset, duplicateAsset,
     selectedAssetIds, toggleAssetSelection, selectAllAssets, clearAssetSelection,
+    bulkUpdateAssets, bulkRemoveAssets,
     assetsFilterType, assetsFilterSize, assetsFilterText, setAssetsFilter,
     addAssetTracker, removeAssetTracker, getNextAssetId,
     selectedDsps, currentStep, setStep, hasContent, hasDsp,
   } = store;
   const config = store.getStepConfig();
   const toast = useUIStore((s) => s.toast);
+
+  // O(1) asset lookups by ID — avoids repeated .find() in render loops
+  const assetMap = useMemo(() => new Map(assetEntries.map((a) => [a.id, a])), [assetEntries]);
 
   // ── File handling ──
   const handleFiles = useCallback(async (files: File[]) => {
@@ -151,7 +155,7 @@ export function StepAssets() {
     if (!raw.trim()) return;
     const analyzed = analyzeTracker(raw);
     const url = normalizeUrl(analyzed.url);
-    const entry = assetEntries.find((a) => a.id === assetId);
+    const entry = assetMap.get(assetId);
     if (entry && !entry.trackers.some((t) => t.url === url)) {
       addAssetTracker(assetId, { url, format: analyzed.format, dsps: 'all' });
     }
@@ -233,7 +237,7 @@ export function StepAssets() {
   // ── Bulk Compress ──
   const handleBulkCompress = async () => {
     const ids = [...selectedAssetIds];
-    const selected = ids.map((id) => assetEntries.find((a) => a.id === id)).filter(Boolean) as AssetEntry[];
+    const selected = ids.map((id) => assetMap.get(id)).filter(Boolean) as AssetEntry[];
     const displayAssets = selected.filter((a) => a.type === 'display');
     const skippedTypes = new Set(selected.filter((a) => a.type !== 'display').map((a) => a.type));
 
@@ -280,7 +284,7 @@ export function StepAssets() {
         const val = prompt(`Landing Page pra ${selectedCount} asset(s):`);
         if (val === null) return;
         const normalized = normalizeUrl(val);
-        selectedAssetIds.forEach((id) => updateAsset(id, { landingPage: normalized }));
+        bulkUpdateAssets(selectedAssetIds, { landingPage: normalized });
         toast(`Landing page aplicada em ${selectedCount} asset(s)`, 'success');
       },
     },
@@ -292,8 +296,7 @@ export function StepAssets() {
     {
       label: 'Remover', onClick: () => {
         if (!confirm(`Remover ${selectedCount} asset(s)?`)) return;
-        selectedAssetIds.forEach((id) => removeAsset(id));
-        clearAssetSelection();
+        bulkRemoveAssets(selectedAssetIds);
         toast(`${selectedCount} asset(s) removido(s)`, 'success');
       }, danger: true,
     },
@@ -331,8 +334,7 @@ export function StepAssets() {
         ) : undefined}
         onFiles={handleFiles}
         onClear={() => {
-          assetEntries.forEach((a) => removeAsset(a.id));
-          clearAssetSelection();
+          bulkRemoveAssets(assetEntries.map((a) => a.id));
         }}
       />
 
@@ -539,12 +541,12 @@ export function StepAssets() {
       <RenameModal
         visible={renameOpen}
         onClose={() => setRenameOpen(false)}
-        items={[...selectedAssetIds].map((id) => assetEntries.find((a) => a.id === id)).filter(Boolean).map((a) => ({
+        items={[...selectedAssetIds].map((id) => assetMap.get(id)).filter(Boolean).map((a) => ({
           id: a!.id, name: a!.name, dimensions: a!.dimensions, type: a!.type,
         }))}
         onApply={(getNewName) => {
           const ids = [...selectedAssetIds];
-          const items = ids.map((id) => assetEntries.find((a) => a.id === id)).filter(Boolean);
+          const items = ids.map((id) => assetMap.get(id)).filter(Boolean);
           items.forEach((a, i) => {
             const newName = getNewName({ id: a!.id, name: a!.name, dimensions: a!.dimensions, type: a!.type }, i);
             updateAsset(a!.id, { name: newName });
@@ -560,7 +562,7 @@ export function StepAssets() {
         onApply={(find, replace) => {
           let count = 0;
           selectedAssetIds.forEach((id) => {
-            const a = assetEntries.find((e) => e.id === id);
+            const a = assetMap.get(id);
             if (a && a.name.includes(find)) {
               updateAsset(id, { name: a.name.split(find).join(replace) });
               count++;
@@ -575,11 +577,11 @@ export function StepAssets() {
         onClose={() => setTrackerOpen(false)}
         count={selectedAssetIds.size}
         availableDsps={['xandr', 'dv360', 'stackadapt', 'amazondsp']}
-        hasVideo={[...selectedAssetIds].some((id) => assetEntries.find((a) => a.id === id)?.type === 'video')}
-        hasDisplay={[...selectedAssetIds].some((id) => { const a = assetEntries.find((e) => e.id === id); return a && a.type !== 'video'; })}
+        hasVideo={[...selectedAssetIds].some((id) => assetMap.get(id)?.type === 'video')}
+        hasDisplay={[...selectedAssetIds].some((id) => { const a = assetMap.get(id); return a && a.type !== 'video'; })}
         onApply={(url, format, scope, eventType) => {
           selectedAssetIds.forEach((id) => {
-            const asset = assetEntries.find((a) => a.id === id);
+            const asset = assetMap.get(id);
             // Only apply VAST eventType to video assets; display/html5 always get impression
             const resolvedEvent = asset?.type === 'video' ? eventType : undefined;
             addAssetTracker(id, { url, format, dsps: scope, eventType: resolvedEvent });

@@ -170,7 +170,7 @@ Deno.serve(async(req)=>{
           click_url:normLp(i.landingPage), landing_page:normLp(i.landingPage),
           trackers:normT.length?JSON.stringify(normT):'[]',
           asset_filename:i.fileName, asset_mime_type:i.mimeType, asset_size_bytes:i.fileSize||null,
-          dsp_config:JSON.stringify({advertiser_id:advId}),
+          dsp_config:JSON.stringify({advertiser_id:advId,storage_path:i.storagePath||null}),
           status:'active', audit_status:'pending', thumbnail_url:i.thumbnailUrl||null, last_synced_at:new Date().toISOString()};
       });
       await sb.from('creatives').insert(rows);

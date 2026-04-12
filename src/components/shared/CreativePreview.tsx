@@ -80,6 +80,9 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
   const [iframeLoaded, setIframeLoaded] = useState(false);
   // Track which preview we're showing to force iframe re-mount
   const [previewKey, setPreviewKey] = useState(0);
+  // Fetched HTML content for html5Url previews (bypasses Supabase text/plain content-type)
+  const [fetchedHtml, setFetchedHtml] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState(false);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -92,6 +95,18 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       // Reset iframe state and bump key for fresh mount
       setIframeLoaded(false);
       setPreviewKey((k) => k + 1);
+      setFetchedHtml(null);
+      setFetchError(false);
+
+      // If we have an html5Url, fetch content for srcdoc rendering
+      // (Supabase Storage serves .html as text/plain which breaks iframe src)
+      if (data.type === 'html5' && data.html5Url) {
+        fetch(data.html5Url)
+          .then((r) => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
+          .then((html) => setFetchedHtml(html))
+          .catch(() => setFetchError(true));
+      }
+
       return () => {
         document.removeEventListener('keydown', handleEscape);
         document.body.style.overflow = '';
@@ -165,27 +180,50 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       );
     }
 
-    // HTML5 via URL (dashboard — hosted preview file)
+    // HTML5 via URL (dashboard — fetch content and render as srcdoc)
     if (data.type === 'html5' && data.html5Url) {
+      if (fetchedHtml) {
+        return (
+          <div className={styles.previewFrame}>
+            {!iframeLoaded && (
+              <div className={styles.loading} style={{ width: renderW, height: renderH, position: 'absolute' }}>
+                <div className={styles.loadingDot} />
+                <div className={styles.loadingDot} />
+                <div className={styles.loadingDot} />
+              </div>
+            )}
+            <iframe
+              key={`h5url-${previewKey}`}
+              srcDoc={fetchedHtml}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              width={renderW}
+              height={renderH}
+              style={{ display: 'block', border: 'none', opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+              onLoad={() => setIframeLoaded(true)}
+              title={`Preview: ${data.name}`}
+            />
+          </div>
+        );
+      }
+      // Still loading or failed
+      if (fetchError && data.thumbUrl) {
+        return (
+          <div className={`${styles.previewFrame} ${styles.checkerboard}`}>
+            <img src={data.thumbUrl} alt={data.name} style={{ maxWidth: renderW, imageRendering: 'auto' }} />
+          </div>
+        );
+      }
       return (
         <div className={styles.previewFrame}>
-          {!iframeLoaded && (
-            <div className={styles.loading} style={{ width: renderW, height: renderH, position: 'absolute' }}>
-              <div className={styles.loadingDot} />
-              <div className={styles.loadingDot} />
-              <div className={styles.loadingDot} />
-            </div>
-          )}
-          <iframe
-            key={`h5url-${previewKey}`}
-            src={data.html5Url}
-            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-            width={renderW}
-            height={renderH}
-            style={{ display: 'block', border: 'none', opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
-            onLoad={() => setIframeLoaded(true)}
-            title={`Preview: ${data.name}`}
-          />
+          <div className={styles.loading} style={{ width: renderW, height: renderH }}>
+            {fetchError ? 'Preview indisponível' : (
+              <>
+                <div className={styles.loadingDot} />
+                <div className={styles.loadingDot} />
+                <div className={styles.loadingDot} />
+              </>
+            )}
+          </div>
         </div>
       );
     }

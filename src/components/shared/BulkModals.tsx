@@ -262,7 +262,8 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, hasVi
     if (!raw.trim()) return;
     const analyzed = analyzeTracker(raw);
     const url = normalizeUrl(analyzed.url);
-    onApply(url, analyzed.format, scope, hasVideo ? eventType : undefined);
+    const xandrInScope = scope === 'all' || (Array.isArray(scope) && scope.includes('xandr'));
+    onApply(url, analyzed.format, scope, hasVideo && xandrInScope ? eventType : undefined);
     onClose();
   };
 
@@ -318,7 +319,7 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, hasVi
         </div>
       </div>
 
-      {hasVideo && (
+      {hasVideo && (scope === 'all' || (Array.isArray(scope) && scope.includes('xandr'))) && (
         <div className={styles.field}>
           <label className={styles.label}>
             Tipo de evento<span className={styles.hint}>(contabilização para vídeo na Xandr)</span>

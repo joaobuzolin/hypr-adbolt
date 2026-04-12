@@ -112,7 +112,8 @@ async function createXandrVastCreative(token: string, advertiserId: number, inpu
   if (trackers.length > 0) linearElement.trackers = trackers;
   const creativeVast: Record<string, unknown> = {
     name: input.name, advertiser_id: advertiserId, width: input.width || 1, height: input.height || 1,
-    template: { id: 6439 }, click_url: input.brandUrl || "", audit_status: "pending",
+    template: { id: 6439 }, click_url: input.brandUrl || "", landing_page_url: input.brandUrl || "",
+    audit_status: "pending",
     allow_audit: true, allow_ssl_audit: true, is_self_audited: false, sla: input.sla || 0,
     video_attribute: { is_skippable: false, duration_ms: 30000,
       wrapper: { url: vastUrl, secure_url: vastUrl.replace(/^http:/, 'https:'), elements: [linearElement] } },

@@ -3,6 +3,7 @@ import { StepNav } from '@/components/shared/StepNav';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { useUIStore } from '@/stores/ui';
+import { useState } from 'react';
 import styles from './StepConfig.module.css';
 
 export function StepConfig() {
@@ -16,6 +17,17 @@ export function StepConfig() {
   const hasSA = selectedDsps.has('stackadapt');
   const hasAmazon = selectedDsps.has('amazondsp');
 
+  const [brandUrlError, setBrandUrlError] = useState('');
+
+  const validateBrandUrl = (value: string) => {
+    const v = value.trim();
+    if (!v) { setBrandUrlError(''); return; }
+    if (/\s/.test(v)) { setBrandUrlError('URL não pode conter espaços'); return; }
+    if (!/^[a-zA-Z0-9]/.test(v)) { setBrandUrlError('URL deve começar com letra ou número'); return; }
+    if (!/\./.test(v)) { setBrandUrlError('URL deve conter um domínio válido (ex: marca.com.br)'); return; }
+    setBrandUrlError('');
+  };
+
   const prevLabel = config.labels[currentStep - 1];
   const nextLabel = config.labels[currentStep + 1];
 
@@ -23,6 +35,14 @@ export function StepConfig() {
     if (hasXandr && !store.xandrBrandUrl.trim()) {
       toast('Preencha a Brand URL na seção Auditoria Xandr', 'error');
       return;
+    }
+    if (hasXandr && brandUrlError) {
+      toast(brandUrlError, 'error');
+      return;
+    }
+    // Auto-trim on advance
+    if (hasXandr && store.xandrBrandUrl !== store.xandrBrandUrl.trim()) {
+      setConfig({ xandrBrandUrl: store.xandrBrandUrl.trim() });
     }
     setStep(currentStep + 1);
   };
@@ -98,12 +118,22 @@ export function StepConfig() {
 
             <div className={styles.row}>
               <label className={styles.label}>Brand URL<small>URL do site da marca</small></label>
-              <input
-                className={styles.input}
-                value={store.xandrBrandUrl}
-                onChange={(e) => setConfig({ xandrBrandUrl: e.target.value })}
-                placeholder="https://www.marca.com.br"
-              />
+              <div style={{ flex: 1, maxWidth: 360 }}>
+                <input
+                  className={styles.input}
+                  style={brandUrlError ? { borderColor: 'var(--error)', width: '100%' } : { width: '100%' }}
+                  value={store.xandrBrandUrl}
+                  onChange={(e) => {
+                    setConfig({ xandrBrandUrl: e.target.value });
+                    if (brandUrlError) validateBrandUrl(e.target.value);
+                  }}
+                  onBlur={(e) => validateBrandUrl(e.target.value)}
+                  placeholder="https://www.marca.com.br"
+                />
+                {brandUrlError && (
+                  <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--error)', marginTop: 4 }}>{brandUrlError}</div>
+                )}
+              </div>
             </div>
 
             <div className={styles.row}>

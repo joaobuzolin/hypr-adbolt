@@ -6,7 +6,7 @@ import styles from './CreativePreview.module.css';
 interface PreviewData {
   name: string;
   dimensions: string;
-  type: 'display' | 'video' | 'html5' | '3p-tag';
+  type: 'display' | 'video' | 'html5' | '3p-tag' | 'survey';
   /** For images/GIFs: object URL or data URL */
   imageUrl?: string;
   /** For videos: object URL */
@@ -151,6 +151,27 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       );
     }
 
+    // Survey (Typeform) — open in sized popup to bypass X-Frame-Options
+    if (data.type === 'survey' && data.tagContent) {
+      const tagW = w || 300;
+      const tagH = h || 250;
+      const pad = 40;
+      const popW = tagW + pad;
+      const popH = tagH + pad;
+      const left = Math.round((window.screen.width - popW) / 2);
+      const top = Math.round((window.screen.height - popH) / 2);
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Preview: ${data.name}</title><style>*{margin:0;padding:0}body{display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;background:#f4f4f4}</style></head><body>${data.tagContent}</body></html>`;
+      const blob = new Blob([html], { type: 'text/html' });
+      window.open(
+        URL.createObjectURL(blob),
+        'survey_preview',
+        `width=${popW},height=${popH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+      );
+      // Auto-close the modal since content is in the popup
+      onClose();
+      return null;
+    }
+
     // 3P Tag (iframe sandbox)
     if (data.type === '3p-tag' && data.tagContent) {
       // Real tag dimensions (what the ad server expects)
@@ -289,7 +310,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
     );
   };
 
-  const typeLabel = data.type === '3p-tag' ? '3P Tag' : data.type === 'html5' ? 'HTML5' : data.type;
+  const typeLabel = data.type === '3p-tag' ? '3P Tag' : data.type === 'html5' ? 'HTML5' : data.type === 'survey' ? 'Survey' : data.type;
 
   return (
     <div className={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>

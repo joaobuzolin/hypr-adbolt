@@ -301,8 +301,8 @@ export function StepTags() {
           />
         </div>
         <div className={styles.manualField} style={{ width: '100%', marginBottom: 12 }}>
-          <label>Click URL <span style={{ fontWeight: 400, color: 'var(--text-tri)' }}>(opcional)</span></label>
-          <input value={mtClick} onChange={(e) => setMtClick(e.target.value)} placeholder="https://..." />
+          <label>Click URL <span style={{ fontWeight: 400, color: 'var(--text-tri)' }}>{mtType === 'video' ? '(VAST já inclui click — opcional)' : '(opcional)'}</span></label>
+          <input value={mtClick} onChange={(e) => setMtClick(e.target.value)} placeholder={mtType === 'video' ? 'Opcional — VAST inclui ClickThrough' : 'https://...'} />
         </div>
         <button className={styles.manualAddBtn} onClick={handleAddManualTag}>Adicionar Tag</button>
       </div>
@@ -434,7 +434,7 @@ export function StepTags() {
                         className={`${styles.cellInput} ${styles.mono}`}
                         value={p.clickUrl}
                         onChange={(e) => updatePlacement(i, 'clickUrl', e.target.value)}
-                        placeholder="https://..."
+                        placeholder={p.type === 'video' ? 'Opcional p/ VAST' : 'https://...'}
                       />
                     </td>
                     <td className={styles.trackerCell}>

@@ -90,9 +90,10 @@ async function createCreative(
   const { w, h } = parseDimensions(creative.dimensions);
 
   // Build thirdPartyUrls from per-creative trackers + legacy global trackingPixel
-  // Route .js trackers to thirdPartyUrls, image pixels to trackerUrls
+  // DV360 API v4: thirdPartyUrls accepts [{type, url}] objects
+  // trackerUrls expects plain string[] — NOT for 3P impression pixels
+  // Route ALL trackers to thirdPartyUrls regardless of format
   const thirdPartyUrls: any[] = [];
-  const trackerUrls: any[] = [];
   const seen = new Set<string>();
 
   if (trackingPixel && !seen.has(trackingPixel)) {
@@ -103,11 +104,7 @@ async function createCreative(
   for (const t of (creative.trackers || [])) {
     if (!t.url || seen.has(t.url)) continue;
     seen.add(t.url);
-    if (t.format === 'url-js' || t.url.toLowerCase().endsWith('.js') || t.url.toLowerCase().includes('.js?') || t.url.toLowerCase().includes('/js/')) {
-      thirdPartyUrls.push({ type: "THIRD_PARTY_URL_TYPE_IMPRESSION", url: t.url });
-    } else {
-      trackerUrls.push({ type: "THIRD_PARTY_URL_TYPE_IMPRESSION", url: t.url });
-    }
+    thirdPartyUrls.push({ type: "THIRD_PARTY_URL_TYPE_IMPRESSION", url: t.url });
   }
 
   const body: any = {
@@ -131,9 +128,6 @@ async function createCreative(
 
   if (thirdPartyUrls.length) {
     body.thirdPartyUrls = thirdPartyUrls;
-  }
-  if (trackerUrls.length) {
-    body.trackerUrls = trackerUrls;
   }
 
   const url = `https://displayvideo.googleapis.com/v4/advertisers/${advertiserId}/creatives`;

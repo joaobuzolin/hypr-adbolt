@@ -52,18 +52,24 @@ interface DashboardState {
 }
 
 function buildGroups(creatives: Creative[]): CreativeGroup[] {
+  // Sort oldest first so we build groups chronologically
   const sorted = [...creatives].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
-  const groupMap = new Map<string, CreativeGroup>();
   const groups: CreativeGroup[] = [];
+  // Map from name||dimensions to array of groups (multiple groups possible for same name)
+  const groupsByKey = new Map<string, CreativeGroup[]>();
 
   for (const c of sorted) {
-    const key = (c.batch_id || 'none') + '||' + c.name + '||' + c.dimensions;
-    let g = groupMap.get(key);
+    const key = c.name + '||' + c.dimensions;
+    const existing = groupsByKey.get(key) || [];
+
+    // Find a group that doesn't already have this DSP
+    let g = existing.find((g) => !g.dsps[c.dsp]);
 
     if (!g) {
+      // No group available (either none exist, or all already have this DSP) → create new
       g = {
         _gid: '',
         name: c.name,
@@ -80,7 +86,8 @@ function buildGroups(creatives: Creative[]): CreativeGroup[] {
         dsps: {},
       };
       groups.push(g);
-      groupMap.set(key, g);
+      existing.push(g);
+      groupsByKey.set(key, existing);
     }
 
     const dspConfig = typeof c.dsp_config === 'string'

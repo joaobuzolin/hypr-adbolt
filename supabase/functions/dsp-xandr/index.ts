@@ -127,20 +127,28 @@ async function createXandrVastCreative(token: string, advertiserId: number, inpu
     const data = await res.json();
     if (data.response?.status === "OK" && data.response?.["creative-vast"]) {
       const vastId = data.response["creative-vast"].id;
-      // VAST endpoint ignores landing_page_url — set it via /creative endpoint after creation
+      // Set landing_page_url via /creative-vast PUT (POST ignores it, PUT accepts it)
       if (input.brandUrl) {
         try {
-          const putRes = await fetch(`${XANDR_API}/creative?id=${vastId}&member_id=${MEMBER_ID}&advertiser_id=${advertiserId}`, {
+          const putRes = await fetch(`${XANDR_API}/creative-vast?id=${vastId}&member_id=${MEMBER_ID}&advertiser_id=${advId}`, {
             method: "PUT", headers: { "Content-Type": "application/json", Authorization: token },
-            body: JSON.stringify({ creative: { landing_page_url: input.brandUrl } }),
+            body: JSON.stringify({ "creative-vast": { landing_page_url: input.brandUrl } }),
           });
           const putData = await putRes.json();
-          if (putData.response?.status !== "OK") {
-            console.log(`[xandr] landing_page_url PUT for VAST ${vastId}: ${putData.response?.error_message || putData.response?.error || JSON.stringify(putData).substring(0, 300)}`);
-          } else {
-            console.log(`[xandr] landing_page_url SET for VAST ${vastId}: ${input.brandUrl}`);
+          const putOk = putData.response?.status === "OK";
+          const actualLp = putData.response?.["creative-vast"]?.landing_page_url || "(not in response)";
+          console.log(`[xandr] VAST PUT landing_page_url: ok=${putOk} sent=${input.brandUrl} actual=${actualLp} id=${vastId}`);
+          if (!putOk) {
+            console.log(`[xandr] VAST PUT error: ${putData.response?.error_message || JSON.stringify(putData).substring(0, 300)}`);
+            // Fallback: try /creative endpoint
+            const put2 = await fetch(`${XANDR_API}/creative?id=${vastId}&member_id=${MEMBER_ID}&advertiser_id=${advId}`, {
+              method: "PUT", headers: { "Content-Type": "application/json", Authorization: token },
+              body: JSON.stringify({ creative: { landing_page_url: input.brandUrl } }),
+            });
+            const put2Data = await put2.json();
+            console.log(`[xandr] /creative fallback PUT: ok=${put2Data.response?.status === "OK"} lp=${put2Data.response?.creative?.landing_page_url || "(none)"}`);
           }
-        } catch (e) { console.log(`[xandr] landing_page_url PUT failed for VAST ${vastId}:`, e); }
+        } catch (e) { console.log(`[xandr] landing_page_url PUT exception for VAST ${vastId}:`, e); }
       }
       return { name: input.name, success: true, creativeId: vastId, auditStatus: data.response["creative-vast"].audit_status, creativeType: 'video', _input: input };
     }

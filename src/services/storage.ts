@@ -43,6 +43,7 @@ export async function uploadThumbnail(
 /**
  * Upload HTML5 preview content (self-contained HTML with inlined resources)
  * to the public 'thumbnails' bucket. Returns the full public URL.
+ * Includes retry with backoff for reliability.
  */
 export async function uploadHtml5Preview(
   htmlContent: string,
@@ -53,22 +54,33 @@ export async function uploadHtml5Preview(
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const path = `h5/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.html`;
 
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/thumbnails/${path}`, {
-    method: 'POST',
-    headers: {
-      Authorization: 'Bearer ' + token,
-      'Content-Type': 'text/html',
-      'x-upsert': 'true',
-    },
-    body: blob,
-  });
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1000 * attempt));
+    try {
+      const res = await fetch(`${SUPABASE_URL}/storage/v1/object/thumbnails/${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'text/html',
+          'x-upsert': 'true',
+        },
+        body: blob,
+      });
 
-  if (!res.ok) {
-    console.warn('HTML5 preview upload failed:', await res.text());
-    return '';
+      if (res.ok) {
+        return `${SUPABASE_URL}/storage/v1/object/public/thumbnails/${path}`;
+      }
+
+      const errText = await res.text();
+      console.warn(`HTML5 preview upload attempt ${attempt + 1}/${MAX_RETRIES + 1} failed (${res.status}):`, errText);
+    } catch (err) {
+      console.warn(`HTML5 preview upload attempt ${attempt + 1}/${MAX_RETRIES + 1} network error:`, err);
+    }
   }
 
-  return `${SUPABASE_URL}/storage/v1/object/public/thumbnails/${path}`;
+  console.error('HTML5 preview upload failed after all retries');
+  return '';
 }
 
 /**

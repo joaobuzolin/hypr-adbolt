@@ -347,6 +347,19 @@
   font-family: var(--font);
 }
 
+.trackerEvent {
+  background: var(--warning-dim);
+  color: var(--warning);
+  font-size: var(--fs-min);
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  font-family: var(--font);
+  text-transform: uppercase;
+}
+
 .trackerUrl {
   overflow: hidden;
   text-overflow: ellipsis;

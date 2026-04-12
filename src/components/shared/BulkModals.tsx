@@ -217,12 +217,13 @@ interface BulkTrackerModalProps {
   count: number;
   availableDsps?: DspType[];
   hasVideo?: boolean; // true if any selected item is video
+  hasDisplay?: boolean; // true if any selected item is display/html5
   onApply: (url: string, format: TrackerFormat, scope: TrackerScope, eventType?: VastEventType) => void;
 }
 
 const ALL_DSPS: DspType[] = ['xandr', 'dv360', 'stackadapt', 'amazondsp'];
 
-export function BulkTrackerModal({ visible, onClose, count, availableDsps, hasVideo, onApply }: BulkTrackerModalProps) {
+export function BulkTrackerModal({ visible, onClose, count, availableDsps, hasVideo, hasDisplay, onApply }: BulkTrackerModalProps) {
   const [raw, setRaw] = useState('');
   const [scope, setScope] = useState<'all' | DspType[]>('all');
   const [eventType, setEventType] = useState<VastEventType>('impression');
@@ -352,6 +353,11 @@ export function BulkTrackerModal({ visible, onClose, count, availableDsps, hasVi
               </button>
             ))}
           </div>
+          {hasDisplay && eventType !== 'impression' && (
+            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-tri)', marginTop: 8, lineHeight: 1.5 }}>
+              Assets display receberão este tracker como impression. O evento <strong style={{ color: 'var(--accent)' }}>{eventType}</strong> será aplicado apenas nos vídeos.
+            </div>
+          )}
         </div>
       )}
     </Modal>

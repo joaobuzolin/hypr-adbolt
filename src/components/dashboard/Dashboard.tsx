@@ -231,7 +231,6 @@ export function Dashboard() {
           const { supabase } = await import('@/services/supabase');
           const { data } = await supabase.storage.from('asset-uploads').createSignedUrl(storagePath, 3600);
           if (data?.signedUrl) {
-            const isGif = g.asset_mime_type?.includes('gif');
             if (isVideo) {
               setPreviewData({ ...base, type: 'video', videoUrl: data.signedUrl, thumbUrl: g.thumbnail_url || undefined });
             } else {

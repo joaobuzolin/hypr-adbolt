@@ -153,9 +153,12 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
 
     // 3P Tag (iframe sandbox)
     if (data.type === '3p-tag' && data.tagContent) {
+      // Real tag dimensions (what the ad server expects)
+      const tagW = w || 300;
+      const tagH = h || 250;
       const srcdoc = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff}</style></head>
-<body>${data.tagContent}</body></html>`;
+<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}</style></head>
+<body><div style="width:${tagW}px;height:${tagH}px;overflow:hidden;position:relative">${data.tagContent}</div></body></html>`;
       return (
         <div className={styles.previewFrame} style={{ width: renderW, height: renderH, overflow: 'hidden' }}>
           {!iframeLoaded && (
@@ -170,9 +173,17 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
             srcDoc={srcdoc}
             sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             scrolling="no"
-            width={renderW}
-            height={renderH}
-            style={{ display: 'block', width: renderW, height: renderH, border: 'none', clipPath: `inset(0 0 0 0)`, opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+            width={tagW}
+            height={tagH}
+            style={{
+              display: 'block', border: 'none', background: 'transparent',
+              width: tagW, height: tagH,
+              transformOrigin: '0 0',
+              transform: scale < 1 ? `scale(${scale})` : undefined,
+              clipPath: 'inset(0 0 0 0)',
+              opacity: iframeLoaded ? 1 : 0,
+              transition: 'opacity 0.3s',
+            }}
             onLoad={() => setIframeLoaded(true)}
             title={`Preview: ${data.name}`}
           />

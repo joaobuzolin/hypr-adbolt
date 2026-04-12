@@ -46,7 +46,6 @@
 .previewFrame iframe {
   display: block;
   border: none;
-  background: #fff;
 }
 
 /* Checkerboard pattern for transparent images */

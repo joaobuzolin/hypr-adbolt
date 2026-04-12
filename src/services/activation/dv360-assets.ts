@@ -41,11 +41,11 @@ export async function activateDV360Assets(
         }
         const payload = buildCreativePayload(a, 'dv360');
         // Use pre-uploaded URLs from Phase 1, fallback to upload here
-        let thumbnailUrl = (a as any)._thumbnailUrl || '';
+        let thumbnailUrl = a._thumbnailUrl || '';
         if (!thumbnailUrl && a.thumb) {
           thumbnailUrl = await uploadThumbnail(a.thumb, token);
         }
-        let html5PreviewUrl = (a as any)._html5PreviewUrl || '';
+        let html5PreviewUrl = a._html5PreviewUrl || '';
         if (!html5PreviewUrl && a.type === 'html5' && a.html5Content) {
           html5PreviewUrl = await uploadHtml5Preview(a.html5Content, token);
         }

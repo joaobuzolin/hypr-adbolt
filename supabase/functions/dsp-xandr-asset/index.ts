@@ -198,7 +198,7 @@ Deno.serve(async(req)=>{
           click_url:normUrl(i.landingPage), landing_page:safeBrandUrl||normUrl(i.landingPage),
           trackers:normT.length?JSON.stringify(normT):'[]',
           asset_filename:i.fileName, asset_mime_type:i.mimeType, asset_size_bytes:i.fileSize||null,
-          dsp_config:JSON.stringify({member_id:MEMBER_ID,advertiser_id:advertiserId,language_id:languageId,brand_id:brandId,brand_url:safeBrandUrl,sla}),
+          dsp_config:JSON.stringify({member_id:MEMBER_ID,advertiser_id:advertiserId,language_id:languageId,brand_id:brandId,brand_url:safeBrandUrl,sla,storage_path:i.storagePath||null}),
           status:'active', audit_status:'pending', thumbnail_url:i.thumbnailUrl||null, last_synced_at:new Date().toISOString()};
       });
       await sb.from('creatives').insert(rows);

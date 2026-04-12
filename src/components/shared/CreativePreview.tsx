@@ -135,10 +135,10 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
     // 3P Tag (iframe sandbox)
     if (data.type === '3p-tag' && data.tagContent) {
       const srcdoc = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}body{overflow:hidden;background:#fff}</style></head>
+<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}body{overflow:hidden;background:#fff;width:${w}px;height:${h}px}</style></head>
 <body>${data.tagContent}</body></html>`;
       return (
-        <div className={styles.previewFrame}>
+        <div className={styles.previewFrame} style={{ width: renderW, height: renderH }}>
           {!iframeLoaded && (
             <div className={styles.loading} style={{ width: renderW, height: renderH, position: 'absolute' }}>
               <div className={styles.loadingDot} />

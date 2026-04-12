@@ -135,8 +135,8 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
     // 3P Tag (iframe sandbox)
     if (data.type === '3p-tag' && data.tagContent) {
       const srcdoc = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}body{overflow:hidden;background:#fff;width:${w}px;height:${h}px}</style></head>
-<body>${data.tagContent}</body></html>`;
+<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{overflow:hidden;background:#fff;width:${w}px;height:${h}px}#clip{position:relative;width:${w}px;height:${h}px;overflow:hidden}</style></head>
+<body><div id="clip">${data.tagContent}</div></body></html>`;
       return (
         <div className={styles.previewFrame} style={{ width: renderW, height: renderH }}>
           {!iframeLoaded && (
@@ -151,7 +151,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
             sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             width={renderW}
             height={renderH}
-            style={{ opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+            style={{ width: renderW, maxWidth: renderW, height: renderH, border: 'none', opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
             onLoad={() => setIframeLoaded(true)}
             title={`Preview: ${data.name}`}
           />

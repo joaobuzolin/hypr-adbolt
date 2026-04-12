@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 // Zustand store refs from useDashboardStore() are stable — exhaustive-deps
 // flags them incorrectly. Disabling for this file only.
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useDashboardStore, getFormatLabel } from '@/stores/dashboard';
 import { useAuthStore } from '@/stores/auth';
 import { useUIStore } from '@/stores/ui';
@@ -143,6 +143,15 @@ export function Dashboard() {
 
   const autoSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Debounced search to avoid filtering on every keystroke
+  const [searchInput, setSearchInput] = useState(store.filterSearch);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => store.setFilterSearch(value), 250);
+  }, []);
+
   // Load on mount — runs once + reload when tab becomes visible
   useEffect(() => {
     store.loadCreatives();
@@ -209,8 +218,11 @@ export function Dashboard() {
     finally { store.setSyncing(false); }
   }, [session?.access_token, toast, store.creatives.length]);
 
-  // ── Filtered data ──
-  const filtered = store.getFilteredGroups();
+  // ── Filtered data (memoized to avoid recalc on every render) ──
+  const filtered = useMemo(
+    () => store.getFilteredGroups(),
+    [store.groups, store.filterDsp, store.filterAudit, store.filterSize, store.filterFormat, store.filterCreator, store.filterSearch, store.filterDateFrom, store.filterDateTo],
+  );
   const totalPages = Math.ceil(filtered.length / store.pageSize) || 1;
   const page = Math.min(store.page, totalPages - 1);
   const pageItems = filtered.slice(page * store.pageSize, (page + 1) * store.pageSize);
@@ -737,7 +749,7 @@ export function Dashboard() {
           onChange={(from, to) => store.setFilterDate(from, to)}
         />
         <div style={{ flex: 1 }} />
-        <input className={styles.search} placeholder="Buscar..." value={store.filterSearch} onChange={(e) => store.setFilterSearch(e.target.value)} />
+        <input className={styles.search} placeholder="Buscar..." value={searchInput} onChange={(e) => handleSearchChange(e.target.value)} />
       </div>
 
       {/* Bulk bar */}

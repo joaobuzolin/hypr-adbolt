@@ -2,6 +2,7 @@ import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
 import { DSP_DEFAULTS } from '@/lib/dsp-config';
 import type { Placement, ActivationResult } from '@/types';
 import { mergeTrackers } from '@/parsers/tracker';
+import { fetchWithRetry } from './retry';
 
 interface XandrActivationConfig {
   advertiserId?: number;
@@ -49,7 +50,7 @@ export async function activateXandrTags(
       })),
     };
 
-    const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/dsp-xandr`, {
+    const res = await fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/dsp-xandr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify(body),

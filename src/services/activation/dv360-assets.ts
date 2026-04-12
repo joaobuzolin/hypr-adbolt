@@ -1,6 +1,7 @@
 import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
 import type { AssetEntry, ActivationResult } from '@/types';
 import { uploadAssetToStorage, buildCreativePayload, uploadThumbnail, uploadHtml5Preview } from '@/services/storage';
+import { fetchWithRetry } from './retry';
 
 interface DV360AssetConfig {
   advertiserId: string;
@@ -80,7 +81,7 @@ export async function activateDV360Assets(
         const idx = i + bi;
         processed++;
         onProgress?.(processed, total, `Criando video ${idx + 1}/${videoCreatives.length} na DV360: ${vc.name}`);
-        return fetch(`${SUPABASE_FUNCTIONS_URL}/dsp-dv360-asset`, {
+        return fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/dsp-dv360-asset`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({
@@ -115,7 +116,7 @@ export async function activateDV360Assets(
       onProgress?.(processed, total, `Criando display ${Math.min(i + CHUNK, otherCreatives.length)}/${otherCreatives.length} na DV360...`);
 
       try {
-        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/dsp-dv360-asset`, {
+        const res = await fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/dsp-dv360-asset`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({

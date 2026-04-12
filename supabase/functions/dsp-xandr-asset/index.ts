@@ -182,6 +182,7 @@ Deno.serve(async(req)=>{
     if (!creatives.length) return new Response(JSON.stringify({error:'No creatives'}),{status:400,headers:{...CORS,'Content-Type':'application/json'}});
     const {data:bd} = await sb.from('creative_batches').insert({user_email:user.email,user_name:user.user_metadata?.full_name||user.email,source_type:'assets',campaign_name:campaignName||'Asset Upload',advertiser_name:advertiserName||null,total_creatives:0,dsps_activated:['xandr']}).select('id').single();
     const batchId = bd?.id||null;
+    const t0 = Date.now();
     const token = await getXandrToken();
     const results: Result[] = [];
     for (const c of creatives) results.push(await processCreative(token,advertiserId,c,safeBrandUrl,languageId,brandId,sla,sb));
@@ -208,6 +209,7 @@ Deno.serve(async(req)=>{
     await sb.from('activation_log').insert({user_email:user.email,user_name:user.user_metadata?.full_name||user.email,
       dsp:'xandr',campaign_name:campaignName||'Asset Upload',advertiser_name:advertiserName||'',
       creatives_count:creatives.length,status:st,
+      step:'complete',duration_ms:Date.now()-t0,edge_function:'dsp-xandr-asset',
       request_payload:{advertiserId,type:'asset_upload',creativesCount:creatives.length,batchId},
       response_summary:{total:results.length,success:sc,failed:results.length-sc,batchId,
         creativeIds:results.filter(r=>r.success).map(r=>r.creativeId),

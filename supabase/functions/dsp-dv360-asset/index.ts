@@ -145,6 +145,7 @@ Deno.serve(async(req)=>{
     if (!creatives.length) return new Response(JSON.stringify({error:'No creatives'}),{status:400,headers:{...CORS,'Content-Type':'application/json'}});
     const {data:bd} = await sb.from('creative_batches').insert({user_email:user.email,user_name:user.user_metadata?.full_name||user.email,source_type:'assets',campaign_name:campaignName||'Asset Upload',advertiser_name:advertiserName||null,brand_name:brandName||null,total_creatives:0,dsps_activated:['dv360']}).select('id').single();
     const batchId = bd?.id||null;
+    const t0 = Date.now();
     const token = await getToken();
     const results: Result[] = [];
     const videoCreatives = creatives.filter((c:any) => c.type === 'video');
@@ -180,6 +181,7 @@ Deno.serve(async(req)=>{
     await sb.from('activation_log').insert({user_email:user.email,user_name:user.user_metadata?.full_name||user.email,
       dsp:'dv360',campaign_name:campaignName||'Asset Upload',advertiser_name:advertiserName||'',
       creatives_count:creatives.length,status:st,
+      step:'complete',duration_ms:Date.now()-t0,edge_function:'dsp-dv360-asset',
       request_payload:{advertiserId:advId,type:'asset_upload',creativesCount:creatives.length,batchId},
       response_summary:{total:results.length,success:sc,failed:results.length-sc,batchId,
         creativeIds:results.filter(r=>r.success).map(r=>r.creativeId),

@@ -9,6 +9,7 @@ interface DashboardState {
   isLoading: boolean;
   isSyncing: boolean;
   lastSyncTime: number | null;
+  isTruncated: boolean;
 
   // ── Filters ──
   filterDsp: string; // 'all' | DspType
@@ -166,6 +167,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   isLoading: false,
   isSyncing: false,
   lastSyncTime: null,
+  isTruncated: false,
   filterDsp: 'all',
   filterAudit: 'all',
   filterSearch: '',
@@ -193,8 +195,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       const creatives = (data || []) as Creative[];
       const groups = buildGroups(creatives);
+      const isTruncated = creatives.length >= 2000;
 
-      set({ creatives, groups, isLoading: false, lastSyncTime: Date.now() });
+      set({ creatives, groups, isLoading: false, lastSyncTime: Date.now(), isTruncated });
     } catch (err) {
       console.error('loadCreatives error:', err);
       set({ isLoading: false });

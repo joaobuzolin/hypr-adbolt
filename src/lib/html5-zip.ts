@@ -12,7 +12,7 @@ import type { AssetEntry } from '@/types';
  */
 export async function extractZipToFiles(zipFile: File): Promise<File[]> {
   const JSZip = window.JSZip;
-  if (!JSZip) throw new Error('JSZip not loaded');
+  if (!JSZip) throw new Error('JSZip não carregou do CDN. Recarregue a página e tente novamente.');
 
   const buf = await zipFile.arrayBuffer();
   const zip = await JSZip.loadAsync(buf);
@@ -49,7 +49,7 @@ export async function processHTML5Zip(
   zipFile: File,
 ): Promise<Omit<AssetEntry, 'id'> | null> {
   const JSZip = window.JSZip;
-  if (!JSZip) throw new Error('JSZip not loaded');
+  if (!JSZip) throw new Error('JSZip não carregou do CDN. Recarregue a página e tente novamente.');
 
   const buf = await zipFile.arrayBuffer();
   const zip = await JSZip.loadAsync(buf);

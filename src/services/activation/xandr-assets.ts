@@ -2,6 +2,7 @@ import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
 import { DSP_DEFAULTS } from '@/lib/dsp-config';
 import type { AssetEntry, ActivationResult } from '@/types';
 import { uploadAssetToStorage, buildCreativePayload, uploadThumbnail, uploadHtml5Preview } from '@/services/storage';
+import { fetchWithRetry } from './retry';
 
 interface XandrAssetConfig {
   brandUrl: string;
@@ -60,7 +61,7 @@ export async function activateXandrAssets(
           creatives: [{ ...prepared, thumbnailUrl, html5PreviewUrl }],
         };
 
-        const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/dsp-xandr-asset`, {
+        const res = await fetchWithRetry(`${SUPABASE_FUNCTIONS_URL}/dsp-xandr-asset`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify(body),

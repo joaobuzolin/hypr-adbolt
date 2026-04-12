@@ -58,7 +58,7 @@ export function downloadXLSX(
   // SheetJS loaded via CDN — typed in vite-env.d.ts
   const XLSX = window.XLSX;
   if (!XLSX) {
-    throw new Error('SheetJS (XLSX) not loaded');
+    throw new Error('SheetJS (XLSX) não carregou do CDN. Recarregue a página e tente novamente.');
   }
 
   const wb = XLSX.utils.book_new();

@@ -564,6 +564,18 @@ export function Dashboard() {
         ))}
       </div>
 
+      {/* Truncation warning */}
+      {store.isTruncated && (
+        <div style={{
+          padding: '8px 16px', margin: '0 0 8px', borderRadius: 'var(--r-xs)',
+          background: 'var(--warning-dim, rgba(186,117,23,0.1))',
+          color: 'var(--warning, #BA7517)',
+          fontSize: 'var(--fs-xs)', fontWeight: 500,
+        }}>
+          Mostrando os 2.000 registros mais recentes. Criativos mais antigos não aparecem nesta listagem.
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className={styles.toolbar}>
         {['all', 'xandr', 'dv360'].map((d) => (

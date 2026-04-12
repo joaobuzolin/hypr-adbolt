@@ -109,8 +109,13 @@ export function StepActivate() {
         toast(`${missingLp.length} asset(s) sem landing page. Preencha antes de ativar.`, 'error');
         return;
       }
-      // Force fresh upload each activation (legacy behavior)
-      store.resetAssetUploadState();
+      // Smart re-upload: only reset assets whose file changed since last upload
+      // (keeps _storagePath for assets that haven't changed, avoiding redundant uploads)
+      if (store.activationDone) {
+        // Second activation in same session — keep existing uploads
+      } else {
+        store.resetAssetUploadState();
+      }
     }
 
     if (store.activationDone) {
@@ -165,10 +170,14 @@ export function StepActivate() {
             await uploadAssetToStorage(a, token, (msg) =>
               setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? { ...p, message: msg } : p))
             );
+            // Persist _storagePath to store (uploadAssetToStorage mutates the object directly)
+            if (a._storagePath) {
+              store.updateAsset(a.id, { _storagePath: a._storagePath, _uploadedFile: a._uploadedFile });
+            }
             // Upload small thumbnail (JPEG 96x72) for table display
             if (a.thumb && !a._thumbnailUrl) {
               const thumbUrl = await uploadThumbnail(a.thumb, token);
-              if (thumbUrl) a._thumbnailUrl = thumbUrl;
+              if (thumbUrl) store.updateAsset(a.id, { _thumbnailUrl: thumbUrl });
             }
             // Upload full-size preview to public bucket
             if (a.type === 'html5') {
@@ -178,7 +187,7 @@ export function StepActivate() {
                   ...p, message: `Preview ${i + 1}/${assets.length}: ${a.name}`,
                 } : p));
                 const previewUrl = await uploadHtml5Preview(a.html5Content, token);
-                if (previewUrl) a._html5PreviewUrl = previewUrl;
+                if (previewUrl) store.updateAsset(a.id, { _html5PreviewUrl: previewUrl });
               }
             }
           } catch (e) { console.error('Upload failed:', a.name, e); }
@@ -189,9 +198,10 @@ export function StepActivate() {
         );
       }
 
-      // Phase 2: Activate per DSP
+      // Phase 2: Activate per DSP — re-read from store to get updated _storagePath/_thumbnailUrl
+      const updatedAssets = useWizardStore.getState().assetEntries;
       if (store.selectedDsps.has('xandr')) {
-        const r = await activateXandrAssets(token, assets, {
+        const r = await activateXandrAssets(token, updatedAssets, {
           brandUrl: store.xandrBrandUrl, languageId: store.xandrLangId,
           brandId: store.xandrBrandId, sla: store.xandrSla,
         }, (cur, total, msg) =>
@@ -199,12 +209,12 @@ export function StepActivate() {
         );
         results.push(r);
         setProgress((prev) => prev.map((p) => p.dsp === 'xandr' ? {
-          ...p, current: assets.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
+          ...p, current: updatedAssets.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
         } : p));
       }
 
       if (store.selectedDsps.has('dv360')) {
-        const r = await activateDV360Assets(token, assets, {
+        const r = await activateDV360Assets(token, updatedAssets, {
           advertiserId: store.dv360AdvId,
           campaignName: store.parsedData?.campaignName || '',
           advertiserName: store.parsedData?.advertiserName || '',
@@ -214,7 +224,7 @@ export function StepActivate() {
         );
         results.push(r);
         setProgress((prev) => prev.map((p) => p.dsp === 'dv360' ? {
-          ...p, current: assets.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
+          ...p, current: updatedAssets.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
         } : p));
       }
     } else {

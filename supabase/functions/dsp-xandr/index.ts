@@ -185,7 +185,15 @@ Deno.serve(async (req) => {
     const batchId = batchData?.id || null;
     if (batchError) console.error("Failed to create batch:", batchError.message);
 
+    const t0 = Date.now();
     const token = await getXandrToken();
+    const tAuth = Date.now();
+    // Log auth step
+    await supabase.from("activation_log").insert({
+      user_email: user.email, dsp: "xandr", creatives_count: creatives.length, status: "info",
+      step: "auth", duration_ms: tAuth - t0, edge_function: "dsp-xandr",
+    }).then(() => {}, () => {});
+
     const results: CreativeResult[] = [];
     for (let i = 0; i < creatives.length; i += 5) {
       const batch = creatives.slice(i, i + 5);
@@ -229,6 +237,7 @@ Deno.serve(async (req) => {
     await supabase.from("activation_log").insert({
       user_email: user.email, user_name: user.user_metadata?.full_name || user.email,
       dsp: "xandr", campaign_name: campaignName, advertiser_name: advertiserName, creatives_count: creatives.length, status,
+      step: "complete", duration_ms: Date.now() - t0, edge_function: "dsp-xandr",
       request_payload: { advertiserId, creativesCount: creatives.length, isPolitical, languageId, brandId, brandUrl, sla, batchId },
       response_summary: { total: results.length, success: successCount, failed: results.length - successCount, batchId, creativeIds: results.filter((r) => r.success).map((r) => r.creativeId) },
       error_message: status === "error" ? results[0]?.error : null,

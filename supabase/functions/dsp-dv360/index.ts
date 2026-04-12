@@ -229,6 +229,7 @@ serve(async (req: Request) => {
     if (batchError) console.error("Failed to create batch:", batchError.message);
 
     // Get OAuth2 access token
+    const t0 = Date.now();
     const token = await getAccessToken(saKey);
 
     // Process in parallel batches of 5 (DV360 allows ~10 req/s per advertiser)
@@ -305,6 +306,7 @@ serve(async (req: Request) => {
       advertiser_name: advertiserName,
       creatives_count: creatives.length,
       status,
+      step: "complete", duration_ms: Date.now() - t0, edge_function: "dsp-dv360",
       request_payload: { advertiserId, creativesCount: creatives.length, batchId },
       response_summary: {
         total: results.length,

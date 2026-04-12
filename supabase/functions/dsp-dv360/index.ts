@@ -2,7 +2,7 @@
 // Supabase secrets: DV360_SERVICE_ACCOUNT_KEY (JSON), DV360_ADVERTISER_ID
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { create, getNumericDate } from "https://deno.land/x/djwt@v2.9.1/mod.ts";
+import { getDV360Token, DV360_API } from "../_shared/dv360-auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -10,68 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-// ── Helpers ──
-
-function base64UrlToArrayBuffer(b64url: string): ArrayBuffer {
-  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
-  const bin = atob(b64 + pad);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes.buffer;
-}
-
-function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s/g, "");
-  return base64UrlToArrayBuffer(b64);
-}
-
-async function importPrivateKey(pem: string): Promise<CryptoKey> {
-  const keyData = pemToArrayBuffer(pem);
-  return crypto.subtle.importKey(
-    "pkcs8",
-    keyData,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-}
-
-async function getAccessToken(saKey: any): Promise<string> {
-  const scope = "https://www.googleapis.com/auth/display-video";
-  const now = Math.floor(Date.now() / 1000);
-  const key = await importPrivateKey(saKey.private_key);
-
-  const jwt = await create(
-    { alg: "RS256", typ: "JWT" },
-    {
-      iss: saKey.client_email,
-      scope,
-      aud: "https://oauth2.googleapis.com/token",
-      iat: getNumericDate(0),
-      exp: getNumericDate(3600),
-    },
-    key
-  );
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`OAuth token error: ${res.status} — ${err}`);
-  }
-
-  const data = await res.json();
-  return data.access_token;
-}
 
 // ── Parse dimensions ──
 function parseDimensions(dim: string): { w: number; h: number } {
@@ -130,7 +68,7 @@ async function createCreative(
     body.thirdPartyUrls = thirdPartyUrls;
   }
 
-  const url = `https://displayvideo.googleapis.com/v4/advertisers/${advertiserId}/creatives`;
+  const url = `${DV360_API}/advertisers/${advertiserId}/creatives`;
 
   const res = await fetch(url, {
     method: "POST",
@@ -184,9 +122,6 @@ serve(async (req: Request) => {
     }
 
     // Parse service account key
-    const saKeyRaw = Deno.env.get("DV360_SERVICE_ACCOUNT_KEY");
-    if (!saKeyRaw) throw new Error("DV360_SERVICE_ACCOUNT_KEY not configured");
-    const saKey = JSON.parse(saKeyRaw);
 
     const advertiserId = Deno.env.get("DV360_ADVERTISER_ID");
     if (!advertiserId) throw new Error("DV360_ADVERTISER_ID not configured");
@@ -224,7 +159,7 @@ serve(async (req: Request) => {
 
     // Get OAuth2 access token
     const t0 = Date.now();
-    const token = await getAccessToken(saKey);
+    const token = await getDV360Token();
 
     // Process in parallel batches of 5 (DV360 allows ~10 req/s per advertiser)
     const BATCH_SIZE = 5;

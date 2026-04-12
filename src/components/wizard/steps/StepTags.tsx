@@ -444,6 +444,9 @@ export function StepTags() {
                             <span className={styles.trackerScope}>
                               {t.dsps === 'all' ? 'ALL' : (Array.isArray(t.dsps) ? t.dsps.map(d => DSP_SHORT_LABELS[d] || d).join(' ') : 'ALL')}
                             </span>
+                            {t.eventType && t.eventType !== 'impression' && p.type === 'video' && (
+                              <span className={styles.trackerEvent}>{t.eventType.toUpperCase()}</span>
+                            )}
                             <span className={styles.trackerUrl} title={t.url}>{t.url}</span>
                             <button className={styles.trackerRm} onClick={() => removePlacementTracker(i, ti)}>✕</button>
                           </span>
@@ -549,9 +552,12 @@ export function StepTags() {
         onClose={() => setTrackerOpen(false)}
         count={selectedTagIds.size}
         availableDsps={['xandr', 'dv360', 'stackadapt', 'amazondsp']}
-        onApply={(url, format, scope) => {
+        hasVideo={[...selectedTagIds].some((idx) => parsedData?.placements[idx]?.type === 'video')}
+        hasDisplay={[...selectedTagIds].some((idx) => { const t = parsedData?.placements[idx]?.type; return t && t !== 'video'; })}
+        onApply={(url, format, scope, eventType) => {
           selectedTagIds.forEach((idx) => {
-            addPlacementTracker(idx, { url, format, dsps: scope });
+            const p = parsedData?.placements[idx];
+            addPlacementTracker(idx, { url, format, dsps: scope, eventType: p?.type === 'video' ? eventType : undefined });
           });
           toast(`Tracker aplicado em ${selectedTagIds.size} placement(s)`, 'success');
         }}

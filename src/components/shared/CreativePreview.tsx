@@ -152,7 +152,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
             scrolling="no"
             width={renderW}
             height={renderH}
-            style={{ display: 'block', width: renderW, height: renderH, border: 'none', opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+            style={{ display: 'block', width: renderW, height: renderH, border: 'none', clipPath: `inset(0 0 0 0)`, opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
             onLoad={() => setIframeLoaded(true)}
             title={`Preview: ${data.name}`}
           />

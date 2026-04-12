@@ -12,6 +12,7 @@ import { parseCM360 } from '@/parsers/cm360';
 import { parseGenericTags } from '@/parsers/generic';
 import { analyzeTracker } from '@/parsers/tracker';
 import { normalizeUrl } from '@/lib/utils';
+import { requireCdnLib } from '@/lib/cdn-loader';
 import type { Placement, Tracker } from '@/types';
 import { DSP_SHORT_LABELS } from '@/types';
 import styles from './StepTags.module.css';
@@ -131,16 +132,24 @@ export function StepTags() {
   }, [parsedData, addPlacementTracker]);
 
   // ── File handling ──
-  const handleFiles = useCallback((files: File[]) => {
+  const handleFiles = useCallback(async (files: File[]) => {
     const file = files[0];
     if (!file) return;
     setUploadError(null);
 
+    let XLSX: any;
+    try {
+      XLSX = await requireCdnLib('XLSX');
+    } catch (err) {
+      const msg = (err as Error).message;
+      setUploadError(msg);
+      toast(msg, 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const XLSX = window.XLSX;
-        if (!XLSX) { setUploadError('SheetJS não carregado'); toast('SheetJS não carregado', 'error'); return; }
 
         const wb = XLSX.read(new Uint8Array(e.target!.result as ArrayBuffer), { type: 'array' });
         const sheetName = wb.SheetNames.includes('Tags') ? 'Tags' : wb.SheetNames[0];

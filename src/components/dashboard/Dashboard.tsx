@@ -175,42 +175,43 @@ export function Dashboard() {
   const [previewGroup, setPreviewGroup] = useState<CreativeGroup | null>(null);
 
   const getPreviewDataFromGroup = useCallback((g: CreativeGroup) => {
-    const formatLabel = (() => {
-      if (g.asset_filename) {
-        const ext = g.asset_filename.split('.').pop()?.toUpperCase() || '';
-        if (ext === 'ZIP') return 'HTML5';
-        return ext;
-      }
-      if (g.creative_type === 'video' && !g.js_tag) return 'VAST';
-      return '3P Tag';
-    })();
-
+    const isHtml5 = g.asset_filename?.toLowerCase().endsWith('.zip') || g.asset_mime_type?.includes('zip');
+    const isVideo = g.creative_type === 'video';
     const base = { name: g.name, dimensions: g.dimensions };
 
-    // Has thumbnail → show as image (works for images, videos, GIFs)
+    // HTML5 with preview URL stored in js_tag → render in iframe
+    if (isHtml5 && g.js_tag && g.js_tag.startsWith('http')) {
+      return { ...base, type: 'html5' as const, html5Url: g.js_tag };
+    }
+
+    // Check DSP details for HTML5 preview URL
+    if (isHtml5) {
+      const dspWithPreview = Object.values(g.dsps).find(d => d.js_tag && d.js_tag.startsWith('http'));
+      if (dspWithPreview?.js_tag) {
+        return { ...base, type: 'html5' as const, html5Url: dspWithPreview.js_tag };
+      }
+    }
+
+    // Has thumbnail → show as image (images, videos, GIFs, or HTML5 synthetic thumb)
     if (g.thumbnail_url) {
       return { ...base, type: 'display' as const, imageUrl: g.thumbnail_url, mimeType: g.asset_mime_type || undefined };
     }
 
     // 3P tag with js_tag content → render in sandboxed iframe
-    if (g.js_tag) {
+    if (g.js_tag && !g.js_tag.startsWith('http')) {
       return { ...base, type: '3p-tag' as const, tagContent: g.js_tag };
     }
 
-    // Also check DSP details for js_tag (tags are stored per-DSP)
-    const dspWithTag = Object.values(g.dsps).find(d => d.js_tag);
+    // Check DSP details for js_tag
+    const dspWithTag = Object.values(g.dsps).find(d => d.js_tag && !d.js_tag.startsWith('http'));
     if (dspWithTag?.js_tag) {
       return { ...base, type: '3p-tag' as const, tagContent: dspWithTag.js_tag };
     }
 
-    // VAST tag — can't render visually, show info
+    // VAST tag
     const dspWithVast = Object.values(g.dsps).find(d => d.vast_tag);
     if (dspWithVast?.vast_tag) {
       return { ...base, type: '3p-tag' as const, tagContent: `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:sans-serif;color:#666;font-size:14px">VAST Tag — visual preview não disponível</div>` };
-    }
-
-    if (formatLabel === 'HTML5') {
-      return { ...base, type: 'html5' as const, html5Content: '' };
     }
 
     return { ...base, type: 'display' as const, thumbUrl: undefined };

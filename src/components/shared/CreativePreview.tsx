@@ -15,6 +15,8 @@ interface PreviewData {
   tagContent?: string;
   /** For HTML5: the HTML content to render in iframe */
   html5Content?: string;
+  /** For HTML5: URL to a hosted HTML preview file */
+  html5Url?: string;
   /** MIME type hint for images (to detect GIF) */
   mimeType?: string;
   /** Thumbnail data URL (fallback for dashboard) */
@@ -157,7 +159,31 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       );
     }
 
-    // HTML5 (iframe sandbox)
+    // HTML5 via URL (dashboard — hosted preview file)
+    if (data.type === 'html5' && data.html5Url) {
+      return (
+        <div className={styles.previewFrame}>
+          {!iframeLoaded && (
+            <div className={styles.loading} style={{ width: renderW, height: renderH, position: 'absolute' }}>
+              <div className={styles.loadingDot} />
+              <div className={styles.loadingDot} />
+              <div className={styles.loadingDot} />
+            </div>
+          )}
+          <iframe
+            src={data.html5Url}
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            width={renderW}
+            height={renderH}
+            style={{ opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s' }}
+            onLoad={() => setIframeLoaded(true)}
+            title={`Preview: ${data.name}`}
+          />
+        </div>
+      );
+    }
+
+    // HTML5 via srcdoc (wizard — inline content)
     if (data.type === 'html5' && data.html5Content) {
       return (
         <div className={styles.previewFrame}>

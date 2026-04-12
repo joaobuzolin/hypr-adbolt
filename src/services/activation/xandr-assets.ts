@@ -1,7 +1,7 @@
 import { SUPABASE_FUNCTIONS_URL } from '@/services/supabase';
 import { DSP_DEFAULTS } from '@/lib/dsp-config';
 import type { AssetEntry, ActivationResult } from '@/types';
-import { uploadAssetToStorage, buildCreativePayload, uploadThumbnail } from '@/services/storage';
+import { uploadAssetToStorage, buildCreativePayload, uploadThumbnail, uploadHtml5Preview } from '@/services/storage';
 
 interface XandrAssetConfig {
   brandUrl: string;
@@ -46,13 +46,19 @@ export async function activateXandrAssets(
           thumbnailUrl = await uploadThumbnail(a.thumb, token);
         }
 
+        // Upload HTML5 preview content for dashboard rendering
+        let html5PreviewUrl = '';
+        if (a.type === 'html5' && a.html5Content) {
+          html5PreviewUrl = await uploadHtml5Preview(a.html5Content, token);
+        }
+
         const body = {
           advertiserId: DSP_DEFAULTS.xandr.advertiserId,
           brandUrl: config.brandUrl || null,
           languageId: config.languageId,
           brandId: config.brandId ? parseInt(config.brandId) : null,
           sla: config.sla,
-          creatives: [{ ...prepared, thumbnailUrl }],
+          creatives: [{ ...prepared, thumbnailUrl, html5PreviewUrl }],
         };
 
         const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/dsp-xandr-asset`, {

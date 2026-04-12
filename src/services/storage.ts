@@ -41,6 +41,37 @@ export async function uploadThumbnail(
 }
 
 /**
+ * Upload HTML5 preview content (self-contained HTML with inlined resources)
+ * to the public 'thumbnails' bucket. Returns the full public URL.
+ */
+export async function uploadHtml5Preview(
+  htmlContent: string,
+  token: string,
+): Promise<string> {
+  if (!htmlContent) return '';
+
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const path = `h5/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.html`;
+
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/thumbnails/${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'text/html',
+      'x-upsert': 'true',
+    },
+    body: blob,
+  });
+
+  if (!res.ok) {
+    console.warn('HTML5 preview upload failed:', await res.text());
+    return '';
+  }
+
+  return `${SUPABASE_URL}/storage/v1/object/public/thumbnails/${path}`;
+}
+
+/**
  * Upload a file to Supabase Storage (asset-uploads bucket).
  * Returns the storage path.
  * Ported from legacy: async function uploadToStorage(file, token) — lines 1364-1374

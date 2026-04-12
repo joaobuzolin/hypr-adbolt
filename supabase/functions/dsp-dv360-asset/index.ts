@@ -34,7 +34,7 @@ function normalizeTrackerInput(t: unknown): {url: string; format: string} {
   return {url: obj.url || '', format: obj.format || 'url-image'};
 }
 
-interface Input { name:string; type:'display'|'video'|'html5'; dimensions:string; fileName:string; mimeType:string; storagePath?:string; fileBase64?:string; fileSize?:number; landingPage:string; trackers?:unknown[]; duration?:number; thumbnailUrl?:string; }
+interface Input { name:string; type:'display'|'video'|'html5'; dimensions:string; fileName:string; mimeType:string; storagePath?:string; fileBase64?:string; fileSize?:number; landingPage:string; trackers?:unknown[]; duration?:number; thumbnailUrl?:string; html5PreviewUrl?:string; }
 interface Result { name:string; success:boolean; creativeId?:string; error?:string; step?:string; _input?:Input; }
 
 async function getFileBytes(sb: any, input: Input): Promise<Uint8Array> {
@@ -166,7 +166,7 @@ Deno.serve(async(req)=>{
         return {batch_id:batchId, created_by_email:user.email!, created_by_name:user.user_metadata?.full_name||user.email,
           dsp:'dv360', dsp_creative_id:String(r.creativeId), name:r.name,
           creative_type:i.type==='video'?'video':i.type==='html5'?'html5':'display',
-          dimensions:i.dimensions, js_tag:null, vast_tag:null,
+          dimensions:i.dimensions, js_tag:i.html5PreviewUrl||null, vast_tag:null,
           click_url:normLp(i.landingPage), landing_page:normLp(i.landingPage),
           trackers:normT.length?JSON.stringify(normT):'[]',
           asset_filename:i.fileName, asset_mime_type:i.mimeType, asset_size_bytes:i.fileSize||null,

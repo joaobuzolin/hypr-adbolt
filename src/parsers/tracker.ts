@@ -82,7 +82,7 @@ export function mergeTrackers(trackerList: (string | Tracker)[], dsp: DspType): 
       (typeof scope === 'string' && (scope as string).includes(dsp));
 
     if (inScope && tr.url && !out.some((o) => o.url === tr.url)) {
-      out.push({ url: tr.url, format: tr.format || 'url-image', dsps: tr.dsps });
+      out.push({ url: tr.url, format: tr.format || 'url-image', dsps: tr.dsps, eventType: tr.eventType });
     }
   }
 

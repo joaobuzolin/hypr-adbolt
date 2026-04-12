@@ -72,6 +72,8 @@ interface WizardState {
   addAssetEntries: (entries: AssetEntry[]) => void;
   removeAsset: (id: number) => void;
   updateAsset: (id: number, updates: Partial<AssetEntry>) => void;
+  bulkUpdateAssets: (ids: Set<number> | number[], updates: Partial<AssetEntry>) => void;
+  bulkRemoveAssets: (ids: Set<number> | number[]) => void;
   duplicateAsset: (id: number) => void;
   toggleAssetSelection: (id: number) => void;
   selectAllAssets: (filtered: number[]) => void;
@@ -294,6 +296,21 @@ export const useWizardStore = create<WizardState>((set, get) => ({
   updateAsset: (id, updates) => {
     set((s) => ({
       assetEntries: s.assetEntries.map((a) => a.id === id ? { ...a, ...updates } : a),
+    }));
+  },
+
+  bulkUpdateAssets: (ids, updates) => {
+    const idSet = ids instanceof Set ? ids : new Set(ids);
+    set((s) => ({
+      assetEntries: s.assetEntries.map((a) => idSet.has(a.id) ? { ...a, ...updates } : a),
+    }));
+  },
+
+  bulkRemoveAssets: (ids) => {
+    const idSet = ids instanceof Set ? ids : new Set(ids);
+    set((s) => ({
+      assetEntries: s.assetEntries.filter((a) => !idSet.has(a.id)),
+      selectedAssetIds: new Set([...s.selectedAssetIds].filter((id) => !idSet.has(id))),
     }));
   },
 

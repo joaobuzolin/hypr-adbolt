@@ -211,9 +211,6 @@ export function Dashboard() {
 
     // Has thumbnail → show as image (images, videos, GIFs)
     if (g.thumbnail_url) {
-      if (isVideo) {
-        return { ...base, type: 'display' as const, imageUrl: g.thumbnail_url, mimeType: g.asset_mime_type || undefined };
-      }
       return { ...base, type: 'display' as const, imageUrl: g.thumbnail_url, mimeType: g.asset_mime_type || undefined };
     }
 

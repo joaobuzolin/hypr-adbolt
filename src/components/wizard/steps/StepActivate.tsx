@@ -152,7 +152,7 @@ export function StepActivate() {
       // Re-read from store after normalization (store creates new objects)
       const assets = useWizardStore.getState().assetEntries;
 
-      // Phase 1: Upload all assets + thumbnails + HTML5 previews to storage
+      // Phase 1: Upload all assets + thumbnails + previews to storage
       if (apiDsps.length) {
         const firstDsp = apiDsps[0];
         for (let i = 0; i < assets.length; i++) {
@@ -161,22 +161,25 @@ export function StepActivate() {
             ...p, current: i, message: `Upload ${i + 1}/${assets.length}: ${a.name}`,
           } : p));
           try {
-            // Upload asset file to storage
+            // Upload asset file to private storage
             await uploadAssetToStorage(a, token, (msg) =>
               setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? { ...p, message: msg } : p))
             );
-            // Upload thumbnail (non-blocking — store URL on asset for edge functions)
+            // Upload small thumbnail (JPEG 96x72) for table display
             if (a.thumb && !a._thumbnailUrl) {
               const thumbUrl = await uploadThumbnail(a.thumb, token);
               if (thumbUrl) a._thumbnailUrl = thumbUrl;
             }
-            // Upload HTML5 preview content (with retry built into uploadHtml5Preview)
-            if (a.type === 'html5' && a.html5Content && !a._html5PreviewUrl) {
-              setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? {
-                ...p, message: `Preview HTML5 ${i + 1}/${assets.length}: ${a.name}`,
-              } : p));
-              const previewUrl = await uploadHtml5Preview(a.html5Content, token);
-              if (previewUrl) a._html5PreviewUrl = previewUrl;
+            // Upload full-size preview to public bucket
+            if (a.type === 'html5') {
+              // HTML5: upload rendered HTML content
+              if (a.html5Content && !a._html5PreviewUrl) {
+                setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? {
+                  ...p, message: `Preview ${i + 1}/${assets.length}: ${a.name}`,
+                } : p));
+                const previewUrl = await uploadHtml5Preview(a.html5Content, token);
+                if (previewUrl) a._html5PreviewUrl = previewUrl;
+              }
             }
           } catch (e) { console.error('Upload failed:', a.name, e); }
         }

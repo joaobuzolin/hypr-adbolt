@@ -13,7 +13,7 @@ import { activateXandrTags } from '@/services/activation/xandr-tags';
 import { activateDV360Tags } from '@/services/activation/dv360-tags';
 import { activateXandrAssets } from '@/services/activation/xandr-assets';
 import { activateDV360Assets } from '@/services/activation/dv360-assets';
-import { uploadAssetToStorage } from '@/services/storage';
+import { uploadAssetToStorage, uploadThumbnail, uploadHtml5Preview } from '@/services/storage';
 import { buildSurveyIframe } from '@/services/typeform';
 import { normalizeUrl } from '@/lib/utils';
 import type { ActivationResult, Placement } from '@/types';
@@ -152,18 +152,33 @@ export function StepActivate() {
       // Re-read from store after normalization (store creates new objects)
       const assets = useWizardStore.getState().assetEntries;
 
-      // Phase 1: Upload all to storage
+      // Phase 1: Upload all assets + thumbnails + HTML5 previews to storage
       if (apiDsps.length) {
         const firstDsp = apiDsps[0];
         for (let i = 0; i < assets.length; i++) {
+          const a = assets[i];
           setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? {
-            ...p, current: i, message: `Upload ${i + 1}/${assets.length}: ${assets[i].name}`,
+            ...p, current: i, message: `Upload ${i + 1}/${assets.length}: ${a.name}`,
           } : p));
           try {
-            await uploadAssetToStorage(assets[i], token, (msg) =>
+            // Upload asset file to storage
+            await uploadAssetToStorage(a, token, (msg) =>
               setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? { ...p, message: msg } : p))
             );
-          } catch (e) { console.error('Upload failed:', assets[i].name, e); }
+            // Upload thumbnail (non-blocking — store URL on asset for edge functions)
+            if (a.thumb && !a._thumbnailUrl) {
+              const thumbUrl = await uploadThumbnail(a.thumb, token);
+              if (thumbUrl) (a as any)._thumbnailUrl = thumbUrl;
+            }
+            // Upload HTML5 preview content (with retry built into uploadHtml5Preview)
+            if (a.type === 'html5' && a.html5Content && !a._html5PreviewUrl) {
+              setProgress((prev) => prev.map((p) => p.dsp === firstDsp ? {
+                ...p, message: `Preview HTML5 ${i + 1}/${assets.length}: ${a.name}`,
+              } : p));
+              const previewUrl = await uploadHtml5Preview(a.html5Content, token);
+              if (previewUrl) (a as any)._html5PreviewUrl = previewUrl;
+            }
+          } catch (e) { console.error('Upload failed:', a.name, e); }
         }
         // Reset progress for Phase 2
         apiDsps.forEach((d) =>

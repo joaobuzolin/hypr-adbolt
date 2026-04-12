@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import styles from './CreativePreview.module.css';
 
 // ── Types ──
@@ -80,8 +80,6 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
   const [iframeLoaded, setIframeLoaded] = useState(false);
   // Track which preview we're showing to force iframe re-mount
   const [previewKey, setPreviewKey] = useState(0);
-  // Track object URLs for cleanup
-  const objectUrlRef = useRef<string | null>(null);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -97,11 +95,6 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       return () => {
         document.removeEventListener('keydown', handleEscape);
         document.body.style.overflow = '';
-        // Revoke any object URL from this preview session
-        if (objectUrlRef.current) {
-          URL.revokeObjectURL(objectUrlRef.current);
-          objectUrlRef.current = null;
-        }
       };
     }
   }, [data, handleEscape]);

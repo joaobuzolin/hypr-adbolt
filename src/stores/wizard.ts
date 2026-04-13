@@ -106,8 +106,6 @@ interface WizardState {
   setActivationResults: (results: ActivationResult[]) => void;
   setGeneratedFiles: (files: Record<string, unknown>) => void;
   invalidateResults: () => void;
-  /** Clear _storagePath/_uploadedFile for fresh upload (called before each activation) */
-  resetAssetUploadState: () => void;
   /** Normalize all asset landing pages via normalizeUrl */
   normalizeAssetLandingPages: () => void;
 
@@ -444,16 +442,6 @@ export const useWizardStore = create<WizardState>((set, get) => ({
     activationDone: false,
     activationResults: [],
   }),
-
-  resetAssetUploadState: () => {
-    set((s) => ({
-      assetEntries: s.assetEntries.map((a) => ({
-        ...a,
-        _storagePath: undefined,
-        _uploadedFile: undefined,
-      })),
-    }));
-  },
 
   normalizeAssetLandingPages: () => {
     set((s) => ({

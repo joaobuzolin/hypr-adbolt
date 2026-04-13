@@ -274,7 +274,7 @@ export function StepAssets() {
 
     const maxBytes = Math.min(
       ...[...selectedDsps].map((d) => (ASSET_DSP_LIMITS[d] || {}).display || Infinity).filter((v) => v !== Infinity),
-      400 * 1024, // fallback Xandr
+      ASSET_DSP_LIMITS.xandr.display, // fallback to most restrictive active DSP
     );
 
     let compressed = 0;

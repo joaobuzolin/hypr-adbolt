@@ -44,7 +44,7 @@ export function Dashboard() {
     { key: 'actions', minWidth: 50,  defaultWidth: 60,  resizable: false },
   ], []);
   const { headerProps, ResizeHandle, tableStyle } = useColumnResize({
-    storageKey: 'dashboard-table',
+    storageKey: 'dashboard-table-v2',
     columns: DASH_COLUMNS,
   });
 

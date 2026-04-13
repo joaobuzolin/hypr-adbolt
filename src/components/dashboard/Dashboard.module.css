@@ -57,7 +57,7 @@
 
 /* Table */
 .tableWrap { background: var(--bg-surface); border: var(--surface-border) solid var(--border); border-radius: var(--surface-radius); overflow-x: auto; }
-.table { min-width: 960px; border-collapse: collapse; font-size: var(--fs-sm); }
+.table { width: 100%; min-width: 960px; border-collapse: collapse; font-size: var(--fs-sm); }
 .table th { text-align: left; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border); font-weight: 500; background: var(--bg-surface); position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .table td { padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border-subtle); overflow: hidden; text-overflow: ellipsis; }
 .table tbody tr { cursor: pointer; transition: background var(--dur-f); opacity: 0; animation: fadeRow 0.25s var(--ease-out) both; }

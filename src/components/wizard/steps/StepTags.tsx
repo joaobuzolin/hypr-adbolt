@@ -47,7 +47,7 @@ export function StepTags() {
     { key: 'actions', minWidth: 36,  defaultWidth: 44,  resizable: false },
   ], []);
   const { headerProps, ResizeHandle, tableStyle } = useColumnResize({
-    storageKey: 'tags-table',
+    storageKey: 'tags-table-v2',
     columns: TAG_COLUMNS,
   });
 

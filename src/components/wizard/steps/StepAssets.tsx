@@ -50,7 +50,7 @@ export function StepAssets() {
     { key: 'actions', minWidth: 40,  defaultWidth: 56,  resizable: false },
   ], []);
   const { headerProps, ResizeHandle, tableStyle } = useColumnResize({
-    storageKey: 'assets-table',
+    storageKey: 'assets-table-v2',
     columns: ASSET_COLUMNS,
   });
 

@@ -135,11 +135,17 @@ export function useColumnResize({ columns, storageKey }: UseColumnResizeOptions)
     } & Record<string, unknown> => {
       const col = columns[colIdx];
       const resizable = col.resizable !== false;
+      const userResized = widths[colIdx] !== col.defaultWidth;
 
       return {
         style: {
-          width: widths[colIdx],
-          minWidth: col.minWidth,
+          // Fixed columns (cb, thumb, actions) always use exact width
+          // Resizable columns use width when user has resized, otherwise let table distribute
+          ...(col.resizable === false
+            ? { width: widths[colIdx], maxWidth: widths[colIdx] }
+            : userResized
+              ? { width: widths[colIdx], minWidth: col.minWidth }
+              : { minWidth: col.minWidth }),
           position: 'relative' as const,
         },
         'data-resizable': resizable || undefined,
@@ -170,8 +176,7 @@ export function useColumnResize({ columns, storageKey }: UseColumnResizeOptions)
 
   // ── Table-level style ──
   const tableStyle: React.CSSProperties = {
-    tableLayout: 'fixed',
-    width: widths.reduce((sum, w) => sum + w, 0),
+    width: '100%',
   };
 
   return {

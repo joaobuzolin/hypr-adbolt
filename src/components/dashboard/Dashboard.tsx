@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useDashboardStore, getFormatLabel } from '@/stores/dashboard';
 import { useAuthStore } from '@/stores/auth';
 import { useUIStore } from '@/stores/ui';
+import { useColumnResize } from '@/hooks/useColumnResize';
 import { BulkBar } from '@/components/shared/BulkBar';
 import { Modal } from '@/components/shared/Modal';
 import { syncCreatives as syncCreativesApi } from '@/services/sync';
@@ -29,6 +30,23 @@ export function Dashboard() {
   const toast = useUIStore((s) => s.toast);
 
   const autoSyncRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Column resize ──
+  const DASH_COLUMNS = useMemo(() => [
+    { key: 'cb',      minWidth: 32,  defaultWidth: 32,  resizable: false },
+    { key: 'thumb',   minWidth: 40,  defaultWidth: 40,  resizable: false },
+    { key: 'name',    minWidth: 140, defaultWidth: 300 },
+    { key: 'size',    minWidth: 60,  defaultWidth: 80 },
+    { key: 'format',  minWidth: 55,  defaultWidth: 70 },
+    { key: 'status',  minWidth: 100, defaultWidth: 180 },
+    { key: 'creator', minWidth: 80,  defaultWidth: 120 },
+    { key: 'date',    minWidth: 80,  defaultWidth: 110 },
+    { key: 'actions', minWidth: 50,  defaultWidth: 60,  resizable: false },
+  ], []);
+  const { headerProps, ResizeHandle, tableStyle } = useColumnResize({
+    storageKey: 'dashboard-table',
+    columns: DASH_COLUMNS,
+  });
 
   // Debounced search to avoid filtering on every keystroke
   const [searchInput, setSearchInput] = useState(store.filterSearch);
@@ -644,18 +662,18 @@ export function Dashboard() {
       {/* Table */}
       <div className={styles.tableWrap}>
         {store.isSyncing && <div className={styles.syncProgress}><div className={styles.syncProgressBar} /></div>}
-        <table className={styles.table}>
+        <table className={styles.table} style={tableStyle}>
           <thead>
             <tr>
-              <th style={{ width: 32 }}><input type="checkbox" checked={pageItems.length > 0 && pageItems.every((g) => store.selectedKeys.has(g._gid))} onChange={(e) => { if (e.target.checked) store.selectAll(pageItems.map((g) => g._gid)); else store.clearSelection(); }} /></th>
-              <th style={{ width: 40 }}></th>
-              <th style={{ width: '26%' }}>Nome</th>
-              <th style={{ width: 80 }}>Size</th>
-              <th style={{ width: 70 }}>Formato</th>
-              <th style={{ width: 180 }}>Status</th>
-              <th style={{ width: 120 }}>Criado por</th>
-              <th style={{ width: 110 }}>Criado em</th>
-              <th style={{ width: 60 }}></th>
+              <th {...headerProps(0)}><input type="checkbox" checked={pageItems.length > 0 && pageItems.every((g) => store.selectedKeys.has(g._gid))} onChange={(e) => { if (e.target.checked) store.selectAll(pageItems.map((g) => g._gid)); else store.clearSelection(); }} /></th>
+              <th {...headerProps(1)}></th>
+              <th {...headerProps(2)}>Nome<ResizeHandle colIdx={2} /></th>
+              <th {...headerProps(3)}>Size<ResizeHandle colIdx={3} /></th>
+              <th {...headerProps(4)}>Formato<ResizeHandle colIdx={4} /></th>
+              <th {...headerProps(5)}>Status<ResizeHandle colIdx={5} /></th>
+              <th {...headerProps(6)}>Criado por<ResizeHandle colIdx={6} /></th>
+              <th {...headerProps(7)}>Criado em<ResizeHandle colIdx={7} /></th>
+              <th {...headerProps(8)}></th>
             </tr>
           </thead>
           <tbody>

@@ -105,3 +105,34 @@ body::before {
 [data-theme="dark"] .icon-moon { display: none; }
 [data-theme="light"] .icon-sun { display: none; }
 [data-theme="light"] .icon-moon { display: inline; }
+
+/* ── Column Resize Handle ── */
+.col-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 2;
+  user-select: none;
+  touch-action: none;
+}
+.col-resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 1.5px;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background var(--dur-f), width var(--dur-f);
+}
+.col-resize-handle:hover::after,
+.col-resize-handle:active::after {
+  background: var(--accent);
+  width: 2px;
+  top: 15%;
+  bottom: 15%;
+}

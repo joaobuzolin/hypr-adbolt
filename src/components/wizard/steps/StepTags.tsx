@@ -1,6 +1,7 @@
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState, useRef, useMemo } from 'react';
 import { useWizardStore } from '@/stores/wizard';
 import { useUIStore } from '@/stores/ui';
+import { useColumnResize } from '@/hooks/useColumnResize';
 import { UploadZone } from '@/components/shared/UploadZone';
 import { FilterBar } from '@/components/shared/FilterBar';
 import { BulkBar } from '@/components/shared/BulkBar';
@@ -33,6 +34,22 @@ export function StepTags() {
   // Track whether a file was uploaded (separate from manual tags)
   const [fileUploaded, setFileUploaded] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // ── Column resize ──
+  const TAG_COLUMNS = useMemo(() => [
+    { key: 'cb',      minWidth: 40,  defaultWidth: 40,  resizable: false },
+    { key: 'name',    minWidth: 120, defaultWidth: 260 },
+    { key: 'type',    minWidth: 60,  defaultWidth: 80 },
+    { key: 'size',    minWidth: 60,  defaultWidth: 80 },
+    { key: 'tag',     minWidth: 80,  defaultWidth: 180 },
+    { key: 'click',   minWidth: 100, defaultWidth: 200 },
+    { key: 'tracker', minWidth: 100, defaultWidth: 220 },
+    { key: 'actions', minWidth: 36,  defaultWidth: 44,  resizable: false },
+  ], []);
+  const { headerProps, ResizeHandle, tableStyle } = useColumnResize({
+    storageKey: 'tags-table',
+    columns: TAG_COLUMNS,
+  });
 
   // ── Manual tag form state ──
   const [mtName, setMtName] = useState('');
@@ -366,10 +383,10 @@ export function StepTags() {
           />
 
           <div className={styles.tableWrap}>
-            <table className={styles.table} aria-label="Lista de placements">
+            <table className={styles.table} style={tableStyle} aria-label="Lista de placements">
               <thead>
                 <tr>
-                  <th className={styles.cbCol}>
+                  <th {...headerProps(0)} className={styles.cbCol}>
                     <input
                       type="checkbox"
                       checked={filtered.length > 0 && filtered.every(({ i }) => selectedTagIds.has(i))}
@@ -380,13 +397,13 @@ export function StepTags() {
                       aria-label="Selecionar todos"
                     />
                   </th>
-                  <th>Placement Name</th>
-                  <th>Tipo</th>
-                  <th>Size</th>
-                  <th>Tag</th>
-                  <th>Click URL</th>
-                  <th>Tracker</th>
-                  <th></th>
+                  <th {...headerProps(1)}>Placement Name<ResizeHandle colIdx={1} /></th>
+                  <th {...headerProps(2)}>Tipo<ResizeHandle colIdx={2} /></th>
+                  <th {...headerProps(3)}>Size<ResizeHandle colIdx={3} /></th>
+                  <th {...headerProps(4)}>Tag<ResizeHandle colIdx={4} /></th>
+                  <th {...headerProps(5)}>Click URL<ResizeHandle colIdx={5} /></th>
+                  <th {...headerProps(6)}>Tracker<ResizeHandle colIdx={6} /></th>
+                  <th {...headerProps(7)}></th>
                 </tr>
               </thead>
               <tbody>

@@ -73,7 +73,7 @@
 }
 
 .table {
-  width: 100%;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-sm);
 }
@@ -91,12 +91,17 @@
   position: sticky;
   top: 0;
   z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table td {
   padding: 14px var(--sp-4);
   border-bottom: var(--surface-border) solid var(--border-subtle);
   color: var(--text-sec);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .table tr:last-child td {

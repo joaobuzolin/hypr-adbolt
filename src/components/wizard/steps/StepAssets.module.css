@@ -2,9 +2,9 @@
 
 .tableWrap { overflow-x: auto; border-radius: var(--surface-radius-sm); border: var(--surface-border) solid var(--border); }
 
-.table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.table th { text-align: left; font-size: var(--fs-min); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border); font-weight: 600; background: var(--bg-surface); position: sticky; top: 0; z-index: 1; }
-.table td { padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border-subtle); color: var(--text-sec); }
+.table { min-width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.table th { text-align: left; font-size: var(--fs-min); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tri); padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border); font-weight: 600; background: var(--bg-surface); position: sticky; top: 0; z-index: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table td { padding: 14px var(--sp-4); border-bottom: var(--surface-border) solid var(--border-subtle); color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; }
 .table tr:last-child td { border-bottom: none; }
 .table tbody tr { transition: background var(--dur-f); opacity: 0; animation: fadeRow 0.3s var(--ease-out) forwards; }
 .table tbody tr:hover { background: var(--accent-glow); }

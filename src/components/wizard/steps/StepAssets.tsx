@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { useWizardStore } from '@/stores/wizard';
 import { useUIStore } from '@/stores/ui';
+import { useColumnResize } from '@/hooks/useColumnResize';
 import { UploadZone } from '@/components/shared/UploadZone';
 import { FilterBar } from '@/components/shared/FilterBar';
 import { BulkBar } from '@/components/shared/BulkBar';
@@ -34,6 +35,24 @@ export function StepAssets() {
 
   // O(1) asset lookups by ID — avoids repeated .find() in render loops
   const assetMap = useMemo(() => new Map(assetEntries.map((a) => [a.id, a])), [assetEntries]);
+
+  // ── Column resize ──
+  const ASSET_COLUMNS = useMemo(() => [
+    { key: 'cb',      minWidth: 40,  defaultWidth: 40,  resizable: false },
+    { key: 'thumb',   minWidth: 48,  defaultWidth: 60,  resizable: false },
+    { key: 'name',    minWidth: 120, defaultWidth: 240 },
+    { key: 'type',    minWidth: 60,  defaultWidth: 80 },
+    { key: 'format',  minWidth: 50,  defaultWidth: 70 },
+    { key: 'size',    minWidth: 60,  defaultWidth: 90 },
+    { key: 'weight',  minWidth: 60,  defaultWidth: 80 },
+    { key: 'landing', minWidth: 100, defaultWidth: 200 },
+    { key: 'tracker', minWidth: 100, defaultWidth: 220 },
+    { key: 'actions', minWidth: 40,  defaultWidth: 56,  resizable: false },
+  ], []);
+  const { headerProps, ResizeHandle, tableStyle } = useColumnResize({
+    storageKey: 'assets-table',
+    columns: ASSET_COLUMNS,
+  });
 
   // ── File handling ──
   const handleFiles = useCallback(async (files: File[]) => {
@@ -368,10 +387,10 @@ export function StepAssets() {
           />
 
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={styles.table} style={tableStyle}>
               <thead>
                 <tr>
-                  <th className={styles.cbCol}>
+                  <th {...headerProps(0)} className={styles.cbCol}>
                     <input
                       type="checkbox"
                       checked={filtered.length > 0 && filtered.every((a) => selectedAssetIds.has(a.id))}
@@ -381,15 +400,15 @@ export function StepAssets() {
                       }}
                     />
                   </th>
-                  <th></th>
-                  <th>Nome</th>
-                  <th>Tipo</th>
-                  <th>Formato</th>
-                  <th>Size</th>
-                  <th>Peso</th>
-                  <th>Landing Page</th>
-                  <th>Tracker</th>
-                  <th></th>
+                  <th {...headerProps(1)}></th>
+                  <th {...headerProps(2)}>Nome<ResizeHandle colIdx={2} /></th>
+                  <th {...headerProps(3)}>Tipo<ResizeHandle colIdx={3} /></th>
+                  <th {...headerProps(4)}>Formato<ResizeHandle colIdx={4} /></th>
+                  <th {...headerProps(5)}>Size<ResizeHandle colIdx={5} /></th>
+                  <th {...headerProps(6)}>Peso<ResizeHandle colIdx={6} /></th>
+                  <th {...headerProps(7)}>Landing Page<ResizeHandle colIdx={7} /></th>
+                  <th {...headerProps(8)}>Tracker<ResizeHandle colIdx={8} /></th>
+                  <th {...headerProps(9)}></th>
                 </tr>
               </thead>
               <tbody>
@@ -434,10 +453,9 @@ export function StepAssets() {
                       </td>
                       <td><span className={`${styles.typeBadge} ${styles[a.type]}`}>{a.type}</span></td>
                       <td><span className={styles.formatBadge}>{a.type === 'html5' ? 'HTML5' : ext}</span></td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
+                      <td>
                         <input
                           className={`${styles.cellInput} ${styles.mono}`}
-                          style={{ width: 75 }}
                           value={a.dimensions}
                           onChange={(e) => updateAsset(a.id, { dimensions: e.target.value })}
                         />

@@ -82,12 +82,31 @@ async function process(token: string, advId: string, input: Input, sb: any): Pro
     const mediaId = uploadData.asset?.mediaId;
     if (!mediaId) return {name:input.name, success:false, error:`No mediaId: ${uploadData.error?.message || uploadText.substring(0,200)}`, step:'upload'};
 
-    // Use dimensions from the actual uploaded asset when available (prevents aspect ratio mismatch)
-    const assetContent = uploadData.asset?.content || {};
-    const realW = assetContent.dimensions?.widthPixels || w;
-    const realH = assetContent.dimensions?.heightPixels || h;
-    if (realW !== w || realH !== h) {
-      console.log(`[dv360-asset] Dimensions corrected: declared ${w}x${h} → actual ${realW}x${realH} for ${input.name}`);
+    // Read actual dimensions from the file bytes (source of truth)
+    let realW = w, realH = h;
+    if (!isVideo) {
+      const isJpeg = bytes[0] === 0xFF && bytes[1] === 0xD8;
+      const isPng = bytes[0] === 0x89 && bytes[1] === 0x50;
+      if (isJpeg) {
+        let i = 2;
+        while (i < bytes.length - 9) {
+          if (bytes[i] !== 0xFF) break;
+          const marker = bytes[i + 1];
+          if (marker === 0xC0 || marker === 0xC1 || marker === 0xC2) {
+            realH = (bytes[i + 5] << 8) | bytes[i + 6];
+            realW = (bytes[i + 7] << 8) | bytes[i + 8];
+            break;
+          }
+          const segLen = (bytes[i + 2] << 8) | bytes[i + 3];
+          i += 2 + segLen;
+        }
+      } else if (isPng && bytes.length > 24) {
+        realW = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+        realH = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+      }
+      if (realW !== w || realH !== h) {
+        console.log(`[dv360-asset] Dimensions from file bytes: ${realW}x${realH} (frontend declared ${w}x${h}) for ${input.name}`);
+      }
     }
 
     const creative: Record<string,unknown> = {
@@ -96,9 +115,8 @@ async function process(token: string, advId: string, input: Input, sb: any): Pro
       assets: [{asset:{mediaId}, role:'ASSET_ROLE_MAIN'}],
       exitEvents: [{name:'Landing Page', type:'EXIT_EVENT_TYPE_DEFAULT', url:lp||'https://example.com'}]
     };
-    // For display: let DV360 auto-detect dimensions from the uploaded file
-    // to avoid CREATIVE_ASPECT_RATIO_MISMATCH when frontend dimensions don't match
-    if (!isVideo && realW > 0 && realH > 0) creative.dimensions = {widthPixels:realW, heightPixels:realH};
+    // Use actual file dimensions (not frontend-declared) to prevent ASPECT_RATIO_MISMATCH
+    if (!isVideo) creative.dimensions = {widthPixels: realW || 1, heightPixels: realH || 1};
     // Hosted creatives: display uses appendedTag, video uses thirdPartyUrls
     if (allTrackerUrls.length) {
       if (isVideo) {

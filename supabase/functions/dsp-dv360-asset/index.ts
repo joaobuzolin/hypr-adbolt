@@ -82,13 +82,23 @@ async function process(token: string, advId: string, input: Input, sb: any): Pro
     const mediaId = uploadData.asset?.mediaId;
     if (!mediaId) return {name:input.name, success:false, error:`No mediaId: ${uploadData.error?.message || uploadText.substring(0,200)}`, step:'upload'};
 
+    // Use dimensions from the actual uploaded asset when available (prevents aspect ratio mismatch)
+    const assetContent = uploadData.asset?.content || {};
+    const realW = assetContent.dimensions?.widthPixels || w;
+    const realH = assetContent.dimensions?.heightPixels || h;
+    if (realW !== w || realH !== h) {
+      console.log(`[dv360-asset] Dimensions corrected: declared ${w}x${h} → actual ${realW}x${realH} for ${input.name}`);
+    }
+
     const creative: Record<string,unknown> = {
       displayName: input.name, entityStatus: 'ENTITY_STATUS_ACTIVE', hostingSource: 'HOSTING_SOURCE_HOSTED',
       creativeType: isVideo ? 'CREATIVE_TYPE_VIDEO' : 'CREATIVE_TYPE_STANDARD',
       assets: [{asset:{mediaId}, role:'ASSET_ROLE_MAIN'}],
       exitEvents: [{name:'Landing Page', type:'EXIT_EVENT_TYPE_DEFAULT', url:lp||'https://example.com'}]
     };
-    if (!isVideo) creative.dimensions = {widthPixels:w||1, heightPixels:h||1};
+    // For display: let DV360 auto-detect dimensions from the uploaded file
+    // to avoid CREATIVE_ASPECT_RATIO_MISMATCH when frontend dimensions don't match
+    if (!isVideo && realW > 0 && realH > 0) creative.dimensions = {widthPixels:realW, heightPixels:realH};
     // Hosted creatives: display uses appendedTag, video uses thirdPartyUrls
     if (allTrackerUrls.length) {
       if (isVideo) {

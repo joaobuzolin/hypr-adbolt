@@ -154,10 +154,11 @@ export function StepAssets() {
 
   // ── Weight class ──
   const getWeightClass = (entry: AssetEntry): string => {
-    // When no DSPs selected, use most restrictive limit across all DSPs as preview
+    // When DSPs selected, use those. Otherwise preview with active DSPs only (exclude pending API integrations)
+    const ACTIVE_DSPS = ['xandr', 'dv360'];
     const dspList = selectedDsps.size > 0
       ? [...selectedDsps]
-      : Object.keys(ASSET_DSP_LIMITS);
+      : ACTIVE_DSPS;
     const maxWeight = Math.min(
       ...dspList.map((d) => (ASSET_DSP_LIMITS[d] || {})[entry.type] || Infinity).filter((v) => v !== Infinity),
       Infinity,
@@ -195,6 +196,8 @@ export function StepAssets() {
           dimensions: `${nw}x${nh}`,
           thumb: result.thumb,
           resized: true,
+          _storagePath: undefined,
+          _uploadedFile: undefined,
         });
         toast(`${entry.name} redimensionado pra ${suggest}`, 'success');
       }
@@ -276,12 +279,16 @@ export function StepAssets() {
 
     let compressed = 0;
     for (const a of displayAssets) {
-      const result = await compressImage(a.originalFile, maxBytes);
+      // Use the current file (may be resized) instead of always using originalFile
+      const sourceFile = a.file || a.originalFile;
+      const result = await compressImage(sourceFile, maxBytes);
       if (result.compressed) {
         updateAsset(a.id, {
           compressedFile: result.file,
           size: result.file.size,
           compressed: true,
+          _storagePath: undefined,
+          _uploadedFile: undefined,
         });
         compressed++;
       }

@@ -20,6 +20,7 @@ export async function activateXandrAssets(
   assets: AssetEntry[],
   config: XandrAssetConfig,
   onProgress?: (current: number, total: number, msg: string) => void,
+  activationSessionId?: string,
 ): Promise<ActivationResult> {
   try {
     if (!assets.length) {
@@ -58,6 +59,7 @@ export async function activateXandrAssets(
           languageId: config.languageId,
           brandId: config.brandId ? parseInt(config.brandId) : null,
           sla: config.sla,
+          activationSessionId: activationSessionId || null,
           creatives: [{ ...prepared, thumbnailUrl, html5PreviewUrl }],
         };
 

@@ -196,7 +196,7 @@ Deno.serve(async(req)=>{
     const {data:{user},error:ae} = await sb.auth.getUser(ah.replace('Bearer ',''));
     if (ae||!user) return new Response(JSON.stringify({error:'Auth failed'}),{status:401,headers:{...CORS,'Content-Type':'application/json'}});
     const body = await req.json();
-    const {advertiserId=7392214, brandUrl=null, languageId=8, brandId=null, sla=0, campaignName='', advertiserName='', creatives=[]} = body;
+    const {advertiserId=7392214, brandUrl=null, languageId=8, brandId=null, sla=0, campaignName='', advertiserName='', creatives=[], activationSessionId=null} = body;
     // Normalize URLs: add https:// if missing protocol
     const normUrl = (u: string|null) => { if (!u) return null; const t = u.trim(); if (!t) return null; if (!/^https?:\/\//i.test(t)) return 'https://' + t; return t; };
     const safeBrandUrl = normUrl(brandUrl);
@@ -213,7 +213,7 @@ Deno.serve(async(req)=>{
         const i=r._input!;
         const rawT = [...(i.trackers||[]),...(i.tracker?[i.tracker]:[])].filter(Boolean);
         const normT = rawT.map(t => normalizeTrackerInput(t)).filter(n => n.url);
-        return {batch_id:batchId, created_by_email:user.email!, created_by_name:user.user_metadata?.full_name||user.email,
+        return {batch_id:batchId, activation_session_id:activationSessionId||null, created_by_email:user.email!, created_by_name:user.user_metadata?.full_name||user.email,
           dsp:'xandr', dsp_creative_id:String(r.creativeId), name:r.name,
           creative_type:i.type==='video'?'video':i.type==='html5'?'html5':'display',
           dimensions:i.dimensions, js_tag:i.html5PreviewUrl||null, vast_tag:null,

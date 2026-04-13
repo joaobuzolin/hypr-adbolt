@@ -23,6 +23,7 @@ export async function activateXandrTags(
   token: string,
   placements: Placement[],
   config: XandrActivationConfig,
+  activationSessionId?: string,
 ): Promise<ActivationResult> {
   try {
     if (!placements.length) {
@@ -39,6 +40,7 @@ export async function activateXandrTags(
       brandId: config.brandId ? parseInt(config.brandId) : null,
       brandUrl: config.brandUrl || null,
       sla: config.sla,
+      activationSessionId: activationSessionId || null,
       creatives: placements.map((p) => ({
         name: p.placementName,
         dimensions: p.dimensions,

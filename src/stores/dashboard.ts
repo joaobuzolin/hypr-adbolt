@@ -62,38 +62,38 @@ function buildGroups(creatives: Creative[]): CreativeGroup[] {
   );
 
   const groups: CreativeGroup[] = [];
-  // Map from name||dimensions to array of groups (multiple groups possible for same name)
-  const groupsByKey = new Map<string, CreativeGroup[]>();
+
+  // Primary grouping: by activation_session_id (new creatives)
+  // Fallback grouping: by name+dimensions+time proximity (legacy creatives without session ID)
+  const sessionGroups = new Map<string, Map<string, CreativeGroup>>(); // sessionId → (name||dims → group)
+  const legacyGroups = new Map<string, CreativeGroup[]>(); // name||dims → groups[]
 
   for (const c of sorted) {
-    const key = c.name + '||' + c.dimensions;
-    const existing = groupsByKey.get(key) || [];
-    const cTime = new Date(c.created_at).getTime();
-    const MAX_GAP_MS = 2 * 60 * 1000; // 2 minutes — same activation session
+    const key = c.name + '||' + (c.dimensions || '');
+    let g: CreativeGroup | undefined;
 
-    // Find a group that doesn't already have this DSP AND was created within the time window
-    let g = existing.find((g) => !g.dsps[c.dsp] && Math.abs(cTime - new Date(g.created_at).getTime()) < MAX_GAP_MS);
-
-    if (!g) {
-      // No group available (either none exist, or all already have this DSP) → create new
-      g = {
-        _gid: '',
-        name: c.name,
-        dimensions: c.dimensions || '',
-        creative_type: c.creative_type,
-        asset_filename: c.asset_filename || null,
-        asset_mime_type: c.asset_mime_type || null,
-        thumbnail_url: c.thumbnail_url || null,
-        js_tag: c.js_tag || null,
-        created_by_name: c.created_by_name || c.created_by_email || '-',
-        created_at: c.created_at,
-        last_edited_at: c.last_synced_at || c.updated_at || null,
-        last_edited_by: c.last_edited_by_name || null,
-        dsps: {},
-      };
-      groups.push(g);
-      existing.push(g);
-      groupsByKey.set(key, existing);
+    if (c.activation_session_id) {
+      // ── Session-based grouping (deterministic, no timing dependency) ──
+      const sessionMap = sessionGroups.get(c.activation_session_id) || new Map();
+      g = sessionMap.get(key);
+      if (!g) {
+        g = makeGroup(c);
+        groups.push(g);
+        sessionMap.set(key, g);
+        sessionGroups.set(c.activation_session_id, sessionMap);
+      }
+    } else {
+      // ── Legacy fallback: time-proximity grouping (2 min window) ──
+      const existing = legacyGroups.get(key) || [];
+      const cTime = new Date(c.created_at).getTime();
+      const MAX_GAP_MS = 2 * 60 * 1000;
+      g = existing.find((g) => !g.dsps[c.dsp] && Math.abs(cTime - new Date(g.created_at).getTime()) < MAX_GAP_MS);
+      if (!g) {
+        g = makeGroup(c);
+        groups.push(g);
+        existing.push(g);
+        legacyGroups.set(key, existing);
+      }
     }
 
     const dspConfig = typeof c.dsp_config === 'string'
@@ -120,15 +120,8 @@ function buildGroups(creatives: Creative[]): CreativeGroup[] {
     if (new Date(c.created_at) < new Date(g.created_at)) {
       g.created_at = c.created_at;
     }
-
-    // Propagate thumbnail from any creative that has one
-    if (!g.thumbnail_url && c.thumbnail_url) {
-      g.thumbnail_url = c.thumbnail_url;
-    }
-    // Also propagate js_tag if not set
-    if (!g.js_tag && c.js_tag) {
-      g.js_tag = c.js_tag;
-    }
+    if (!g.thumbnail_url && c.thumbnail_url) g.thumbnail_url = c.thumbnail_url;
+    if (!g.js_tag && c.js_tag) g.js_tag = c.js_tag;
 
     const editTs = c.last_synced_at || c.updated_at;
     if (editTs && (!g.last_edited_at || new Date(editTs) > new Date(g.last_edited_at))) {
@@ -144,6 +137,24 @@ function buildGroups(creatives: Creative[]): CreativeGroup[] {
   });
 
   return groups;
+}
+
+function makeGroup(c: Creative): CreativeGroup {
+  return {
+    _gid: '',
+    name: c.name,
+    dimensions: c.dimensions || '',
+    creative_type: c.creative_type,
+    asset_filename: c.asset_filename || null,
+    asset_mime_type: c.asset_mime_type || null,
+    thumbnail_url: c.thumbnail_url || null,
+    js_tag: c.js_tag || null,
+    created_by_name: c.created_by_name || c.created_by_email || '-',
+    created_at: c.created_at,
+    last_edited_at: c.last_synced_at || c.updated_at || null,
+    last_edited_by: c.last_edited_by_name || null,
+    dsps: {},
+  };
 }
 
 function getFormatLabel(g: CreativeGroup): string {

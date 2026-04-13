@@ -12,6 +12,7 @@ export async function activateDV360Tags(
   token: string,
   placements: Placement[],
   config: { advertiserId: string; campaignName: string; advertiserName: string },
+  activationSessionId?: string,
 ): Promise<ActivationResult> {
   try {
     if (!placements.length) {
@@ -22,6 +23,7 @@ export async function activateDV360Tags(
       advertiserId: config.advertiserId || DSP_DEFAULTS.dv360.advertiserId,
       campaignName: config.campaignName,
       advertiserName: config.advertiserName,
+      activationSessionId: activationSessionId || null,
       creatives: placements.map((p) => ({
         name: p.placementName,
         dimensions: p.dimensions,

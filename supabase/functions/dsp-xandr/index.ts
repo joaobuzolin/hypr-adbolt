@@ -170,10 +170,10 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { advertiserId = 7392214, campaignName = "", advertiserName = "", brandName = "", sourceFilename = "", sourceType = "tags",
-      creatives = [], trackingPixel = "", isPolitical = false, languageId = 8, brandId = null, brandUrl: rawBrandUrl = null, sla = 0,
+      creatives = [], trackingPixel = "", isPolitical = false, languageId = 8, brandId = null, brandUrl: rawBrandUrl = null, sla = 0, activationSessionId = null,
     } = body as { advertiserId?: number; campaignName?: string; advertiserName?: string; brandName?: string; sourceFilename?: string; sourceType?: string;
       creatives: Array<{ name: string; dimensions: string; jsTag: string; clickUrl?: string; type?: string; vastTag?: string; trackers?: unknown[] }>;
-      trackingPixel?: string; isPolitical?: boolean; languageId?: number; brandId?: number | null; brandUrl?: string | null; sla?: number; };
+      trackingPixel?: string; isPolitical?: boolean; languageId?: number; brandId?: number | null; brandUrl?: string | null; sla?: number; activationSessionId?: string | null; };
 
     if (!creatives.length) return new Response(JSON.stringify({ error: "No creatives provided" }), { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
 
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
         if (trackingPixel) allTrackers.push({url: trackingPixel, format: detectPixelFormat(trackingPixel)});
         if (inp.trackers) inp.trackers.forEach(t => { const n = normalizeTrackerInput(t); if (n.url) allTrackers.push(n); });
         return {
-          batch_id: batchId, created_by_email: user.email!, created_by_name: user.user_metadata?.full_name || user.email,
+          batch_id: batchId, activation_session_id: activationSessionId || null, created_by_email: user.email!, created_by_name: user.user_metadata?.full_name || user.email,
           dsp: "xandr" as const, dsp_creative_id: String(r.creativeId), name: r.name,
           creative_type: r.creativeType === "video" ? "video" as const : "display" as const,
           dimensions: `${inp.width}x${inp.height}`,

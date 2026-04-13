@@ -22,6 +22,7 @@ export async function activateDV360Assets(
   assets: AssetEntry[],
   config: DV360AssetConfig,
   onProgress?: (current: number, total: number, msg: string) => void,
+  activationSessionId?: string,
 ): Promise<ActivationResult> {
   try {
     if (!assets.length) {
@@ -89,6 +90,7 @@ export async function activateDV360Assets(
             campaignName: config.campaignName,
             advertiserName: config.advertiserName,
             brandName: config.brandName,
+            activationSessionId: activationSessionId || null,
             creatives: [vc],
           }),
         }).then(async (res) => {
@@ -124,6 +126,7 @@ export async function activateDV360Assets(
             campaignName: config.campaignName,
             advertiserName: config.advertiserName,
             brandName: config.brandName,
+            activationSessionId: activationSessionId || null,
             creatives: chunk,
           }),
         });

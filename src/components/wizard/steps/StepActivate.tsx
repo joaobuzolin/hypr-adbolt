@@ -139,6 +139,9 @@ export function StepActivate() {
     store.setActivating(true);
     window.addEventListener('beforeunload', preventUnload);
 
+    // Generate a unique session ID shared across all DSPs in this activation
+    const activationSessionId = crypto.randomUUID();
+
     const apiDsps = dsps.filter((d) => d === 'xandr' || d === 'dv360');
     const initialProgress: DspProgress[] = apiDsps.map((d) => ({
       dsp: d, label: DSP_LABELS[d], current: 0, total: creativeCount,
@@ -207,7 +210,7 @@ export function StepActivate() {
           brandId: store.xandrBrandId, sla: store.xandrSla,
         }, (cur, total, msg) =>
           setProgress((prev) => prev.map((p) => p.dsp === 'xandr' ? { ...p, current: cur, total, message: msg } : p))
-        );
+        , activationSessionId);
         results.push(r);
         setProgress((prev) => prev.map((p) => p.dsp === 'xandr' ? {
           ...p, current: updatedAssets.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
@@ -222,7 +225,7 @@ export function StepActivate() {
           brandName: store.brand,
         }, (cur, total, msg) =>
           setProgress((prev) => prev.map((p) => p.dsp === 'dv360' ? { ...p, current: cur, total, message: msg } : p))
-        );
+        , activationSessionId);
         results.push(r);
         setProgress((prev) => prev.map((p) => p.dsp === 'dv360' ? {
           ...p, current: updatedAssets.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
@@ -237,7 +240,7 @@ export function StepActivate() {
           sla: store.xandrSla,
           campaignName: store.parsedData?.campaignName || 'Survey',
           advertiserName: store.parsedData?.advertiserName || '',
-        });
+        }, activationSessionId);
         results.push(r);
         setProgress((prev) => prev.map((p) => p.dsp === 'xandr' ? {
           ...p, current: allPlacements.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',
@@ -249,7 +252,7 @@ export function StepActivate() {
           advertiserId: store.dv360AdvId,
           campaignName: store.parsedData?.campaignName || 'Survey',
           advertiserName: store.parsedData?.advertiserName || '',
-        });
+        }, activationSessionId);
         results.push(r);
         setProgress((prev) => prev.map((p) => p.dsp === 'dv360' ? {
           ...p, current: allPlacements.length, message: r.detail, status: r.status === 'success' ? 'done' : 'error',

@@ -135,6 +135,7 @@ serve(async (req: Request) => {
       advertiserName = "",
       brandName = "",
       sourceType = "tags",
+      activationSessionId = null,
     } = await req.json();
 
     if (!creatives?.length) {
@@ -198,6 +199,7 @@ serve(async (req: Request) => {
         });
         return {
           batch_id: batchId,
+          activation_session_id: activationSessionId || null,
           created_by_email: user.email!,
           created_by_name: user.user_metadata?.full_name || user.email,
           dsp: "dv360" as const,

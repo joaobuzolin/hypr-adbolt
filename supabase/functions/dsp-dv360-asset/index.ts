@@ -138,7 +138,7 @@ Deno.serve(async(req)=>{
     if (ae||!user) return new Response(JSON.stringify({error:'Auth failed'}),{status:401,headers:{...CORS,'Content-Type':'application/json'}});
     const body = await req.json();
     const advId = body.advertiserId||Deno.env.get('DV360_ADVERTISER_ID')||'1426474713';
-    const {campaignName='',advertiserName='',brandName='',creatives=[]} = body;
+    const {campaignName='',advertiserName='',brandName='',creatives=[],activationSessionId=null} = body;
     const normLp = (u: string|null|undefined) => { if (!u) return null; const t = u.trim(); if (!t) return null; if (!/^https?:\/\//i.test(t)) return 'https://' + t; return t; };
     if (!creatives.length) return new Response(JSON.stringify({error:'No creatives'}),{status:400,headers:{...CORS,'Content-Type':'application/json'}});
     const {data:bd} = await sb.from('creative_batches').insert({user_email:user.email,user_name:user.user_metadata?.full_name||user.email,source_type:'assets',campaign_name:campaignName||'Asset Upload',advertiser_name:advertiserName||null,brand_name:brandName||null,total_creatives:0,dsps_activated:['dv360']}).select('id').single();
@@ -162,7 +162,7 @@ Deno.serve(async(req)=>{
       const rows = ok.map(r=>{
         const i=r._input!;
         const normT = (i.trackers||[]).map(t => normalizeTrackerInput(t)).filter(n => n.url);
-        return {batch_id:batchId, created_by_email:user.email!, created_by_name:user.user_metadata?.full_name||user.email,
+        return {batch_id:batchId, activation_session_id:activationSessionId||null, created_by_email:user.email!, created_by_name:user.user_metadata?.full_name||user.email,
           dsp:'dv360', dsp_creative_id:String(r.creativeId), name:r.name,
           creative_type:i.type==='video'?'video':i.type==='html5'?'html5':'display',
           dimensions:i.dimensions, js_tag:i.html5PreviewUrl||null, vast_tag:null,

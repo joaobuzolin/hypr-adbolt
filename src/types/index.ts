@@ -140,6 +140,7 @@ export interface Creative {
   created_at: string;
   updated_at: string;
   batch_id: string | null;
+  activation_session_id: string | null;
   created_by_email: string;
   created_by_name: string | null;
   last_edited_by_email: string | null;

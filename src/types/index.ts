@@ -101,6 +101,7 @@ export interface AssetEntry {
   resized?: boolean;
   _storagePath?: string;
   _uploadedFile?: File;
+  _uploadedFileHash?: string;
   _thumbnailUrl?: string;
   _html5PreviewUrl?: string;
 }

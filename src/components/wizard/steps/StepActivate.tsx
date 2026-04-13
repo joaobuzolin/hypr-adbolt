@@ -109,9 +109,9 @@ export function StepActivate() {
         toast(`${missingLp.length} asset(s) sem landing page. Preencha antes de ativar.`, 'error');
         return;
       }
-      // Always clear upload state to ensure fresh upload with current files
-      // (resize/compress may have changed the file since last upload)
-      store.resetAssetUploadState();
+      // Upload cache is validated by file hash inside uploadAssetToStorage —
+      // changed files (resize/compress) get re-uploaded automatically,
+      // unchanged files reuse their existing storage path.
     }
 
     if (store.activationDone) {

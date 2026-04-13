@@ -111,22 +111,36 @@ export async function uploadToStorage(file: File, token: string): Promise<string
 }
 
 /**
- * Upload an asset to storage (with memoization on _storagePath).
- * Ported from legacy: async function uploadAssetToStorage(asset, token, progressCb)
+ * Fast fingerprint of a File using metadata (no content read needed).
+ * Changes when file is replaced by resize or compress.
+ */
+function fileHash(f: File): string {
+  return `${f.name}|${f.size}|${f.lastModified}|${f.type}`;
+}
+
+/**
+ * Upload an asset to storage with content-aware caching.
+ * Re-uses existing _storagePath only if the file hasn't changed since last upload.
  */
 export async function uploadAssetToStorage(
   asset: AssetEntry,
   token: string,
   onProgress?: (msg: string) => void,
 ): Promise<string> {
-  if (asset._storagePath) return asset._storagePath;
-
   const file = asset.compressedFile || asset.originalFile;
+  const currentHash = fileHash(file);
+
+  // Reuse cached path only if the file is identical to what was uploaded
+  if (asset._storagePath && asset._uploadedFileHash === currentHash) {
+    return asset._storagePath;
+  }
+
   if (onProgress) onProgress('Enviando ' + asset.name + ' pro storage...');
 
   const storagePath = await uploadToStorage(file, token);
   asset._storagePath = storagePath;
   asset._uploadedFile = file;
+  asset._uploadedFileHash = currentHash;
 
   return storagePath;
 }

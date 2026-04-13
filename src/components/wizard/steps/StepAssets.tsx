@@ -458,6 +458,14 @@ export function StepAssets() {
                           className={`${styles.cellInput} ${styles.mono}`}
                           value={a.dimensions}
                           onChange={(e) => updateAsset(a.id, { dimensions: e.target.value })}
+                          onBlur={async (e) => {
+                            // If user typed new dimensions, physically resize the file
+                            const val = e.target.value.trim();
+                            const match = val.match(/^(\d+)x(\d+)$/);
+                            if (match && val !== `${a.w}x${a.h}` && a.type === 'display') {
+                              await handleResize(a, val);
+                            }
+                          }}
                         />
                         {suggestion && !a.resized && (
                           <button

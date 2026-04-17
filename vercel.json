@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/templates/:path*",
+      "destination": "/templates/:path*"
+    },
+    {
       "source": "/preview/:path*",
       "destination": "/preview/:path*"
     },

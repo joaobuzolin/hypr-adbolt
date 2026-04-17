@@ -7,8 +7,8 @@ import { SectionHeader } from '@/components/shared/SectionHeader';
 import { genDV360 } from '@/generators/dv360';
 import { genXandr } from '@/generators/xandr';
 import { genStackAdapt } from '@/generators/stackadapt';
-import { genAmazonDSP } from '@/generators/amazon';
-import { downloadCSV, downloadXLSX } from '@/generators/download';
+import { fillAmazonDSPTemplate } from '@/generators/amazon';
+import { downloadCSV, downloadXLSX, downloadBlob } from '@/generators/download';
 import { activateXandrTags } from '@/services/activation/xandr-tags';
 import { activateDV360Tags } from '@/services/activation/dv360-tags';
 import { activateXandrAssets } from '@/services/activation/xandr-assets';
@@ -67,31 +67,39 @@ export function StepActivate() {
   const allPlacements = [...tagPlacements, ...surveyPlacements];
 
   // ── Generate & Download Templates ──
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!allPlacements.length || !store.selectedDsps.size) return;
 
     const campaignSlug = (store.parsedData?.campaignName || 'Export').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 40);
 
-    store.selectedDsps.forEach((dsp) => {
+    // DV360/Xandr/StackAdapt build their files synchronously in memory.
+    // Amazon DSP is async because it fetches the official blank template
+    // from /templates/amazondsp-blank.xlsx and injects the rows into the
+    // pre-existing sheet — required because Amazon's parser validates the
+    // template's hidden "Template Info" metadata.
+    for (const dsp of store.selectedDsps) {
       const placements = allPlacements;
 
       if (dsp === 'dv360') {
         const f = genDV360(placements);
         downloadCSV(f.headers, f.rows, `DV360_${campaignSlug}.csv`);
-      }
-      if (dsp === 'xandr') {
+      } else if (dsp === 'xandr') {
         const f = genXandr(placements, '', store.isPolitical);
         downloadXLSX(f.headers, f.rows, `Xandr_${campaignSlug}.xlsx`, { colWidths: f.colWidths });
-      }
-      if (dsp === 'stackadapt') {
+      } else if (dsp === 'stackadapt') {
         const { file: f } = genStackAdapt(placements, store.brand, '');
         downloadXLSX(f.headers, f.rows, `StackAdapt_${campaignSlug}.xlsx`, { colWidths: f.colWidths });
+      } else if (dsp === 'amazondsp') {
+        try {
+          const blob = await fillAmazonDSPTemplate(placements, store.amazonAdvId, store.amazonMarketplace);
+          downloadBlob(blob, `AmazonDSP_${campaignSlug}.xlsx`);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          toast(`Falha ao gerar template Amazon DSP: ${msg}`, 'error');
+          return; // stop the loop — avoid a "X baixados" toast that lies about Amazon
+        }
       }
-      if (dsp === 'amazondsp') {
-        const f = genAmazonDSP(placements, store.amazonAdvId, store.amazonMarketplace);
-        downloadXLSX(f.headers, f.rows, `AmazonDSP_${campaignSlug}.xlsx`, { colWidths: f.colWidths, sheetName: f.sheetName });
-      }
-    });
+    }
 
     toast(`${store.selectedDsps.size} template(s) baixado(s)`, 'success');
   };

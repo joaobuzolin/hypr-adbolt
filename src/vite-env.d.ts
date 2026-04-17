@@ -16,6 +16,8 @@ interface Window {
       aoa_to_sheet(data: unknown[][]): unknown & { '!cols'?: unknown[] };
       book_append_sheet(wb: unknown, ws: unknown, name?: string): void;
       sheet_to_json(ws: unknown, opts?: { header?: number; defval?: string }): unknown[];
+      /** Inject rows into an existing worksheet at a given A1-notation origin. */
+      sheet_add_aoa(ws: unknown, data: unknown[][], opts?: { origin?: string | number | { r: number; c: number } }): void;
     };
     read(data: ArrayBuffer | Uint8Array, opts?: { type: string }): { Sheets: Record<string, unknown>; SheetNames: string[] };
     write(wb: unknown, opts?: { bookType: string; type: string }): ArrayBuffer;

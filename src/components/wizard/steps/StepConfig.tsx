@@ -1,4 +1,5 @@
 import { useWizardStore } from '@/stores/wizard';
+import { hasApiCapableDsp } from '@/lib/dsp-config';
 import { StepNav } from '@/components/shared/StepNav';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { ContentCard } from '@/components/shared/ContentCard';
@@ -31,16 +32,25 @@ export function StepConfig() {
   const prevLabel = config.labels[currentStep - 1];
   const nextLabel = config.labels[currentStep + 1];
 
+  // Brand URL is required by Xandr's API audit, but only blocks the wizard
+  // when an API-capable DSP is selected. Pure template flows (StackAdapt /
+  // Amazon) can advance without it — the user will fill it in the XLSX or
+  // in the DSP's own UI at upload time. If the user later adds Xandr and
+  // tries to activate via API, StepActivate re-checks and blocks there.
+  const willActivateViaApi = hasApiCapableDsp(selectedDsps);
+
   const handleNext = () => {
-    if (hasXandr && !store.xandrBrandUrl.trim()) {
-      toast('Preencha a Brand URL na seção Auditoria Xandr', 'error');
-      return;
+    if (hasXandr && willActivateViaApi) {
+      if (!store.xandrBrandUrl.trim()) {
+        toast('Preencha a Brand URL na seção Auditoria Xandr', 'error');
+        return;
+      }
+      if (brandUrlError) {
+        toast(brandUrlError, 'error');
+        return;
+      }
     }
-    if (hasXandr && brandUrlError) {
-      toast(brandUrlError, 'error');
-      return;
-    }
-    // Auto-trim on advance
+    // Auto-trim on advance (safe regardless of flow)
     if (hasXandr && store.xandrBrandUrl !== store.xandrBrandUrl.trim()) {
       setConfig({ xandrBrandUrl: store.xandrBrandUrl.trim() });
     }

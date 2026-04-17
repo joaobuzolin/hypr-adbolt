@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdBolt — Preview de Tag</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #f4f4f4; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #222; }
+    body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 20px; }
+    header { font-size: 13px; color: #666; display: flex; gap: 8px; align-items: center; max-width: 90vw; }
+    header .sep { color: #ccc; }
+    header .name { font-weight: 600; color: #222; max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    header .dims { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #e9eef1; color: #3397B9; padding: 2px 8px; border-radius: 4px; }
+    #frame { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; position: relative; }
+    #error { max-width: 480px; padding: 16px; background: #fff0f0; border: 1px solid #ffd0d0; border-radius: 6px; color: #a01010; font-size: 13px; line-height: 1.5; display: none; }
+    #error.visible { display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="name" id="name">Tag preview</span>
+    <span class="sep">·</span>
+    <span class="dims" id="dims">–</span>
+  </header>
+  <div id="frame" aria-live="polite"></div>
+  <div id="error" role="alert"></div>
+
+  <script>
+    (function () {
+      function decodeBase64Url(s) {
+        // URL-safe base64 → standard base64, then atob
+        const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
+        return decodeURIComponent(escape(atob(b64)));
+      }
+
+      function showError(msg) {
+        const el = document.getElementById('error');
+        el.textContent = msg;
+        el.classList.add('visible');
+      }
+
+      // Parse hash fragment (e.g. "#tag=<b64>&w=300&h=600&name=<encoded>")
+      const hash = window.location.hash.replace(/^#/, '');
+      const params = new URLSearchParams(hash);
+
+      const tagB64 = params.get('tag');
+      const w = parseInt(params.get('w') || '0', 10) || 300;
+      const h = parseInt(params.get('h') || '0', 10) || 250;
+      const name = params.get('name') || 'Tag preview';
+
+      document.title = 'Preview — ' + name;
+      document.getElementById('name').textContent = name;
+      document.getElementById('dims').textContent = w + '×' + h;
+
+      const frame = document.getElementById('frame');
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+
+      if (!tagB64) {
+        showError('Nenhuma tag fornecida no fragmento da URL.');
+        return;
+      }
+
+      let tagHtml;
+      try {
+        tagHtml = decodeBase64Url(tagB64);
+      } catch (e) {
+        showError('Falha ao decodificar a tag: ' + e.message);
+        return;
+      }
+
+      // Inject the tag HTML, then re-create <script> tags so the browser
+      // actually executes them (innerHTML-loaded scripts do not run).
+      frame.innerHTML = tagHtml;
+      const scripts = frame.querySelectorAll('script');
+      scripts.forEach(function (oldScript) {
+        const newScript = document.createElement('script');
+        for (const attr of oldScript.attributes) {
+          newScript.setAttribute(attr.name, attr.value);
+        }
+        if (!oldScript.src && oldScript.textContent) {
+          newScript.textContent = oldScript.textContent;
+        }
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    })();
+  </script>
+</body>
+</html>

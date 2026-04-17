@@ -4,23 +4,26 @@ import { DspLogo } from '@/components/shared/DspLogo';
 import { StepNav } from '@/components/shared/StepNav';
 import { SectionHeader } from '@/components/shared/SectionHeader';
 import { ContentCard } from '@/components/shared/ContentCard';
+import { DSP_CAPABILITIES } from '@/lib/dsp-config';
 import type { DspType } from '@/types';
 
-const TAG_SUBTITLES: Record<string, string> = {
-  dv360: 'CSV · Third-Party Tags',
-  stackadapt: 'API não integrada',
-  xandr: 'XLSX · Third-Party Creative',
-  amazondsp: 'API não integrada',
+// Subtitle strings per DSP, per wizard mode.
+// Mode `assets` requires API activation (no way to upload assets via template);
+// mode `tags` and `surveys` can always go through template generation, so
+// template-only DSPs are selectable there.
+const TAG_SUBTITLES: Record<DspType, string> = {
+  dv360:      'CSV · Ativação direta',
+  xandr:      'XLSX · Ativação direta',
+  stackadapt: 'XLSX · Upload manual',
+  amazondsp:  'XLSX · Upload manual',
 };
 
-const ASSET_SUBTITLES: Record<string, string> = {
-  dv360: 'API · Upload direto',
+const ASSET_SUBTITLES: Record<DspType, string> = {
+  dv360:      'API · Upload direto',
+  xandr:      'API · Upload direto',
   stackadapt: 'API não integrada',
-  xandr: 'API · Upload direto',
-  amazondsp: 'API não integrada',
+  amazondsp:  'API não integrada',
 };
-
-const UNAVAILABLE_DSPS = new Set(['stackadapt', 'amazondsp']);
 
 export function StepDsps() {
   const { mode, selectedDsps, toggleDsp, currentStep, setStep, hasContent, hasDsp } = useWizardStore();
@@ -29,11 +32,16 @@ export function StepDsps() {
   const isAssets = mode === 'assets';
   const subtitles = isAssets ? ASSET_SUBTITLES : TAG_SUBTITLES;
 
-  const cards = [
-    { dsp: 'dv360' as DspType, icon: <DspLogo dsp="dv360" />, subtitle: subtitles.dv360 },
-    { dsp: 'stackadapt' as DspType, icon: <DspLogo dsp="stackadapt" />, subtitle: subtitles.stackadapt, unavailable: UNAVAILABLE_DSPS.has('stackadapt') },
-    { dsp: 'xandr' as DspType, icon: <DspLogo dsp="xandr" />, subtitle: subtitles.xandr },
-    { dsp: 'amazondsp' as DspType, icon: <DspLogo dsp="amazondsp" />, subtitle: subtitles.amazondsp, unavailable: UNAVAILABLE_DSPS.has('amazondsp') },
+  // Asset mode requires API activation; tag/survey modes only require template
+  // generation (which every DSP supports today).
+  const capabilityKey: 'api' | 'template' = isAssets ? 'api' : 'template';
+  const isUnavailable = (dsp: DspType) => !DSP_CAPABILITIES[dsp][capabilityKey];
+
+  const cards: { dsp: DspType; icon: React.ReactNode; subtitle: string; unavailable?: boolean }[] = [
+    { dsp: 'dv360',      icon: <DspLogo dsp="dv360" />,      subtitle: subtitles.dv360,      unavailable: isUnavailable('dv360') },
+    { dsp: 'stackadapt', icon: <DspLogo dsp="stackadapt" />, subtitle: subtitles.stackadapt, unavailable: isUnavailable('stackadapt') },
+    { dsp: 'xandr',      icon: <DspLogo dsp="xandr" />,      subtitle: subtitles.xandr,      unavailable: isUnavailable('xandr') },
+    { dsp: 'amazondsp',  icon: <DspLogo dsp="amazondsp" />,  subtitle: subtitles.amazondsp,  unavailable: isUnavailable('amazondsp') },
   ];
 
   const prevLabel = config.labels[currentStep - 1];

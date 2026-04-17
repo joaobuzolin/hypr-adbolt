@@ -16,6 +16,7 @@ import { activateDV360Assets } from '@/services/activation/dv360-assets';
 import { uploadAssetToStorage, uploadThumbnail, uploadHtml5Preview } from '@/services/storage';
 import { buildSurveyIframe } from '@/services/typeform';
 import { normalizeUrl } from '@/lib/utils';
+import { filterApiCapable, hasApiCapableDsp } from '@/lib/dsp-config';
 import type { ActivationResult, Placement } from '@/types';
 import { DSP_LABELS } from '@/types';
 import styles from './StepActivate.module.css';
@@ -129,7 +130,12 @@ export function StepActivate() {
 
     const dsps = [...store.selectedDsps];
     const creativeCount = isAssetMode ? store.assetEntries.length : allPlacements.length;
-    const activeDspList = dsps.map((d) => DSP_LABELS[d]).join(' e ');
+    const dspsWithApi = filterApiCapable(dsps);
+    const activeDspList = dspsWithApi.map((d) => DSP_LABELS[d]).join(' e ');
+    if (!dspsWithApi.length) {
+      toast('Nenhuma DSP selecionada suporta ativação via API. Use "Baixar Templates".', 'error');
+      return;
+    }
     if (!confirm(`Ativar ${creativeCount} criativo(s) em ${activeDspList}?\n\nEssa ação envia os criativos direto pras DSPs via API.`)) return;
 
     store.setActivating(true);
@@ -138,7 +144,10 @@ export function StepActivate() {
     // Generate a unique session ID shared across all DSPs in this activation
     const activationSessionId = crypto.randomUUID();
 
-    const apiDsps = dsps.filter((d) => d === 'xandr' || d === 'dv360');
+    // Only API-capable DSPs participate in the activation phase; template-only
+    // DSPs (StackAdapt, Amazon) get a "pendente" result pushed later so the user
+    // sees why they didn't show up in the progress bar.
+    const apiDsps = filterApiCapable(dsps);
     const initialProgress: DspProgress[] = apiDsps.map((d) => ({
       dsp: d, label: DSP_LABELS[d], current: 0, total: creativeCount,
       message: 'Aguardando...', status: 'loading' as const,
@@ -256,12 +265,21 @@ export function StepActivate() {
       }
     }
 
-    // Pending DSPs
+    // Template-only DSPs don't get an API call — we surface them here so the
+    // user sees they still need to download the XLSX and upload manually.
     if (store.selectedDsps.has('stackadapt')) {
-      results.push({ dsp: 'StackAdapt', status: 'pending', detail: isAssetMode ? 'Asset upload pendente' : 'Integração em desenvolvimento' });
+      results.push({
+        dsp: 'StackAdapt',
+        status: 'pending',
+        detail: isAssetMode ? 'Asset upload não suportado — API pendente' : 'Use "Baixar Templates" e suba o XLSX manualmente',
+      });
     }
     if (store.selectedDsps.has('amazondsp')) {
-      results.push({ dsp: 'Amazon DSP', status: 'pending', detail: isAssetMode ? 'Asset upload pendente' : 'Apenas template — upload manual' });
+      results.push({
+        dsp: 'Amazon DSP',
+        status: 'pending',
+        detail: isAssetMode ? 'Asset upload não suportado — API pendente' : 'Use "Baixar Templates" e suba o XLSX manualmente',
+      });
     }
 
     store.setActivationResults(results);
@@ -274,12 +292,23 @@ export function StepActivate() {
 
   const prevLabel = config.labels[config.steps.length - 2];
 
+  // Which cards to show on the final step:
+  // - "Baixar Templates": hidden in asset mode (assets require API upload)
+  // - "Ativar nas DSPs": hidden when no selected DSP is API-capable
+  //   (e.g. user picked only StackAdapt/Amazon for a template-only flow)
+  const showTemplateCard = !isAssetMode;
+  const showActivateCard = hasApiCapableDsp(store.selectedDsps);
+  const apiDspLabels = filterApiCapable([...store.selectedDsps])
+    .map((d) => DSP_LABELS[d])
+    .join(' e ');
+  const singleCard = [showTemplateCard, showActivateCard].filter(Boolean).length < 2;
+
   return (
     <div>
       <SectionHeader title="Tudo pronto!" description="Escolha como deseja prosseguir com os criativos configurados." />
 
-      <div className={`${styles.actionCards} ${isAssetMode ? styles.singleColumn : ''}`}>
-        {!isAssetMode && (
+      <div className={`${styles.actionCards} ${singleCard ? styles.singleColumn : ''}`}>
+        {showTemplateCard && (
           <div className={styles.actionCard}>
             <div className={styles.actionIcon}>📥</div>
             <div className={styles.actionTitle}>Baixar Templates</div>
@@ -294,18 +323,24 @@ export function StepActivate() {
           </div>
         )}
 
-        <div className={styles.actionCard}>
-          <div className={styles.actionIcon}>⚡</div>
-          <div className={styles.actionTitle}>Ativar nas DSPs</div>
-          <div className={styles.actionDesc}>Envia os criativos direto via API para DV360 e Xandr</div>
-          <button
-            className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={handleActivate}
-            disabled={!store.hasContent() || !store.hasDsp() || store.activating}
-          >
-            {store.activating ? 'Ativando...' : store.activationDone ? '✓ Ativado' : 'Ativar Agora'}
-          </button>
-        </div>
+        {showActivateCard && (
+          <div className={styles.actionCard}>
+            <div className={styles.actionIcon}>⚡</div>
+            <div className={styles.actionTitle}>Ativar nas DSPs</div>
+            <div className={styles.actionDesc}>
+              {apiDspLabels
+                ? `Envia os criativos direto via API para ${apiDspLabels}`
+                : 'Envia os criativos direto via API'}
+            </div>
+            <button
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={handleActivate}
+              disabled={!store.hasContent() || !store.hasDsp() || store.activating}
+            >
+              {store.activating ? 'Ativando...' : store.activationDone ? '✓ Ativado' : 'Ativar Agora'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Progress */}

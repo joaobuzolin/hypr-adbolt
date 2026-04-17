@@ -233,6 +233,25 @@ export function PreviewThumb({ thumb, type, name, isVideo, onClick }: PreviewThu
   );
 }
 
+// ── Helper: open tag content in a top-level popup (for DCM/3P tags that need real origin + cookies) ──
+function openTagInPopup(tagContent: string, name: string, w: number, h: number): void {
+  const pad = 40;
+  const popW = w + pad;
+  const popH = h + pad;
+  const left = Math.round((window.screen.width - popW) / 2);
+  const top = Math.round((window.screen.height - popH) / 2);
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Preview: ${name}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f4f4f4;font-family:system-ui,-apple-system,sans-serif}</style></head><body><div style="width:${w}px;height:${h}px;background:#fff">${tagContent}</div></body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const blobUrl = URL.createObjectURL(blob);
+  const popup = window.open(blobUrl, 'tag_preview_' + Date.now(), `width=${popW},height=${popH},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`);
+  if (popup) {
+    popup.addEventListener('load', () => URL.revokeObjectURL(blobUrl));
+  } else {
+    URL.revokeObjectURL(blobUrl);
+    alert('O popup foi bloqueado pelo navegador. Permita popups para adbolt.hypr.mobi.');
+  }
+}
+
 // ── Full Preview Modal ──
 
 export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProps) {
@@ -505,6 +524,19 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
           <span className={styles.infoDims}>{data.dimensions}</span>
           <span className={styles.infoDot} />
           <span className={styles.infoType}>{typeLabel}</span>
+          {data.type === '3p-tag' && data.tagContent && (
+            <>
+              <span className={styles.infoDot} />
+              <button
+                type="button"
+                className={styles.infoAction}
+                onClick={() => openTagInPopup(data.tagContent!, data.name, w || 300, h || 250)}
+                title="Abre a tag numa janela sem sandbox (necessário para tags DCM/DoubleClick)"
+              >
+                Abrir em nova janela ↗
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

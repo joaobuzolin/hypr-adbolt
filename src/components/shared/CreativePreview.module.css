@@ -100,6 +100,27 @@
   color: var(--text-tri);
 }
 
+.infoAction {
+  font-size: var(--fs-min);
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-family: inherit;
+  transition: color var(--dur-f);
+}
+.infoAction:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+.infoAction:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
 .infoDot {
   width: 3px;
   height: 3px;

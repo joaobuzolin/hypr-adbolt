@@ -41,7 +41,7 @@ export function genAmazonDSP(
       .map((p) => {
         const pxUrls = mergeTrackerUrls(p.trackers || [], 'amazondsp');
         return [
-          advertiserId, 'Third-party Display', p.placementName, marketplace, lang,
+          advertiserId, 'Third party', p.placementName, marketplace, lang,
           '', '', p.dimensions, p.jsTag, 'Links to another website',
           pxUrls.join('\n'), '', '',
         ];
@@ -66,7 +66,7 @@ const AMAZON_XLSX_ENDPOINT = 'https://adfnabuwzmojxbhcpdpe.supabase.co/functions
  * browser, produced files that Excel flagged on open ("We found a problem
  * with some content") and that Amazon DSP rejected with "Bulk upload has
  * failed". The same code running in a Deno edge function produced files
- * that pass both checks — confirmed with three server-generated variants
+ * that pass both checks â confirmed with three server-generated variants
  * the user successfully uploaded to Amazon. Rather than keep hunting the
  * browser-side gremlin (cache, CDN ordering, SheetJS/JSZip interaction,
  * Blob writer quirks, etc.), generation is delegated to Supabase edge
@@ -85,10 +85,10 @@ export async function fillAmazonDSPTemplate(
 ): Promise<Blob> {
   const { rows } = genAmazonDSP(placements, advertiserId, marketplace);
   if (!rows.length) {
-    throw new Error('Nenhum placement display para exportar — Amazon DSP não aceita vídeo neste fluxo.');
+    throw new Error('Nenhum placement display para exportar â Amazon DSP nÃ£o aceita vÃ­deo neste fluxo.');
   }
   if (rows.length > 91) {
-    throw new Error(`Amazon DSP suporta no máximo 91 placements por template (recebi ${rows.length}).`);
+    throw new Error(`Amazon DSP suporta no mÃ¡ximo 91 placements por template (recebi ${rows.length}).`);
   }
 
   const resp = await fetch(AMAZON_XLSX_ENDPOINT, {

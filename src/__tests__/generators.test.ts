@@ -116,4 +116,75 @@ describe('genAmazonDSP', () => {
     expect(result.sheetName).toBe('THIRD-PARTY DISPLAY');
     expect(result.rows[0][4]).toBe('English');
   });
+
+  it('uses the exact Creative Template dropdown value', () => {
+    // Amazon DSP bulk upload rejects any value that does not match the
+    // dropdown exactly. "Third party" without "-Display" silently drops
+    // the creative during import.
+    const result = genAmazonDSP(DISPLAY_PLACEMENTS, 'ADV123', 'BR');
+    expect(result.rows[0][1]).toBe('Third-party Display');
+    expect(result.rows[1][1]).toBe('Third-party Display');
+  });
+
+  it('defaults click destination to "Links to another website"', () => {
+    const result = genAmazonDSP(DISPLAY_PLACEMENTS, 'ADV123', 'BR');
+    expect(result.rows[0][9]).toBe('Links to another website');
+  });
+
+  it('detects Amazon destination via clickUrl (amazon.com.br)', () => {
+    const p: Placement[] = [{
+      placementId: '1', placementName: 'Colgate_COLT_300x250', dimensions: '300x250',
+      jsTag: '<script src="https://ad.doubleclick.net/x"></script>',
+      clickUrl: 'https://www.amazon.com.br/colgate-total',
+      type: 'display', vastTag: '', trackers: [],
+    }];
+    const result = genAmazonDSP(p, 'ADV123', 'BR');
+    expect(result.rows[0][9]).toBe('Links to an Amazon website');
+  });
+
+  it('detects Amazon destination across ccTLDs and subdomains', () => {
+    const hosts = [
+      'https://amazon.com/dp/B0X',
+      'https://www.amazon.co.uk/foo',
+      'https://amazon.de/bar',
+      'https://primevideo.com/detail/abc',
+      'https://www.audible.com/pd/x',
+      'https://a.co/d/shortlink',
+    ];
+    for (const url of hosts) {
+      const p: Placement[] = [{
+        placementId: '1', placementName: 'p', dimensions: '300x250',
+        jsTag: '', clickUrl: url, type: 'display', vastTag: '', trackers: [],
+      }];
+      const result = genAmazonDSP(p, '', 'BR');
+      expect(result.rows[0][9]).toBe('Links to an Amazon website');
+    }
+  });
+
+  it('does not falsely match amazon-lookalike or tracker domains', () => {
+    const hosts = [
+      'https://amazon-ads.com/pixel',
+      'https://tracker.not-amazon.com/px',
+      'https://myamazon.fake/x',
+      'https://amazoncolgate.com/',
+    ];
+    for (const url of hosts) {
+      const p: Placement[] = [{
+        placementId: '1', placementName: 'p', dimensions: '300x250',
+        jsTag: '', clickUrl: url, type: 'display', vastTag: '', trackers: [],
+      }];
+      const result = genAmazonDSP(p, '', 'BR');
+      expect(result.rows[0][9]).toBe('Links to another website');
+    }
+  });
+
+  it('falls back to extracting click destination from jsTag when clickUrl is empty', () => {
+    const p: Placement[] = [{
+      placementId: '1', placementName: 'p', dimensions: '300x250',
+      jsTag: '<a data-cta-url="https://www.amazon.com.br/colgate" href="#"><img src="x"/></a>',
+      clickUrl: '', type: 'display', vastTag: '', trackers: [],
+    }];
+    const result = genAmazonDSP(p, '', 'BR');
+    expect(result.rows[0][9]).toBe('Links to an Amazon website');
+  });
 });

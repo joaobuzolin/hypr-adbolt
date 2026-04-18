@@ -23,6 +23,66 @@ const AMAZON_HEADERS = [
   'AdChoices location', 'Additional html',
 ];
 
+// Amazon DSP dropdown values for the Creative Template and
+// Click-through destination columns. The bulk upload UI rejects any
+// cell value that doesn't match the dropdown exactly, so these strings
+// must never drift from what the official blank template allows.
+const CREATIVE_TEMPLATE_3P_DISPLAY = 'Third-party Display';
+const DEST_ANOTHER_WEBSITE = 'Links to another website';
+const DEST_AMAZON_WEBSITE = 'Links to an Amazon website';
+
+// Hostname whitelist for "Amazon website" detection. Covers all amazon
+// ccTLDs, Prime Video, Audible, and the Amazon short link a.co.
+function isAmazonHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  if (h === 'a.co' || h.endsWith('.a.co')) return true;
+  return /(^|\.)(amazon|primevideo|audible)\.[a-z.]+$/.test(h);
+}
+
+function isAmazonUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return isAmazonHost(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+// Extract the most likely click destination from a 3P tag. DCM/CM360
+// tags usually carry it on `data-cta-url` or an `<a href>`; other
+// networks use `clickTag=` or similar. We try the common shapes and
+// return the first match.
+function extractClickFromTag(tag: string): string {
+  if (!tag) return '';
+  const patterns = [
+    /data-cta-url\s*=\s*["']([^"']+)["']/i,
+    /data-click-url\s*=\s*["']([^"']+)["']/i,
+    /<a[^>]+href\s*=\s*["']([^"']+)["']/i,
+    /clickTag\s*=\s*["']([^"']+)["']/i,
+    /[?&]click[^=]*=([^&"'\s]+)/i,
+  ];
+  for (const re of patterns) {
+    const m = tag.match(re);
+    if (m && m[1]) {
+      try {
+        // Some trackers wrap the landing URL as a URL-encoded param
+        return decodeURIComponent(m[1]);
+      } catch {
+        return m[1];
+      }
+    }
+  }
+  return '';
+}
+
+function detectClickDestination(p: Placement): string {
+  if (isAmazonUrl(p.clickUrl)) return DEST_AMAZON_WEBSITE;
+  const fromTag = extractClickFromTag(p.jsTag);
+  if (isAmazonUrl(fromTag)) return DEST_AMAZON_WEBSITE;
+  return DEST_ANOTHER_WEBSITE;
+}
+
 /**
  * Build the per-placement rows for the Amazon DSP THIRD-PARTY DISPLAY
  * sheet. Kept here so tests can exercise the row shape directly.
@@ -40,9 +100,10 @@ export function genAmazonDSP(
       .filter((p) => p.type !== 'video')
       .map((p) => {
         const pxUrls = mergeTrackerUrls(p.trackers || [], 'amazondsp');
+        const destination = detectClickDestination(p);
         return [
-          advertiserId, 'Third party', p.placementName, marketplace, lang,
-          '', '', p.dimensions, p.jsTag, 'Links to another website',
+          advertiserId, CREATIVE_TEMPLATE_3P_DISPLAY, p.placementName, marketplace, lang,
+          '', '', p.dimensions, p.jsTag, destination,
           pxUrls.join('\n'), '', '',
         ];
       }),

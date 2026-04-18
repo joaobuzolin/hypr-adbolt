@@ -12,8 +12,8 @@ import { normalizeUrl, getRenamedName } from '@/lib/utils';
 import { genDV360 } from '@/generators/dv360';
 import { genXandr } from '@/generators/xandr';
 import { genStackAdapt } from '@/generators/stackadapt';
-import { genAmazonDSP } from '@/generators/amazon';
-import { downloadCSV, downloadXLSX } from '@/generators/download';
+import { fillAmazonDSPTemplate } from '@/generators/amazon';
+import { downloadCSV, downloadXLSX, downloadBlob } from '@/generators/download';
 import { DSP_LABELS } from '@/types';
 import type { CreativeGroup, DspType } from '@/types';
 import type { Placement } from '@/types';
@@ -410,7 +410,7 @@ export function Dashboard() {
     setTplVisible(true);
   };
 
-  const handleTemplateGenerate = useCallback(() => {
+  const handleTemplateGenerate = useCallback(async () => {
     if (!tplDsp) { toast('Selecione uma DSP', 'error'); return; }
     const keys = [...store.selectedKeys];
     const groups = store.groups.filter((g) => keys.includes(g._gid));
@@ -440,8 +440,11 @@ export function Dashboard() {
         const { file: f } = genStackAdapt(placements, '', '');
         downloadXLSX(f.headers, f.rows, `StackAdapt_${slug}.xlsx`, { colWidths: f.colWidths });
       } else if (tplDsp === 'amazondsp') {
-        const f = genAmazonDSP(placements, '', 'BR');
-        downloadXLSX(f.headers, f.rows, `AmazonDSP_${slug}.xlsx`, { colWidths: f.colWidths, sheetName: f.sheetName });
+        // Server-side XLSX generation via adbolt-amazon-xlsx edge function.
+        // Browser-side SheetJS/JSZip produced files Amazon DSP rejected;
+        // this path preserves the official blank bytes exactly.
+        const blob = await fillAmazonDSPTemplate(placements, '', 'BR');
+        downloadBlob(blob, `AmazonDSP_${slug}.xlsx`);
       }
       toast(`${placements.length} criativos exportados (${tplDsp.toUpperCase()})`, 'success');
       setTplVisible(false);

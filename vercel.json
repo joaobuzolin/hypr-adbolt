@@ -9,6 +9,10 @@
       "destination": "/preview/:path*"
     },
     {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }

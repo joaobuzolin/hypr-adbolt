@@ -76,13 +76,20 @@
       var isCm360Iframe = placementMatch && renderingModeMatch && renderingModeMatch[1] === 'iframe';
 
       if (isCm360Iframe) {
+        // Go through our own /api/ad-proxy edge function so the iframe that
+        // displays the creative loads from adbolt.hypr.mobi (same-origin),
+        // not from ad.doubleclick.net. This removes Chrome's cross-origin
+        // partitioning from the equation: successive preview opens no longer
+        // share or inherit any state that would cause the 2nd+ creative to
+        // stay hidden. Each call has its own ord so the ad server also sees
+        // a fresh impression.
         var ord = Math.floor(Math.random() * 1e13).toString();
-        var directUrl = 'https://ad.doubleclick.net/ddm/adi/' + placementMatch[1]
-          + ';sz=' + w + 'x' + h
-          + ';ord=' + ord + '?';
+        var proxyUrl = '/api/ad-proxy?placement=' + encodeURIComponent(placementMatch[1])
+          + '&sz=' + w + 'x' + h
+          + '&ord=' + ord;
 
         var adFrame = document.createElement('iframe');
-        adFrame.src = directUrl;
+        adFrame.src = proxyUrl;
         adFrame.width = w;
         adFrame.height = h;
         adFrame.style.border = 'none';
@@ -90,16 +97,6 @@
         adFrame.setAttribute('scrolling', 'no');
         adFrame.setAttribute('marginwidth', '0');
         adFrame.setAttribute('marginheight', '0');
-        // Sandbox isolates each ad-server iframe under an opaque origin, so
-        // Chrome cannot share storage/state between successive instances of
-        // ad.doubleclick.net within the same top window. Without this, the
-        // 2nd+ open of the same placement leaves the creative container
-        // invisible even though the ad server returned valid HTML — some
-        // partitioned state from the 1st load blocks the `creativeLoad`
-        // postMessage from propagating. allow-scripts is required for the
-        // ad HTML to run; allow-popups lets click-through links open; forms
-        // covers any survey / interaction payloads.
-        adFrame.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation');
         document.body.appendChild(adFrame);
         return;
       }

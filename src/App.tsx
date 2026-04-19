@@ -14,7 +14,20 @@ export function App() {
 
   // DEBUG: bypass auth for /debug-modal route — used for isolated preview testing
   if (typeof window !== 'undefined' && window.location.pathname === '/debug-modal') {
-    const colgateTag = ``;
+    const colgateTag = `<ins class='dcmads' style='display:inline-block;width:300px;height:600px'
+    data-dcm-placement='N1433191.4242296HYPRN/B35590397.444842268'
+    data-dcm-rendering-mode='iframe'
+    data-dcm-https-only
+    data-dcm-api-frameworks='[APIFRAMEWORKS]'
+    data-dcm-omid-partner='[OMIDPARTNER]'
+    data-dcm-gdpr-applies='gdpr=\${GDPR}'
+    data-dcm-gdpr-consent='gdpr_consent=\${GDPR_CONSENT_755}'
+    data-dcm-addtl-consent='addtl_consent=\${ADDTL_CONSENT}'
+    data-dcm-ltd='false'
+    data-dcm-resettable-device-id=''
+    data-dcm-app-id=''>
+  <script src='https://www.googletagservices.com/dcm/dcmads.js'></script>
+</ins>`;
     return (
       <CreativePreviewModal
         data={{

@@ -315,11 +315,12 @@ function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyT
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const placementMatch = tagContent?.match(/data-dcm-placement=['"]([^'"]+)['"]/);
-  const renderingMode = tagContent?.match(/data-dcm-rendering-mode=['"]([^'"]+)['"]/);
-  const isCm360Iframe = !!(placementMatch && renderingMode && renderingMode[1] === 'iframe');
+  // Any CM360 tag (iframe or script rendering-mode) can be previewed via proxy.
+  // The ad server's /ddm/adi endpoint returns the creative regardless of client-side render mode.
+  const isCm360 = !!placementMatch;
 
   useEffect(() => {
-    if (!isCm360Iframe || !placementMatch) return;
+    if (!isCm360 || !placementMatch) return;
     const ord = Math.floor(Math.random() * 1e13).toString();
     const proxyUrl = `/api/ad-proxy?placement=${encodeURIComponent(placementMatch[1])}&sz=${tagW}x${tagH}&ord=${ord}`;
     let cancelled = false;
@@ -345,7 +346,7 @@ function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyT
     : { width: tagW, height: tagH, display: 'block', position: 'relative' };
 
   // Non-CM360 fallback: srcdoc iframe
-  if (!isCm360Iframe) {
+  if (!isCm360) {
     const fallbackDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}</style></head><body>${tagContent}</body></html>`;
     return (
       <iframe

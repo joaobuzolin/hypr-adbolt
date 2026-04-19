@@ -393,14 +393,17 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       return null;
     }
 
-    // 3P Tag (iframe sandbox)
+    // 3P Tag — load from same-origin static page so window.location.protocol
+    // is https:, not about:. srcdoc would work for permissive ad networks
+    // (e.g. DV360 creatives of JnJ) but silently fails for networks whose
+    // loader checks protocol before calling the ad server (CM360 placements
+    // on HYPRN return blank, for example). /preview/embed.html is a minimal
+    // page that accepts the tag in the URL fragment and runs it, which is the
+    // same strategy the "Abrir em nova janela" popup already uses.
     if (data.type === '3p-tag' && data.tagContent) {
-      // Real tag dimensions (what the ad server expects)
       const tagW = w || 300;
       const tagH = h || 250;
-      const srcdoc = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><base target="_blank"><style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}</style></head>
-<body><div style="width:${tagW}px;height:${tagH}px;overflow:hidden;position:relative">${data.tagContent}</div></body></html>`;
+      const embedSrc = `/preview/embed.html#tag=${base64UrlEncode(data.tagContent)}&w=${tagW}&h=${tagH}`;
       return (
         <div className={styles.previewFrame} style={{ width: renderW, height: renderH, overflow: 'hidden' }}>
           {!iframeLoaded && (
@@ -412,7 +415,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
           )}
           <iframe
             key={`tag-${previewKey}`}
-            srcDoc={srcdoc}
+            src={embedSrc}
             sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             scrolling="no"
             width={tagW}

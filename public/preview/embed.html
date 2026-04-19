@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tag preview (embed)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: transparent; overflow: hidden; }
+    #frame { position: relative; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="frame"></div>
+  <script>
+    (function () {
+      function decodeBase64Url(s) {
+        const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
+        return decodeURIComponent(escape(atob(b64)));
+      }
+
+      // Hash fragment: "#tag=<b64>&w=300&h=250"
+      const hash = window.location.hash.replace(/^#/, '');
+      const params = new URLSearchParams(hash);
+
+      const tagB64 = params.get('tag');
+      const w = parseInt(params.get('w') || '0', 10) || 300;
+      const h = parseInt(params.get('h') || '0', 10) || 250;
+
+      // Size the body and the frame to the exact tag dimensions so the parent
+      // iframe sees no scrollbars and the tag lays out as it would on a real site.
+      document.documentElement.style.width = w + 'px';
+      document.documentElement.style.height = h + 'px';
+      document.body.style.width = w + 'px';
+      document.body.style.height = h + 'px';
+
+      const frame = document.getElementById('frame');
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+
+      if (!tagB64) return;
+
+      var tagHtml;
+      try {
+        tagHtml = decodeBase64Url(tagB64);
+      } catch (e) {
+        return;
+      }
+
+      // Inject the tag, then re-create <script> tags so the browser executes
+      // them. Scripts inserted via innerHTML do NOT run — this is the standard
+      // dance for rendering third-party ad loaders (dcmads.js, Sizmek, etc.).
+      frame.innerHTML = tagHtml;
+      const scripts = frame.querySelectorAll('script');
+      scripts.forEach(function (oldScript) {
+        const newScript = document.createElement('script');
+        for (const attr of oldScript.attributes) {
+          newScript.setAttribute(attr.name, attr.value);
+        }
+        if (!oldScript.src && oldScript.textContent) {
+          newScript.textContent = oldScript.textContent;
+        }
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    })();
+  </script>
+</body>
+</html>

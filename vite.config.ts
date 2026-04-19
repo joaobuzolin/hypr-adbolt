@@ -12,6 +12,27 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Split vendor dependencies so they cache independently of app code.
+        // When only app code changes (most deploys), users don't re-download
+        // React/Supabase/Zustand. Views are further code-split via React.lazy
+        // in App.tsx, so each route gets its own chunk automatically.
+        //
+        // Vite 8 uses Rolldown, which requires manualChunks as a function.
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+          }
+          return undefined;
+        },
+      },
+    },
   },
   test: {
     environment: 'jsdom',

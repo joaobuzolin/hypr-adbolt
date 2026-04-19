@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>AdBolt · Tag Renderer</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  </style>
+</head>
+<body>
+  <!--
+    This page is loaded as the src of the preview iframe in the React modal.
+    The actual 3P ad tag is passed in via URL fragment (base64-encoded, URL-encoded).
+    Using the fragment, not the query string, means the tag never hits server logs.
+
+    Why this roundtrip exists: when React creates an iframe via JS and uses
+    srcdoc or open/write/close inside useEffect, Chrome has a race condition
+    initializing about:blank that wipes the written content. Debug pages with
+    HTML-parsed iframes do not have this problem. This page is the debug page,
+    parsed from a real HTTP response — no race, no about:blank phase, the
+    document is ready when the <script> below runs.
+  -->
+  <script>
+    (function () {
+      function parseFragment() {
+        var frag = window.location.hash.replace(/^#/, '');
+        var params = {};
+        frag.split('&').forEach(function (kv) {
+          if (!kv) return;
+          var eq = kv.indexOf('=');
+          if (eq < 0) return;
+          params[decodeURIComponent(kv.slice(0, eq))] = decodeURIComponent(kv.slice(eq + 1));
+        });
+        return params;
+      }
+
+      function b64DecodeUtf8(b64) {
+        // atob gives us a binary string; reinterpret as UTF-8.
+        try {
+          var binary = atob(b64);
+          var bytes = new Uint8Array(binary.length);
+          for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return new TextDecoder('utf-8').decode(bytes);
+        } catch (e) {
+          return '';
+        }
+      }
+
+      var params = parseFragment();
+      if (!params.tag) {
+        document.body.textContent = 'Missing tag';
+        return;
+      }
+
+      var tagHtml = b64DecodeUtf8(params.tag);
+      var w = parseInt(params.w, 10) || 300;
+      var h = parseInt(params.h, 10) || 250;
+
+      // Size the body to the creative. The React side will size the parent
+      // iframe to exactly w x h so the creative fills it.
+      document.documentElement.style.width = w + 'px';
+      document.documentElement.style.height = h + 'px';
+      document.body.style.width = w + 'px';
+      document.body.style.height = h + 'px';
+
+      // Two render paths. Some ad servers (DCM in iframe-rendering-mode) use
+      // document.write from within dcmads.js. If our page has already finished
+      // parsing, calling document.write would overwrite the whole document.
+      // Safer approach: inject an iframe, then open/write/close on that iframe.
+      // This is exactly debug-colgate.html v1, which is confirmed working.
+      var host = document.createElement('iframe');
+      host.width = w;
+      host.height = h;
+      host.style.border = 'none';
+      host.style.display = 'block';
+      host.setAttribute('scrolling', 'no');
+      document.body.appendChild(host);
+
+      var doc = host.contentDocument;
+      if (!doc) {
+        document.body.textContent = 'contentDocument unavailable';
+        return;
+      }
+
+      var wrapped =
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">'
+        + '<style>*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}'
+        + 'html,body{width:' + w + 'px;height:' + h + 'px;overflow:hidden;background:transparent}'
+        + '</style></head><body>' + tagHtml + '</body></html>';
+
+      doc.open();
+      doc.write(wrapped);
+      doc.close();
+    })();
+  </script>
+</body>
+</html>

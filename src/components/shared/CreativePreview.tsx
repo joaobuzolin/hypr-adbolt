@@ -305,35 +305,33 @@ interface ThreePartyTagFrameProps {
 }
 
 function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyTagFrameProps) {
-  // Using srcdoc, not open/write/close. Debug pages proved the open/write/close
-  // pattern renders every CM360 iframe-mode tag correctly when the host iframe is
-  // parsed from initial HTML (debug-colgate.html, debug-contextos.html — all six
-  // nested-wrapper cases including the full modal stack). The same code failed
-  // inside this React component because React creates the iframe via JS: the
-  // useEffect fires in the same microtask as insertion, before Chrome finishes
-  // initializing about:blank. Our write succeeds, Chrome then re-initializes
-  // about:blank on top of it, and the content is wiped. srcdoc sidesteps the
-  // whole problem — the attribute is set as part of element creation, the
-  // browser uses its value as the initial document, no about:blank middle phase.
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<base target="_blank">
-<style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}
-</style>
-</head>
-<body>${tagContent}</body>
-</html>`;
+  // The iframe loads /preview/render-tag.html, a static HTML page parsed from
+  // a real HTTP response. The tag is passed as base64 in the URL fragment so
+  // the hosted page can do open/write/close on a sub-iframe — the exact setup
+  // that debug-colgate.html v1 and debug-contextos.html (all six wrapper
+  // scenarios) confirmed to render the Colgate tag correctly.
+  //
+  // Why a separate page and not srcdoc or open/write/close directly in React:
+  // when React creates the host iframe via JS, useEffect fires in the same
+  // microtask as insertion, before Chrome finishes initializing about:blank.
+  // The write happens, Chrome re-initializes on top, content gets wiped.
+  // srcdoc has similar issues with about:srcdoc as origin for certain ad
+  // servers. A real HTTP page avoids both.
+  //
+  // The fragment carries the tag (not query string) so the tag content never
+  // hits any HTTP log.
+  const encoded = encodeURIComponent(
+    btoa(unescape(encodeURIComponent(tagContent)))
+  );
+  const src = `/preview/render-tag.html#tag=${encoded}&w=${tagW}&h=${tagH}`;
 
   return (
     <iframe
+      key={src}
       title={`Preview: ${name}`}
+      src={src}
       width={tagW}
       height={tagH}
-      srcDoc={html}
       style={scale < 1 ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' } : { border: 'none', display: 'block' }}
     />
   );

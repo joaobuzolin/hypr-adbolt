@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Preview Test</title>
+<style>
+body { background: #0a0f14; color: #e0e0e0; font-family: -apple-system, sans-serif; padding: 20px; margin: 0; }
+.log { background: #111; padding: 10px; font-family: monospace; font-size: 11px; white-space: pre-wrap; max-height: 200px; overflow: auto; border: 1px solid #333; }
+.frame { display: inline-block; margin: 20px; background: #1a1a1a; border: 1px solid #333; }
+h3 { color: #0ff; }
+</style>
+</head>
+<body>
+<h3>3P Tag Preview Test (no auth)</h3>
+<div id="log" class="log">Starting...</div>
+
+<h3>300x600</h3>
+<div class="frame" id="f1" style="width:300px;height:600px"></div>
+
+<h3>970x250</h3>
+<div class="frame" id="f2" style="width:970px;height:250px"></div>
+
+<h3>300x250</h3>
+<div class="frame" id="f3" style="width:300px;height:250px"></div>
+
+<script>
+const log = document.getElementById('log');
+const addLog = (s) => { log.textContent += '\n' + s; console.log(s); };
+addLog('Script starting');
+
+// Tags de exemplo do XLSX Colgate — cada tag tem seu próprio placement
+// Vou testar só com 1 placement conhecido mas 3 sizes
+const tests = [
+  { id: 'f1', placement: 'N1433191.4242296HYPRN/B35590397.444842268', w: 300, h: 600 },
+  { id: 'f2', placement: 'N1433191.4242296HYPRN/B35590397.444842268', w: 970, h: 250 },
+  { id: 'f3', placement: 'N1433191.4242296HYPRN/B35590397.444842268', w: 300, h: 250 },
+];
+
+async function render(test) {
+  const el = document.getElementById(test.id);
+  el.innerHTML = 'loading...';
+  const ord = Math.floor(Math.random() * 1e13);
+  const url = `/api/ad-proxy?placement=${encodeURIComponent(test.placement)}&sz=${test.w}x${test.h}&ord=${ord}`;
+  addLog(`[${test.id}] fetch ${url}`);
+  try {
+    const r = await fetch(url);
+    const body = await r.json();
+    addLog(`[${test.id}] status=${r.status} body=${JSON.stringify(body).slice(0,200)}`);
+    if (body.image) {
+      el.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = body.image;
+      img.width = test.w;
+      img.height = test.h;
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      img.onload = () => addLog(`[${test.id}] img LOADED`);
+      img.onerror = () => addLog(`[${test.id}] img ERROR`);
+      el.appendChild(img);
+    } else {
+      el.innerHTML = 'no image — ' + (body.error || 'unknown');
+    }
+  } catch(e) {
+    addLog(`[${test.id}] ERR ${e}`);
+    el.innerHTML = 'fetch error';
+  }
+}
+
+(async () => {
+  for (const t of tests) { await render(t); }
+})();
+</script>
+</body>
+</html>

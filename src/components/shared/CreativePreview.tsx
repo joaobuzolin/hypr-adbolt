@@ -305,78 +305,70 @@ interface ThreePartyTagFrameProps {
 }
 
 function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyTagFrameProps) {
-  // The hosted page at /preview/render-tag.html decides how to render:
-  // - For CM360 iframe-mode tags (the dominant case), it parses the placement
-  //   out of the tag and calls the ad server directly at ad.doubleclick.net
-  //   with a fresh `ord` cachebuster on every open. This bypasses dcmads.js,
-  //   which otherwise silently no-ops on the 2nd+ call inside the same top
-  //   window.
-  // - For anything else, it falls back to document.write-ing the tag into a
-  //   sub-iframe and letting the ad server's own loader script run.
+  // Single iframe, same-origin, pointed straight at /api/ad-proxy. The proxy
+  // edge function talks to ad.doubleclick.net server-side, extracts just the
+  // creative image + click-through URL, and returns a trivial <img><a> HTML
+  // document. No dcmads, no Active View, no DoubleVerify, no nested iframes.
   //
-  // The ?v=2 is a bust-the-cache marker. Older browsers may have the first
-  // iteration of render-tag.html (srcdoc-only, no ad-server-direct path)
-  // still cached; ?v=2 forces a fresh fetch on first open after deploy.
+  // For non-CM360 tags we fall back to srcdoc with the raw tag — those
+  // already worked before and are kept for backward compatibility.
   //
-  // The mountId makes every open distinct from every other open in the same
-  // session, which matters for non-CM360 fallback tags whose client loader
-  // might also dedupe.
-  const encoded = encodeURIComponent(
-    btoa(unescape(encodeURIComponent(tagContent)))
-  );
-  const [mountId] = useState(() => Math.random().toString(36).slice(2, 10) + Date.now().toString(36));
-  const src = `/preview/render-tag.html?v=2&m=${mountId}#tag=${encoded}&w=${tagW}&h=${tagH}`;
-
-  // Silent-failure guard. render-tag.html posts an `error` message if it
-  // cannot even decode the fragment. In that case (should not happen with
-  // valid tags, but just in case) we surface a thin red bar so it is not a
-  // silent blank. Normal path renders with no bar at all.
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  useEffect(() => {
-    setErrorMsg(null);
-    function onMsg(e: MessageEvent) {
-      const d = e.data as { source?: string; type?: string; payload?: { reason?: string } } | null;
-      if (!d || d.source !== 'adbolt-render-tag') return;
-      if (d.type === 'error') {
-        setErrorMsg(d.payload?.reason || 'erro ao renderizar');
-      }
+  // Because the parent CreativePreviewModal keys this component off openCount,
+  // every open of the modal mounts a fresh instance with a fresh random `ord`,
+  // regardless of whether the tag is the same as last time. The iframe src is
+  // stable across re-renders of this instance (useState lazy init), so parent
+  // churn does not cause reloads.
+  const [src] = useState(() => {
+    const m = tagContent.match(/data-dcm-placement=['"]([^'"]+)['"]/);
+    const mode = tagContent.match(/data-dcm-rendering-mode=['"]([^'"]+)['"]/);
+    const isCm360Iframe = m && mode && mode[1] === 'iframe';
+    const ord = Math.floor(Math.random() * 1e13).toString();
+    if (isCm360Iframe) {
+      return `/api/ad-proxy?placement=${encodeURIComponent(m[1])}&sz=${tagW}x${tagH}&ord=${ord}`;
     }
-    window.addEventListener('message', onMsg);
-    return () => window.removeEventListener('message', onMsg);
-  }, [src]);
+    // Fallback: wrap the raw tag in a minimal document via srcdoc.
+    return null;
+  });
+
+  // For the fallback case only — static srcdoc content, never changes after
+  // mount because this instance is keyed off openCount at the parent level.
+  const [fallbackDoc] = useState(() => {
+    if (src) return null;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}</style></head><body>${tagContent}</body></html>`;
+  });
+
+  const iframeStyle = scale < 1
+    ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' }
+    : { border: 'none', display: 'block' };
 
   return (
-    <div style={{ position: 'relative', width: tagW, height: tagH }}>
-      <iframe
-        title={`Preview: ${name}`}
-        src={src}
-        width={tagW}
-        height={tagH}
-        style={scale < 1
-          ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' }
-          : { border: 'none', display: 'block' }}
-      />
-      {errorMsg && (
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0,
-          background: 'rgba(200,40,0,0.92)', color: 'white',
-          padding: '4px 8px', font: '11px ui-monospace, Menlo, monospace',
-          pointerEvents: 'none',
-        }}>{errorMsg}</div>
-      )}
-    </div>
+    <iframe
+      title={`Preview: ${name}`}
+      {...(src ? { src } : { srcDoc: fallbackDoc || '' })}
+      width={tagW}
+      height={tagH}
+      style={iframeStyle}
+    />
   );
 }
+
 
 // ── Full Preview Modal ──
 
 export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProps) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
-  // Track which preview we're showing to force iframe re-mount
   const [previewKey, setPreviewKey] = useState(0);
-  // Fetched HTML content for html5Url previews (bypasses Supabase text/plain content-type)
   const [fetchedHtml, setFetchedHtml] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState(false);
+  // openCount increments only on open events (null -> non-null transitions),
+  // NOT on every parent re-render. Parents like StepTags pass `data` as an
+  // inline object literal, which changes reference every render; without
+  // this guard, any downstream `key` derived from `data` either stays
+  // forever-stable (same string reuses the same React instance, 2nd open
+  // of the same tag never remounts) or thrashes on every render. openCount
+  // gives us a monotonic id per genuine open.
+  const [openCount, setOpenCount] = useState(0);
+  const wasOpenRef = useRef(false);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -388,18 +380,23 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
   // with a new onClose reference — that re-mount was wiping the 3P tag right
   // after it finished loading.
   useEffect(() => {
-    if (!data) return;
-    setIframeLoaded(false);
-    setPreviewKey((k) => k + 1);
-    setFetchedHtml(null);
-    setFetchError(false);
+    const isOpen = !!data;
+    if (isOpen && !wasOpenRef.current) {
+      // closed -> open transition — reset everything and bump openCount
+      setIframeLoaded(false);
+      setPreviewKey((k) => k + 1);
+      setFetchedHtml(null);
+      setFetchError(false);
+      setOpenCount((c) => c + 1);
 
-    if (data.type === 'html5' && data.html5Url) {
-      fetch(data.html5Url)
-        .then((r) => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
-        .then((html) => setFetchedHtml(html))
-        .catch(() => setFetchError(true));
+      if (data.type === 'html5' && data.html5Url) {
+        fetch(data.html5Url)
+          .then((r) => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
+          .then((html) => setFetchedHtml(html))
+          .catch(() => setFetchError(true));
+      }
     }
+    wasOpenRef.current = isOpen;
   }, [data]);
 
   // Keyboard listener and body scroll lock. Separate from the lifecycle effect
@@ -505,7 +502,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       return (
         <div className={styles.previewFrame} style={{ width: renderW, height: renderH, overflow: 'hidden' }}>
           <ThreePartyTagFrame
-            key={data.tagContent}
+            key={`tag-${openCount}`}
             tagContent={data.tagContent}
             tagW={tagW}
             tagH={tagH}

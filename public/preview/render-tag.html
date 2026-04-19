@@ -90,6 +90,16 @@
         adFrame.setAttribute('scrolling', 'no');
         adFrame.setAttribute('marginwidth', '0');
         adFrame.setAttribute('marginheight', '0');
+        // Sandbox isolates each ad-server iframe under an opaque origin, so
+        // Chrome cannot share storage/state between successive instances of
+        // ad.doubleclick.net within the same top window. Without this, the
+        // 2nd+ open of the same placement leaves the creative container
+        // invisible even though the ad server returned valid HTML — some
+        // partitioned state from the 1st load blocks the `creativeLoad`
+        // postMessage from propagating. allow-scripts is required for the
+        // ad HTML to run; allow-popups lets click-through links open; forms
+        // covers any survey / interaction payloads.
+        adFrame.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation');
         document.body.appendChild(adFrame);
         return;
       }

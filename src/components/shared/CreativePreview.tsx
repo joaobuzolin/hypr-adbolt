@@ -305,37 +305,59 @@ interface ThreePartyTagFrameProps {
 }
 
 function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyTagFrameProps) {
-  // Using srcdoc, not open/write/close. Debug pages proved the open/write/close
-  // pattern renders every CM360 iframe-mode tag correctly when the host iframe is
-  // parsed from initial HTML (debug-colgate.html, debug-contextos.html — all six
-  // nested-wrapper cases including the full modal stack). The same code failed
-  // inside this React component because React creates the iframe via JS: the
-  // useEffect fires in the same microtask as insertion, before Chrome finishes
-  // initializing about:blank. Our write succeeds, Chrome then re-initializes
-  // about:blank on top of it, and the content is wiped. srcdoc sidesteps the
-  // whole problem — the attribute is set as part of element creation, the
-  // browser uses its value as the initial document, no about:blank middle phase.
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<base target="_blank">
-<style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}
-</style>
-</head>
-<body>${tagContent}</body>
-</html>`;
+  // The iframe loads /preview/render-tag.html, a real HTTP-served page, and
+  // the tag is passed in the URL fragment (base64 + URL-encoded). The hosted
+  // page does open/write/close on a sub-iframe — the exact setup that
+  // debug-colgate.html v1 and debug-contextos.html confirmed to work for this
+  // origin and placement. We avoid srcdoc and direct JS DOM injection because
+  // those both failed in the React-created iframe path due to Chrome's
+  // about:blank race.
+  const encoded = encodeURIComponent(
+    btoa(unescape(encodeURIComponent(tagContent)))
+  );
+  // debug=1 turns on a yellow diagnostic overlay inside render-tag.html and
+  // makes it postMessage status events back here.
+  const src = `/preview/render-tag.html?debug=1#tag=${encoded}&w=${tagW}&h=${tagH}`;
+
+  // Surface render-tag.html error events into the modal. Silent blank is
+  // what cost us the last round; if something in the chain breaks, we want
+  // the reason visible in the UI instead of guessing.
+  const [status, setStatus] = useState<string | null>(null);
+  useEffect(() => {
+    setStatus(null);
+    function onMsg(e: MessageEvent) {
+      const d = e.data as { source?: string; type?: string; payload?: { reason?: string; subIframeCount?: number } } | null;
+      if (!d || typeof d !== 'object' || d.source !== 'adbolt-render-tag') return;
+      if (d.type === 'error') {
+        setStatus('render-tag error: ' + (d.payload?.reason || 'unknown'));
+      } else if (d.type === 'probe' && d.payload?.subIframeCount === 0) {
+        setStatus('dcmads sem sub-iframe (ad server bloqueou ou tag inválida)');
+      }
+    }
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [src]);
 
   return (
-    <iframe
-      title={`Preview: ${name}`}
-      width={tagW}
-      height={tagH}
-      srcDoc={html}
-      style={scale < 1 ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' } : { border: 'none', display: 'block' }}
-    />
+    <div style={{ position: 'relative', width: tagW, height: tagH }}>
+      <iframe
+        title={`Preview: ${name}`}
+        src={src}
+        width={tagW}
+        height={tagH}
+        style={scale < 1
+          ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' }
+          : { border: 'none', display: 'block' }}
+      />
+      {status && (
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0,
+          background: 'rgba(200,0,0,0.92)', color: 'white',
+          padding: '4px 8px', font: '11px ui-monospace, Menlo, monospace',
+          pointerEvents: 'none',
+        }}>{status}</div>
+      )}
+    </div>
   );
 }
 

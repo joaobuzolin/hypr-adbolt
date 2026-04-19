@@ -6,23 +6,34 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    #debug {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 6px 8px; font: 10px/1.3 ui-monospace, Menlo, monospace;
+      background: rgba(255, 255, 0, 0.95); color: #222;
+      border-bottom: 1px solid #999; z-index: 999999;
+      white-space: pre-wrap; word-break: break-all;
+      max-height: 50%; overflow: auto;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <!--
-    This page is loaded as the src of the preview iframe in the React modal.
-    The actual 3P ad tag is passed in via URL fragment (base64-encoded, URL-encoded).
-    Using the fragment, not the query string, means the tag never hits server logs.
-
-    Why this roundtrip exists: when React creates an iframe via JS and uses
-    srcdoc or open/write/close inside useEffect, Chrome has a race condition
-    initializing about:blank that wipes the written content. Debug pages with
-    HTML-parsed iframes do not have this problem. This page is the debug page,
-    parsed from a real HTTP response — no race, no about:blank phase, the
-    document is ready when the <script> below runs.
-  -->
+  <div id="debug"></div>
   <script>
     (function () {
+      var dbg = document.getElementById('debug');
+      var debugEnabled = /[?&#]debug=1\b/.test(location.href);
+
+      function log(msg) {
+        dbg.style.display = 'block';
+        dbg.textContent += msg + '\n';
+      }
+      function postToParent(type, payload) {
+        try {
+          parent.postMessage({ source: 'adbolt-render-tag', type: type, payload: payload }, '*');
+        } catch (e) {}
+      }
+
       function parseFragment() {
         var frag = window.location.hash.replace(/^#/, '');
         var params = {};
@@ -36,39 +47,47 @@
       }
 
       function b64DecodeUtf8(b64) {
-        // atob gives us a binary string; reinterpret as UTF-8.
         try {
           var binary = atob(b64);
           var bytes = new Uint8Array(binary.length);
           for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
           return new TextDecoder('utf-8').decode(bytes);
         } catch (e) {
-          return '';
+          return null;
         }
       }
 
+      postToParent('boot', { href: location.href });
+
       var params = parseFragment();
       if (!params.tag) {
-        document.body.textContent = 'Missing tag';
+        if (debugEnabled) log('ERR: missing `tag` fragment. params=' + JSON.stringify(params));
+        postToParent('error', { reason: 'missing-tag' });
         return;
       }
 
       var tagHtml = b64DecodeUtf8(params.tag);
+      if (!tagHtml) {
+        if (debugEnabled) log('ERR: failed to base64-decode tag. raw first 80: ' + params.tag.slice(0, 80));
+        postToParent('error', { reason: 'decode-failed' });
+        return;
+      }
+
       var w = parseInt(params.w, 10) || 300;
       var h = parseInt(params.h, 10) || 250;
 
-      // Size the body to the creative. The React side will size the parent
-      // iframe to exactly w x h so the creative fills it.
+      if (debugEnabled) {
+        log('OK params  w=' + w + ' h=' + h + ' tag length=' + tagHtml.length);
+        log('tag sample: ' + tagHtml.slice(0, 200));
+      }
+
+      postToParent('decoded', { w: w, h: h, tagLen: tagHtml.length });
+
       document.documentElement.style.width = w + 'px';
       document.documentElement.style.height = h + 'px';
       document.body.style.width = w + 'px';
       document.body.style.height = h + 'px';
 
-      // Two render paths. Some ad servers (DCM in iframe-rendering-mode) use
-      // document.write from within dcmads.js. If our page has already finished
-      // parsing, calling document.write would overwrite the whole document.
-      // Safer approach: inject an iframe, then open/write/close on that iframe.
-      // This is exactly debug-colgate.html v1, which is confirmed working.
       var host = document.createElement('iframe');
       host.width = w;
       host.height = h;
@@ -79,7 +98,8 @@
 
       var doc = host.contentDocument;
       if (!doc) {
-        document.body.textContent = 'contentDocument unavailable';
+        if (debugEnabled) log('ERR: host iframe contentDocument unavailable');
+        postToParent('error', { reason: 'no-contentdoc' });
         return;
       }
 
@@ -92,6 +112,23 @@
       doc.open();
       doc.write(wrapped);
       doc.close();
+
+      postToParent('written', { htmlLen: wrapped.length });
+
+      // Sanity probe — after 4s, report whether a sub-iframe (the ad server
+      // frame created by dcmads.js in iframe rendering mode) exists.
+      setTimeout(function () {
+        try {
+          var subIframes = doc.querySelectorAll('iframe');
+          postToParent('probe', {
+            subIframeCount: subIframes.length,
+            firstSrc: subIframes[0] ? (subIframes[0].src || '').slice(0, 120) : null,
+          });
+          if (debugEnabled) log('probe: ' + subIframes.length + ' sub-iframe(s)');
+        } catch (e) {
+          postToParent('probe-error', { msg: String(e) });
+        }
+      }, 4000);
     })();
   </script>
 </body>

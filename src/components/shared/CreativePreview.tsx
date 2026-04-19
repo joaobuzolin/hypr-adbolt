@@ -305,29 +305,93 @@ interface ThreePartyTagFrameProps {
 }
 
 function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyTagFrameProps) {
-  // TEMP DIAGNOSTIC: hardcode the image URL. If this renders, <img> works fine
-  // and the problem is the fetch/proxy path. If this does NOT render (or shows
-  // the same gray-dots pattern), the problem is CSS/layout above this element.
-  const hardcodedImage = 'https://s0.2mdn.net/simgad/10153633310605899915';
+  // Strategy: for CM360 iframe-mode tags, extract the placement, call our
+  // same-origin proxy (which asks the ad server server-side and returns JSON
+  // with the creative image URL), and render a plain <img> in React's DOM.
+  // No iframes, no dcmads.js in this page, no cross-origin storage partitioning.
+  // For non-CM360 tags we fall back to a srcdoc iframe that injects the tag.
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [clickUrl, setClickUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const placementMatch = tagContent?.match(/data-dcm-placement=['"]([^'"]+)['"]/);
+  const renderingMode = tagContent?.match(/data-dcm-rendering-mode=['"]([^'"]+)['"]/);
+  const isCm360Iframe = !!(placementMatch && renderingMode && renderingMode[1] === 'iframe');
+
+  useEffect(() => {
+    if (!isCm360Iframe || !placementMatch) return;
+    const ord = Math.floor(Math.random() * 1e13).toString();
+    const proxyUrl = `/api/ad-proxy?placement=${encodeURIComponent(placementMatch[1])}&sz=${tagW}x${tagH}&ord=${ord}`;
+    let cancelled = false;
+    fetch(proxyUrl)
+      .then((r) => r.json())
+      .then((body: { image?: string; click?: string; error?: string }) => {
+        if (cancelled) return;
+        if (body.error) { setLoadError(body.error); return; }
+        if (body.image) {
+          setImageUrl(body.image);
+          setClickUrl(body.click || null);
+        }
+      })
+      .catch((e) => { if (!cancelled) setLoadError(String(e)); });
+    return () => { cancelled = true; };
+    // Intentional: we want this to run exactly once per mount. Mount identity is
+    // controlled by the parent via `key` — see CreativePreviewModal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const wrapperStyle: React.CSSProperties = scale < 1
     ? { transformOrigin: '0 0', transform: `scale(${scale})`, width: tagW, height: tagH, display: 'block', position: 'relative' }
     : { width: tagW, height: tagH, display: 'block', position: 'relative' };
 
-  return (
-    <div style={wrapperStyle} data-debug="3ptag-bruteforce" data-tagw={tagW} data-tagh={tagH}>
-      <div style={{position:'absolute', top:0, left:0, right:0, padding:'4px 8px', background:'red', color:'white', font:'bold 14px monospace', zIndex:10}}>
-        DEBUG: ThreePartyTagFrame mounted, name={name}, tag={tagContent?.length ?? 'null'} chars
-      </div>
-      <img
-        src={hardcodedImage}
-        alt={name}
+  // Non-CM360 fallback: srcdoc iframe
+  if (!isCm360Iframe) {
+    const fallbackDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank"><style>*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}</style></head><body>${tagContent}</body></html>`;
+    return (
+      <iframe
+        title={`Preview: ${name}`}
+        srcDoc={fallbackDoc}
         width={tagW}
         height={tagH}
-        onLoad={() => console.log('[3ptag] img onLoad OK', hardcodedImage)}
-        onError={(e) => console.error('[3ptag] img onError', e)}
-        style={{ display: 'block', width: tagW, height: tagH, objectFit: 'contain', background: 'yellow' }}
+        style={scale < 1
+          ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' }
+          : { border: 'none', display: 'block' }}
       />
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ ...wrapperStyle, background: 'var(--bg-surface, #1a1a1a)', color: 'var(--text-sec, #888)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '12px ui-monospace,monospace', textAlign: 'center', padding: 12 }}>
+        Preview indisponível<br /><span style={{opacity:0.6, fontSize:11}}>{loadError}</span>
+      </div>
+    );
+  }
+  if (!imageUrl) {
+    return (
+      <div style={{ ...wrapperStyle, background: 'var(--bg-surface, #1a1a1a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ color: 'var(--text-sec, #888)', font: '12px sans-serif' }}>Carregando preview…</span>
+      </div>
+    );
+  }
+
+  const img = (
+    <img
+      src={imageUrl}
+      alt={name}
+      width={tagW}
+      height={tagH}
+      style={{ display: 'block', width: tagW, height: tagH, objectFit: 'contain' }}
+    />
+  );
+
+  return (
+    <div style={wrapperStyle}>
+      {clickUrl ? (
+        <a href={clickUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: tagW, height: tagH }}>
+          {img}
+        </a>
+      ) : img}
     </div>
   );
 }
@@ -335,23 +399,28 @@ function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyT
 
 
 
+
 // ── Full Preview Modal ──
+
+
+// Deterministic short hash for stable React keys. Same input → same key across
+// renders, different input → different key → component remount (critical for
+// resetting fetch state when user switches between different 3P tags).
+function hashKey(s: string | undefined, w: number, h: number): string {
+  if (!s) return `empty-${w}x${h}`;
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) - hash) + s.charCodeAt(i);
+    hash |= 0;
+  }
+  return `${Math.abs(hash).toString(36)}-${w}x${h}`;
+}
 
 export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProps) {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [fetchedHtml, setFetchedHtml] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState(false);
-  // openCount increments only on open events (null -> non-null transitions),
-  // NOT on every parent re-render. Parents like StepTags pass `data` as an
-  // inline object literal, which changes reference every render; without
-  // this guard, any downstream `key` derived from `data` either stays
-  // forever-stable (same string reuses the same React instance, 2nd open
-  // of the same tag never remounts) or thrashes on every render. openCount
-  // gives us a monotonic id per genuine open.
-  const [openCount, setOpenCount] = useState(0);
-  const wasOpenRef = useRef(false);
-
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
   }, [onClose]);
@@ -361,26 +430,6 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
   // (and re-mount the iframe via previewKey) every time the parent re-renders
   // with a new onClose reference — that re-mount was wiping the 3P tag right
   // after it finished loading.
-  useEffect(() => {
-    const isOpen = !!data;
-    if (isOpen && !wasOpenRef.current) {
-      // closed -> open transition — reset everything and bump openCount
-      setIframeLoaded(false);
-      setPreviewKey((k) => k + 1);
-      setFetchedHtml(null);
-      setFetchError(false);
-      setOpenCount((c) => c + 1);
-
-      if (data.type === 'html5' && data.html5Url) {
-        fetch(data.html5Url)
-          .then((r) => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
-          .then((html) => setFetchedHtml(html))
-          .catch(() => setFetchError(true));
-      }
-    }
-    wasOpenRef.current = isOpen;
-  }, [data]);
-
   // Keyboard listener and body scroll lock. Separate from the lifecycle effect
   // so changes to `handleEscape` (which happen whenever the parent passes a
   // new onClose reference) do not re-trigger the preview reset logic.
@@ -484,7 +533,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       return (
         <div className={styles.previewFrame} style={{ width: renderW, height: renderH, overflow: 'hidden' }}>
           <ThreePartyTagFrame
-            key={`tag-${openCount}`}
+            key={`tag-${hashKey(data.tagContent, tagW, tagH)}`}
             tagContent={data.tagContent}
             tagW={tagW}
             tagH={tagH}

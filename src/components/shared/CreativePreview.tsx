@@ -305,33 +305,35 @@ interface ThreePartyTagFrameProps {
 }
 
 function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyTagFrameProps) {
-  // The iframe loads /preview/render-tag.html, a static HTML page parsed from
-  // a real HTTP response. The tag is passed as base64 in the URL fragment so
-  // the hosted page can do open/write/close on a sub-iframe — the exact setup
-  // that debug-colgate.html v1 and debug-contextos.html (all six wrapper
-  // scenarios) confirmed to render the Colgate tag correctly.
-  //
-  // Why a separate page and not srcdoc or open/write/close directly in React:
-  // when React creates the host iframe via JS, useEffect fires in the same
-  // microtask as insertion, before Chrome finishes initializing about:blank.
-  // The write happens, Chrome re-initializes on top, content gets wiped.
-  // srcdoc has similar issues with about:srcdoc as origin for certain ad
-  // servers. A real HTTP page avoids both.
-  //
-  // The fragment carries the tag (not query string) so the tag content never
-  // hits any HTTP log.
-  const encoded = encodeURIComponent(
-    btoa(unescape(encodeURIComponent(tagContent)))
-  );
-  const src = `/preview/render-tag.html#tag=${encoded}&w=${tagW}&h=${tagH}`;
+  // Using srcdoc, not open/write/close. Debug pages proved the open/write/close
+  // pattern renders every CM360 iframe-mode tag correctly when the host iframe is
+  // parsed from initial HTML (debug-colgate.html, debug-contextos.html — all six
+  // nested-wrapper cases including the full modal stack). The same code failed
+  // inside this React component because React creates the iframe via JS: the
+  // useEffect fires in the same microtask as insertion, before Chrome finishes
+  // initializing about:blank. Our write succeeds, Chrome then re-initializes
+  // about:blank on top of it, and the content is wiped. srcdoc sidesteps the
+  // whole problem — the attribute is set as part of element creation, the
+  // browser uses its value as the initial document, no about:blank middle phase.
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<base target="_blank">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:${tagW}px;height:${tagH}px;overflow:hidden;background:transparent}
+</style>
+</head>
+<body>${tagContent}</body>
+</html>`;
 
   return (
     <iframe
-      key={src}
       title={`Preview: ${name}`}
-      src={src}
       width={tagW}
       height={tagH}
+      srcDoc={html}
       style={scale < 1 ? { transformOrigin: '0 0', transform: `scale(${scale})`, border: 'none', display: 'block' } : { border: 'none', display: 'block' }}
     />
   );
@@ -351,30 +353,37 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
     if (e.key === 'Escape') onClose();
   }, [onClose]);
 
+  // Lifecycle: reset preview state and kick off any async fetch when `data`
+  // actually changes. Deliberately depends only on `data` so we do not re-run
+  // (and re-mount the iframe via previewKey) every time the parent re-renders
+  // with a new onClose reference — that re-mount was wiping the 3P tag right
+  // after it finished loading.
   useEffect(() => {
-    if (data) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-      // Reset iframe state and bump key for fresh mount
-      setIframeLoaded(false);
-      setPreviewKey((k) => k + 1);
-      setFetchedHtml(null);
-      setFetchError(false);
+    if (!data) return;
+    setIframeLoaded(false);
+    setPreviewKey((k) => k + 1);
+    setFetchedHtml(null);
+    setFetchError(false);
 
-      // If we have an html5Url, fetch content for srcdoc rendering
-      // (Supabase Storage serves .html as text/plain which breaks iframe src)
-      if (data.type === 'html5' && data.html5Url) {
-        fetch(data.html5Url)
-          .then((r) => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
-          .then((html) => setFetchedHtml(html))
-          .catch(() => setFetchError(true));
-      }
-
-      return () => {
-        document.removeEventListener('keydown', handleEscape);
-        document.body.style.overflow = '';
-      };
+    if (data.type === 'html5' && data.html5Url) {
+      fetch(data.html5Url)
+        .then((r) => r.ok ? r.text() : Promise.reject('HTTP ' + r.status))
+        .then((html) => setFetchedHtml(html))
+        .catch(() => setFetchError(true));
     }
+  }, [data]);
+
+  // Keyboard listener and body scroll lock. Separate from the lifecycle effect
+  // so changes to `handleEscape` (which happen whenever the parent passes a
+  // new onClose reference) do not re-trigger the preview reset logic.
+  useEffect(() => {
+    if (!data) return;
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
   }, [data, handleEscape]);
 
   if (!data) return null;
@@ -467,7 +476,7 @@ export function CreativePreviewModal({ data, onClose }: CreativePreviewModalProp
       return (
         <div className={styles.previewFrame} style={{ width: renderW, height: renderH, overflow: 'hidden' }}>
           <ThreePartyTagFrame
-            key={`tag-${previewKey}`}
+            key={data.tagContent}
             tagContent={data.tagContent}
             tagW={tagW}
             tagH={tagH}

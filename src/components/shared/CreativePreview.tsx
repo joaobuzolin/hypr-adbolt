@@ -315,9 +315,10 @@ function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyT
   const encoded = encodeURIComponent(
     btoa(unescape(encodeURIComponent(tagContent)))
   );
-  // debug=1 turns on a yellow diagnostic overlay inside render-tag.html and
-  // makes it postMessage status events back here.
-  const src = `/preview/render-tag.html?debug=1#tag=${encoded}&w=${tagW}&h=${tagH}`;
+  // render-tag.html will postMessage lifecycle events back to us regardless.
+  // Append ?debug=1 to the URL (manually, in a DevTools edit) to also surface
+  // a yellow diagnostic overlay inside the iframe for deeper troubleshooting.
+  const src = `/preview/render-tag.html#tag=${encoded}&w=${tagW}&h=${tagH}`;
 
   // Surface render-tag.html error events into the modal. Silent blank is
   // what cost us the last round; if something in the chain breaks, we want

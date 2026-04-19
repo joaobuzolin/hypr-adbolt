@@ -315,10 +315,18 @@ function ThreePartyTagFrame({ tagContent, tagW, tagH, scale, name }: ThreePartyT
   const encoded = encodeURIComponent(
     btoa(unescape(encodeURIComponent(tagContent)))
   );
-  // render-tag.html will postMessage lifecycle events back to us regardless.
-  // Append ?debug=1 to the URL (manually, in a DevTools edit) to also surface
+  // Mount-stable unique id. Purpose: force a unique iframe src on every
+  // component mount so the browser does not serve render-tag.html from
+  // memory cache and — more importantly — so dcmads.js sees a fresh iframe
+  // identity and does not dedupe-silently the second call. Without this,
+  // opening the modal, closing it, and opening another tag would leave the
+  // second preview blank because the ad server treated it as a duplicate.
+  // useState with lazy init runs exactly once per mount, so this value is
+  // stable across re-renders but regenerated on remount.
+  const [mountId] = useState(() => Math.random().toString(36).slice(2, 10) + Date.now().toString(36));
+  // Append ?debug=1 to the URL (manually, in a DevTools edit) to surface
   // a yellow diagnostic overlay inside the iframe for deeper troubleshooting.
-  const src = `/preview/render-tag.html#tag=${encoded}&w=${tagW}&h=${tagH}`;
+  const src = `/preview/render-tag.html?m=${mountId}#tag=${encoded}&w=${tagW}&h=${tagH}`;
 
   // Surface render-tag.html error events into the modal. Silent blank is
   // what cost us the last round; if something in the chain breaks, we want

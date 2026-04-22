@@ -44,7 +44,15 @@ export async function uploadThumbnail(
  * Upload HTML5 preview content (self-contained HTML with inlined resources)
  * to the public 'thumbnails' bucket. Returns the full public URL.
  * Includes retry with backoff for reliability.
+ *
+ * Limite do bucket `thumbnails`: 15MB. HTML5 previews inlinam todos os recursos
+ * do ZIP como data URLs (base64 adiciona ~33% overhead), então um ZIP de 10MB
+ * vira preview de ~13MB. Se passar do limite, retorna '' e a ativação segue
+ * sem preview disponível no dashboard (não bloqueia o fluxo).
  */
+// Bate com storage.buckets.thumbnails.file_size_limit (15MB).
+const THUMBNAIL_BUCKET_LIMIT = 15 * 1024 * 1024;
+
 export async function uploadHtml5Preview(
   htmlContent: string,
   token: string,
@@ -52,6 +60,15 @@ export async function uploadHtml5Preview(
   if (!htmlContent) return '';
 
   const blob = new Blob([htmlContent], { type: 'text/html' });
+
+  // Pre-check: evita gastar 3 tentativas + backoff num upload que vai dar 413 de cara
+  if (blob.size > THUMBNAIL_BUCKET_LIMIT) {
+    const sizeMb = (blob.size / (1024 * 1024)).toFixed(1);
+    const limitMb = Math.round(THUMBNAIL_BUCKET_LIMIT / (1024 * 1024));
+    console.warn(`HTML5 preview skipped: ${sizeMb}MB excede o limite de ${limitMb}MB do bucket thumbnails. Ativação segue sem preview.`);
+    return '';
+  }
+
   const path = `h5/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.html`;
 
   const MAX_RETRIES = 2;
@@ -74,6 +91,8 @@ export async function uploadHtml5Preview(
 
       const errText = await res.text();
       console.warn(`HTML5 preview upload attempt ${attempt + 1}/${MAX_RETRIES + 1} failed (${res.status}):`, errText);
+      // 413 não vai mudar em retry — aborta logo
+      if (res.status === 413) break;
     } catch (err) {
       console.warn(`HTML5 preview upload attempt ${attempt + 1}/${MAX_RETRIES + 1} network error:`, err);
     }

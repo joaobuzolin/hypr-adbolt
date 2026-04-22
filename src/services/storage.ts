@@ -104,6 +104,11 @@ export async function uploadToStorage(file: File, token: string): Promise<string
 
   if (!res.ok) {
     const t = await res.text();
+    // Mensagem amigável pra 413 (arquivo excede o limite do bucket)
+    if (res.status === 413) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      throw new Error(`Arquivo ${file.name} (${sizeMb}MB) excede o limite do storage. Comprima antes de subir.`);
+    }
     throw new Error('Storage upload failed: ' + t);
   }
 

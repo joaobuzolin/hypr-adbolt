@@ -16,7 +16,7 @@ import {
 import { extractZipToFiles, processHTML5Zip } from '@/lib/html5-zip';
 import { analyzeTracker } from '@/parsers/tracker';
 import { normalizeUrl, formatBytes } from '@/lib/utils';
-import { ASSET_DSP_LIMITS, DSP_SHORT_LABELS } from '@/types';
+import { ASSET_DSP_LIMITS, DSP_SHORT_LABELS, STORAGE_UPLOAD_LIMIT } from '@/types';
 import type { AssetEntry } from '@/types';
 import styles from './StepAssets.module.css';
 
@@ -98,6 +98,11 @@ export function StepAssets() {
         const type = getAssetType(file);
         if (!type) {
           toast(`"${file.name}" não é suportado. Use JPG, PNG, GIF ou MP4.`, 'error');
+          continue;
+        }
+        if (file.size > STORAGE_UPLOAD_LIMIT) {
+          const limitMb = Math.round(STORAGE_UPLOAD_LIMIT / (1024 * 1024));
+          toast(`"${file.name}" (${formatBytes(file.size)}) excede o limite de ${limitMb}MB. Comprima o arquivo antes de subir.`, 'error');
           continue;
         }
         try {

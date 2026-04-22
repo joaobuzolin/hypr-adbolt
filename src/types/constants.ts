@@ -44,6 +44,11 @@ export const ASSET_DSP_LIMITS: Record<string, Record<string, number>> = {
   amazondsp: { display: 200 * 1024, video: Infinity, html5: 200 * 1024 },
 };
 
+// ── Storage upload limit (bytes) ──
+// Teto do bucket Supabase `asset-uploads`. Precisa bater com o `file_size_limit`
+// configurado no Supabase Storage. Arquivos maiores recebem 413 do Supabase.
+export const STORAGE_UPLOAD_LIMIT = 500 * 1024 * 1024; // 500 MB
+
 // ── Survey sizes ──
 
 export const SURVEY_SIZES = ['300x600', '300x250', '320x480'];

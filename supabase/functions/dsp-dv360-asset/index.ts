@@ -12,8 +12,7 @@ function normalizeTrackerInput(t: unknown): {url: string; format: string; eventT
 interface Input { name:string; type:'display'|'video'|'html5'; dimensions:string; fileName:string; mimeType:string; storagePath?:string; fileBase64?:string; fileSize?:number; landingPage:string; trackers?:unknown[]; duration?:number; thumbnailUrl?:string; html5PreviewUrl?:string; }
 interface Result { name:string; success:boolean; creativeId?:string; error?:string; step?:string; _input?:Input; }
 
-// Retorna o asset como Blob (streaming-friendly). Evita alocar Uint8Array gigante em memória
-// - crítico para videos grandes, já que edge functions têm limite de ~512MB por isolate.
+// Retorna o asset como Blob. Evita Uint8Array gigante em memoria - Blob eh lazy.
 async function getFileBlob(sb: any, input: Input): Promise<Blob> {
   if (input.storagePath) {
     const { data, error } = await sb.storage.from('asset-uploads').download(input.storagePath);
@@ -26,6 +25,11 @@ async function getFileBlob(sb: any, input: Input): Promise<Blob> {
     return new Blob([arr], { type: input.mimeType });
   }
   throw new Error('No file data');
+}
+
+// Escape de filename para header multipart (RFC 6266).
+function escapeFilename(name: string): string {
+  return name.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 async function process(token: string, advId: string, input: Input, sb: any): Promise<r> {
@@ -57,18 +61,41 @@ async function process(token: string, advId: string, input: Input, sb: any): Pro
         : 'THIRD_PARTY_URL_TYPE_IMPRESSION';
       allTrackerUrls.push({type: dv360Type, url: t.url});
     }
-    console.log(`[dv360-asset] Uploading ${input.fileName} (${blob.size} bytes, ${input.mimeType}), type=${input.type}, trackers=${allTrackerUrls.length}, events=${allTrackerUrls.map(t=>t.type).join(',')}`);
+    console.log(`[dv360-asset] Uploading ${input.fileName} (${blob.size} bytes, ${input.mimeType}), type=${input.type}, trackers=${allTrackerUrls.length}`);
     if (isVideo && blob.size < 1000) { return {name:input.name, success:false, error:`File too small (${blob.size} bytes)`, step:'validate'}; }
 
-    // FormData nativo: fetch serializa em stream sem materializar body completo na memória.
-    // Google DV360 aceita multipart padrão; o Blob "data" carrega Content-Type aplicação/json explícito.
-    const fd = new FormData();
-    fd.append('data', new Blob([JSON.stringify({filename: input.fileName})], { type: 'application/json; charset=UTF-8' }));
-    fd.append('file', new Blob([blob], { type: input.mimeType }), input.fileName);
+    // Body como Blob combinado - formato multipart exato da doc do DV360.
+    // Blob eh lazy: partes sao referenciadas, nao copiadas. Deno faz streaming
+    // interno no fetch e seta Content-Length automaticamente (chunked nao eh
+    // aceito por varias APIs do Google).
+    const boundary = '----DV360' + Date.now() + Math.random().toString(36).substring(2, 10);
+    const CRLF = '\r\n';
+    const enc = new TextEncoder();
+    const metaPart = enc.encode(
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="data"${CRLF}` +
+      `Content-Type: application/json; charset=UTF-8${CRLF}${CRLF}` +
+      `${JSON.stringify({ filename: input.fileName })}${CRLF}`
+    );
+    const fileHeader = enc.encode(
+      `--${boundary}${CRLF}` +
+      `Content-Disposition: form-data; name="file"; filename="${escapeFilename(input.fileName)}"${CRLF}` +
+      `Content-Type: ${input.mimeType}${CRLF}${CRLF}`
+    );
+    const fileFooter = enc.encode(CRLF);
+    const closing = enc.encode(`--${boundary}--${CRLF}`);
+    const bodyBlob = new Blob([metaPart, fileHeader, blob, fileFooter, closing]);
 
     const uploadRes = await fetch(
       `https://displayvideo.googleapis.com/upload/v4/advertisers/${advId}/assets?uploadType=multipart`,
-      { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd }
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        },
+        body: bodyBlob,
+      }
     );
     const uploadText = await uploadRes.text();
     let uploadData;
@@ -76,7 +103,7 @@ async function process(token: string, advId: string, input: Input, sb: any): Pro
     const mediaId = uploadData.asset?.mediaId;
     if (!mediaId) return {name:input.name, success:false, error:`No mediaId: ${uploadData.error?.message || uploadText.substring(0,200)}`, step:'upload'};
 
-    // Source of truth: read actual dimensions from file bytes (display only - videos skip this)
+    // Dimensoes reais do arquivo (apenas display; videos pulam)
     let realW = w, realH = h;
     if (!isVideo) {
       const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -100,7 +127,7 @@ async function process(token: string, advId: string, input: Input, sb: any): Pro
         realH = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
       }
       if (realW !== w || realH !== h) {
-        console.log(`[dv360-asset] Dimensions from file bytes: ${realW}x${realH} (frontend declared ${w}x${h}) for ${input.name}`);
+        console.log(`[dv360-asset] Dimensions from bytes: ${realW}x${realH} (declared ${w}x${h}) for ${input.name}`);
       }
     }
 

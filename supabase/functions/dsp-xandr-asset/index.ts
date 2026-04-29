@@ -139,7 +139,36 @@ async function processCreative(token:string, advId:number, input:Input, brandUrl
       console.log(`[xandr-asset] Response: ${resText.substring(0,500)}`);
       let rd; try{rd=JSON.parse(resText)}catch{return{name:input.name,success:false,error:`VAST parse: ${resText.substring(0,300)}`,step:'create'}}
       const vc = rd.response?.['creative-vast'];
-      if(vc?.id) return {name:input.name,success:true,creativeId:vc.id,_input:input};
+      if(vc?.id) {
+        // Fix crítico: o POST do /creative-vast NÃO popula `categories` no
+        // creative, mesmo quando o brand é detected. Sem categories, line items
+        // que filtram inventário por categoria IAB não consideram o creative
+        // elegível — e a maioria dos publishers premium filtra. Sintoma: audit
+        // approved + line item associada + zero entrega.
+        //
+        // A Xandr detecta o brand via match de nome no nosso input (ex: "HNK_..."
+        // → brand_id 4563 = Heineken, com category_id 74). Reutilizamos esse
+        // category_id pra setar categories num PUT subsequente. Esse PUT triggera
+        // re-classification automática e popula technical_attributes/adservers
+        // também.
+        const detectedBrandCatId = vc.brand?.category_id;
+        if (detectedBrandCatId) {
+          try {
+            const putBody = JSON.stringify({ 'creative-vast': { categories: [{ id: detectedBrandCatId }] } });
+            const putRes = await fetch(`${XANDR_API}/creative-vast?id=${vc.id}&member_id=${MEMBER_ID}&advertiser_id=${advId}`, {
+              method: 'PUT', headers: {'Content-Type':'application/json', Authorization: token}, body: putBody,
+            });
+            const putText = await putRes.text();
+            console.log(`[xandr-asset] PUT categories cat_id=${detectedBrandCatId}: ${putText.substring(0,300)}`);
+          } catch (err) {
+            // Não-fatal: creative já foi criado. Categories pode ser setado depois.
+            console.error(`[xandr-asset] PUT categories falhou: ${(err as Error).message}`);
+          }
+        } else {
+          console.warn(`[xandr-asset] Sem brand detected pra ${input.name} — categories ficará vazio (creative pode não entregar)`);
+        }
+        return {name:input.name,success:true,creativeId:vc.id,_input:input};
+      }
       return {name:input.name,success:false,error:`creative-vast: ${rd.response?.error_message||JSON.stringify(rd.response||rd).substring(0,500)}`,step:'create'};
 
     } else {

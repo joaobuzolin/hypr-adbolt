@@ -1,30 +1,32 @@
 /**
- * Video transcoding via ffmpeg.wasm (multi-thread).
+ * Video transcoding via ffmpeg.wasm (single-thread).
  *
- * Lazy-loads the WASM core (~30MB) only when actually called — most uploads
+ * Lazy-loads the WASM core (~25MB) only when actually called — most uploads
  * don't need it (display, HTML5, well-formed videos). The core is cached at
  * module level so repeated transcodes in the same session don't re-fetch.
  *
- * Why client-side: avoids round-trips to Supabase storage for files that will
- * be discarded anyway, and gives the user immediate feedback. Trade-off is
- * CPU on the user's machine — for typical creatives (≤30s, ≤100MB) this runs
- * in single-digit seconds on multi-thread.
+ * Why single-thread (não multi-thread como eu tinha colocado primeiro):
+ * o core-mt tem bug conhecido (https://github.com/ffmpegwasm/ffmpeg.wasm/issues/772)
+ * onde ffmpeg.exec trava em 0% no Chromium quando o filter inclui `scale=...`.
+ * Como o caso de uso aqui é justamente reduzir 1080p → 720p via scale, o multi-thread
+ * fica 100% inservível pros usuários da operação que rodam Chrome/Edge.
+ * Single-thread roda mais devagar (~3x) mas é estável. Compensamos parcialmente
+ * com preset `ultrafast`.
  *
- * COOP/COEP requirements: handled in `vercel.json` and `vite.config.ts`.
- * Without those headers, SharedArrayBuffer is unavailable and the multi-thread
- * core fails to load.
+ * Why client-side: avoids round-trips to Supabase storage for files that will
+ * be discarded anyway, and gives the user immediate feedback. Para vídeos
+ * de até 30s em laptops modernos, transcode termina em 15-40s.
  */
 
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { VIDEO_TRANSCODE_TARGET } from '@/types';
 
-// CDN base for ffmpeg-core multi-thread build. Pinning version to match the
-// wrapper version (0.12.x) so a future @ffmpeg/ffmpeg upgrade doesn't load a
-// mismatched core that crashes.
-const FFMPEG_CORE_BASE = 'https://unpkg.com/@ffmpeg/core-mt@0.12.10/dist/esm';
+// CDN base for ffmpeg-core single-thread build. Pinning version a major.minor
+// pra evitar surprise upgrades (já caí nessa: o core-mt v0.12.10 trava em 0%).
+const FFMPEG_CORE_BASE = 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm';
 
-// Cached singleton — loading the WASM is expensive (~30MB download + compile),
+// Cached singleton — loading the WASM is expensive (~25MB download + compile),
 // no reason to do it twice.
 let ffmpegInstance: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
@@ -41,10 +43,10 @@ async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
     if (onLog) {
       ffmpeg.on('log', ({ message }) => onLog(message));
     }
+    // Single-thread não precisa de workerURL nem SharedArrayBuffer.
     await ffmpeg.load({
       coreURL: await toBlobURL(`${FFMPEG_CORE_BASE}/ffmpeg-core.js`, 'text/javascript'),
       wasmURL: await toBlobURL(`${FFMPEG_CORE_BASE}/ffmpeg-core.wasm`, 'application/wasm'),
-      workerURL: await toBlobURL(`${FFMPEG_CORE_BASE}/ffmpeg-core.worker.js`, 'text/javascript'),
     });
     ffmpegInstance = ffmpeg;
     return ffmpeg;
@@ -71,9 +73,6 @@ export interface TranscodeResult {
  * Transcoda um vídeo pro target padrão da AdBolt (1280x720 max, H.264 baseline,
  * 2.5 Mbps, AAC 128 kbps, faststart). Mantém o aspect ratio original — só
  * reduz se exceder 1280x720, nunca aumenta.
- *
- * O ffmpeg.wasm escreve o output no FS virtual, lemos como Uint8Array e
- * embrulhamos em File com mime type correto.
  */
 export async function transcodeVideo(
   input: File,
@@ -84,9 +83,7 @@ export async function transcodeVideo(
   onProgress?.({ phase: 'loading-core', progress: 0, message: 'Carregando ffmpeg…' });
   const ffmpeg = await getFFmpeg();
 
-  // Progresso real do ffmpeg vem como float 0..1 no evento 'progress'
   const progressHandler = ({ progress }: { progress: number }) => {
-    // ffmpeg às vezes reporta progress >1 ou <0 — clamp pra evitar UI quebrada
     const clamped = Math.max(0, Math.min(1, progress));
     onProgress?.({ phase: 'transcoding', progress: clamped, message: `Transcodando ${Math.round(clamped * 100)}%` });
   };
@@ -101,10 +98,6 @@ export async function transcodeVideo(
 
     const { maxWidth, maxHeight, videoBitrateKbps, audioBitrateKbps, profile, level } = VIDEO_TRANSCODE_TARGET;
 
-    // Filtro de scale com aspect-ratio preservado:
-    //   - Reduz se exceder maxWidth ou maxHeight
-    //   - `force_original_aspect_ratio=decrease` mantém a menor das duas dimensões fittando
-    //   - `-2` na altura força ela a ser par (libx264 exige) sem distorcer
     const scaleFilter = `scale='min(${maxWidth},iw)':'-2':force_original_aspect_ratio=decrease,scale='-2':'min(${maxHeight},ih)'`;
 
     const args = [
@@ -112,17 +105,20 @@ export async function transcodeVideo(
       '-c:v', 'libx264',
       '-profile:v', profile,
       '-level', level,
-      '-preset', 'fast', // balance speed/size — `fast` é ~3x mais rápido que `medium` com ~5% loss
+      // ultrafast pra compensar o single-thread — perde ~10% de eficiência
+      // de compressão vs `fast`/`medium`, mas roda 2-3x mais rápido. Necessário
+      // pra UX aceitável em vídeo 1080p de 30s sem multi-thread.
+      '-preset', 'ultrafast',
       '-b:v', `${videoBitrateKbps}k`,
       '-maxrate', `${videoBitrateKbps}k`,
       '-bufsize', `${videoBitrateKbps * 2}k`,
       '-vf', scaleFilter,
-      '-pix_fmt', 'yuv420p', // requirement pra compat com player web/mobile
+      '-pix_fmt', 'yuv420p',
       '-c:a', 'aac',
       '-b:a', `${audioBitrateKbps}k`,
       '-ar', '48000',
       '-ac', '2',
-      '-movflags', '+faststart', // moov atom no início = streaming-friendly
+      '-movflags', '+faststart',
       '-y',
       outputName,
     ];
@@ -134,12 +130,10 @@ export async function transcodeVideo(
     const data = await ffmpeg.readFile(outputName);
     const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data as string);
 
-    // Cleanup do FS virtual — não acumular lixo entre transcodes
     await ffmpeg.deleteFile(inputName).catch(() => {});
     await ffmpeg.deleteFile(outputName).catch(() => {});
 
     const outputName2 = input.name.replace(/\.[^.]+$/, '') + '_optimized.mp4';
-    // Use Blob constructor to avoid TS lib mismatch on File constructor signature
     const blob = new Blob([bytes as BlobPart], { type: 'video/mp4' });
     const file = new File([blob], outputName2, { type: 'video/mp4', lastModified: Date.now() });
 

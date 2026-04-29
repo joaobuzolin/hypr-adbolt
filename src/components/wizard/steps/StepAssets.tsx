@@ -14,7 +14,7 @@ import {
   isIABSize, getSizeSuggestion, resizeAssetImage, compressImage,
 } from '@/lib/asset-processing';
 import { analyzeVideo } from '@/lib/video-analysis';
-import { transcodeVideo, preloadFFmpeg, type TranscodeProgress } from '@/lib/video-transcode';
+import { transcodeVideo, type TranscodeProgress } from '@/lib/video-transcode';
 import { extractZipToFiles, processHTML5Zip } from '@/lib/html5-zip';
 import { analyzeTracker } from '@/parsers/tracker';
 import { normalizeUrl, formatBytes } from '@/lib/utils';
@@ -135,10 +135,6 @@ export function StepAssets() {
               videoWarnings: v.warnings,
               videoOptimized: false,
             });
-            // Pré-carrega o ffmpeg.wasm em background quando detecta vídeo que
-            // provavelmente vai precisar de transcode — assim quando o usuário
-            // clicar "Otimizar", o core já tá quente.
-            if (v.status !== 'ok') void preloadFFmpeg();
           } else {
             const dims = await readFileDimensions(file, type);
             newEntries.push({
@@ -299,6 +295,35 @@ export function StepAssets() {
     }
     for (const v of videos) await handleTranscode(v);
   };
+
+  // ── Auto-transcoding ──
+  // Roda transcode automaticamente pra qualquer vídeo com status warn/fail
+  // assim que ele aparece no state. UX que o user esperava: sem precisar clicar
+  // em nada, o vídeo é otimizado em background.
+  //
+  // Rastreia IDs já triggados num ref pra evitar loop infinito (handleTranscode
+  // atualiza assetEntries quando termina, o que dispara o useEffect de novo).
+  // Ref é fora do React state porque queremos que persista entre renders sem
+  // causar re-render quando muda.
+  const triggeredTranscodesRef = useRef<Set<number>>(new Set());
+  const handleTranscodeRef = useRef(handleTranscode);
+  useEffect(() => { handleTranscodeRef.current = handleTranscode; });
+  useEffect(() => {
+    const pending = assetEntries.filter((e) =>
+      e.type === 'video'
+      && (e.videoStatus === 'warn' || e.videoStatus === 'fail')
+      && !e.videoOptimized
+      && !triggeredTranscodesRef.current.has(e.id),
+    );
+    if (!pending.length) return;
+    pending.forEach((e) => triggeredTranscodesRef.current.add(e.id));
+    toast(`Otimizando ${pending.length} vídeo(s) automaticamente…`, '');
+    void (async () => {
+      for (const entry of pending) {
+        await handleTranscodeRef.current(entry);
+      }
+    })();
+  }, [assetEntries, toast]);
 
   // ── Modal state ──
   const [renameOpen, setRenameOpen] = useState(false);
@@ -594,26 +619,18 @@ export function StepAssets() {
                               </span>
                             );
                           }
-                          if (a.videoStatus === 'fail') {
+                          // Auto-trigger pega esses casos no useEffect — aqui só mostramos
+                          // "aguardando" enquanto o trigger não disparou ainda. Se ficar
+                          // travado, o user pode re-uploadar ou clicar bulk Otimizar.
+                          if (a.videoStatus === 'fail' || a.videoStatus === 'warn') {
+                            const triggered = triggeredTranscodesRef.current.has(a.id);
                             return (
-                              <button
-                                className={`${styles.videoStatus} ${styles.videoStatusFail}`}
-                                onClick={() => handleTranscode(a)}
+                              <span
+                                className={`${styles.videoStatus} ${a.videoStatus === 'fail' ? styles.videoStatusFail : styles.videoStatusWarn}`}
                                 title={a.videoWarnings?.join('\n') || ''}
                               >
-                                Otimizar (obrig.)
-                              </button>
-                            );
-                          }
-                          if (a.videoStatus === 'warn') {
-                            return (
-                              <button
-                                className={`${styles.videoStatus} ${styles.videoStatusWarn}`}
-                                onClick={() => handleTranscode(a)}
-                                title={a.videoWarnings?.join('\n') || ''}
-                              >
-                                Otimizar
-                              </button>
+                                {triggered ? 'Aguardando…' : 'Pendente'}
+                              </span>
                             );
                           }
                           if (a.videoStatus === 'ok' && a.bitrateKbps) {
